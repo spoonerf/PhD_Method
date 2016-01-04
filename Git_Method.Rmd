@@ -6,9 +6,8 @@ output: word_document
 ---
 ```{r, warning=FALSE,message=FALSE}
 
-
-setwd("D:/Fiona/PhD1/Git_Directory/PhD1/Method_RMd")
-rm(list=ls())
+setwd("D:/Fiona/Git_Method/Git_Method")
+#rm(list=ls())
 
 # install.packages("zoo")
 # install.packages("mgcv")
@@ -114,7 +113,7 @@ table3
 
 ```
 
-For each of the 979 remaining populations the time series of population data was modelled using either a General Additive Model or a Linear Model. As in Collen 2009 - populations with less than six recorded data points in the time series were modelled using a linear model. Those with more than six data points were modelled using a General Additive Model. This was done so that missing data (for years when the population wasn’t estimated) could be interpolated from the fitted models.
+For each of the 979 remaining populations the time series of population data was modelled using either a General Additive Model or a Linear Model. As in Collen 2009 - populations with less than six recorded data points in the time series were modelled using a linear model. Those with more than six data points were modelled using a General Additive Model. This was done so that missing data (for years when the population wasn't estimated) could be interpolated from the fitted models.
 
 From the 979 populations, 161 (16.4%) were fitted using linear models and 818 (83.6%) were fitted using GAMs. 
 
@@ -196,13 +195,13 @@ doFit = function(sp_name) {
 
 all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
 
-all_matrix <- matrix(unlist(all_df_list), ncol=12, byrow=TRUE)
+all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=12, byrow=TRUE)
 all_df <- data.frame(all_matrix)
 colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq1","r_sq2", "model", "lambda_sum1","lambda_sum2","lambda_mean1","lambda_mean2", "length_time", "missing_years")
 
 hist(all_df$points, breaks=100, xlab="Number of Population Estimates within the Time Series", main="")
 
-hist(all_df$missing_years, breaks=100, xlab="Number of Population Estimates within the Time Series", main="")
+hist(all_df$missing_years, breaks=100, xlab="Number of missing years within the Time Series", main="")
 
 sum(all_df$missing_years)/sum(all_df$length_time)
 
@@ -280,7 +279,7 @@ The mean value is just slightly over zero and there is a fairly normal distribut
 
 
 ```{r}
-all_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
+all_df<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
 hist(all_df$lambda_sum2, xlab="Total Lambda", main="Histogram of Total Lambda", breaks=70)
 mean(all_df$lambda_sum2)
 sd(all_df$lambda_sum2)
@@ -354,7 +353,7 @@ Here the LPI data is added again and once again the data for Fish, populations w
 ```{r}
 #LPI<-read.csv("C:/Users/Fiona/Desktop/PhD/LPI/Data/LPI_populations_IP_fishedit_201#40310_nonconf.csv", stringsAsFactors=FALSE)
 
-LPI<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
 
 LPI_EU<-subset(LPI, ClassX != "Fishes"& Specific_location =="1")
 
@@ -378,7 +377,7 @@ binomial<-LPI_EU4$Binomial
 ```
 
 ```{r, eval=FALSE}
-xmean<- raster ()
+xmean<- brick("Europe_mean_mon.grd")
 
 rmean<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/MeanT/tg_0.25deg_reg_v11.0.nc", varname = "tg")
 
@@ -406,6 +405,8 @@ xmax <- zApply(r2, by=as.yearmon, fun=mean, name='months')   #this bit can take 
 ```{r, eval=FALSE}
 all_EU_mean_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
 
+
+
 for (i in 1:nlayers(xmean)) {
   
   rasterex <- extract(xmean[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)
@@ -416,6 +417,7 @@ for (i in 1:nlayers(xmean)) {
   all_EU_mean_data = rbind(all_EU_mean_data, dataex)
   
 }
+
 
 colnames(all_EU_mean_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Mean_Temp")
 
@@ -430,7 +432,7 @@ write.csv(all_EU_mean_data_NArm, "all_EU_mean_data_NArm_24_08_15_50kbuffnarm.csv
 ```{r}
 #xmax <- brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proc#essed/Europe_maxt_mon.grd")
 
-xmax<-brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_maxt_mon.grd")
+xmax<-brick("Europe_maxt_mon.grd")
 
 plot(xmax[[1]],legend.shrink=0.75,main="Average Daily Maximum Temperature - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Degrees Celsius',side=4, font=2, line=2.5, cex=0.8))
 ```
@@ -461,8 +463,6 @@ write.csv(all_EU_max_data_NArm, "all_EU_max_data_NArm_24_08_15_50kbuffnarm.csv")
 ```
 
 
-
-
 ```{r ,eval=FALSE}
 
 rmin<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Mint/tn_0.25deg_reg_v11.0.nc/tn_0.25deg_reg_v11.0.nc", varname = "tn")
@@ -475,17 +475,12 @@ xmin <- zApply(rmin2, by=as.yearmon, fun=mean, name='months')
 ```
 
 
-
-
 ```{r}
-#xmin <- brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proc#essed/Europe_mint_mon.grd")
 
 xmin<- brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_mint_mon.grd")
 
 plot(xmin[[1]],legend.shrink=0.75,main="Average Daily Minimum Temperature - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Degrees Celsius',side=4, font=2, line=2.5, cex=0.8))
 ```
-
-
 
 
 ```{r, eval=FALSE}
@@ -516,8 +511,6 @@ write.csv(all_EU_min_data_NArm, "all_EU_min_data_NArm_24_08_15_50kbuffnarm.csv")
 ```
 
 
-
-
 ```{r, eval=FALSE}
 
 rpcp<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Pcp/rr_0.25deg_reg_v11.0.nc/rr_0.25deg_reg_v11.0.nc", varname = "rr")
@@ -526,10 +519,7 @@ rpcp2 <- setZ(rpcp, tm, 'days')
 
 xpcp2 <- zApply(rpcp2, by=as.yearmon, fun=sum, name='months')    #summing the monthly precipitation data - rather than the averaging used for min and max temp
 
-
 ```
-
-
 
 
 ```{r}
@@ -539,8 +529,6 @@ xpcp2<-brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_pc
 
 plot(xpcp2[[1]],legend.shrink=0.75,main="Summed Daily Precipitation - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Millimetres',side=4, font=2, line=2.5, cex=0.8))
 ```
-
-
 
 
 ```{r, eval=FALSE}
@@ -571,18 +559,15 @@ all_EU_pcp_data_zeroplus<-subset(all_EU_pcp_data, Precip!="0")
 write.csv(all_EU_pcp_data_zeroplus, "all_EU_pcp_data_Nzeroplus_24_08_15_50kbuffnarm.csv")
 
 
-
 ```
-
-
 
 
 ```{r, eval=FALSE}
 
-all_EU_mean_data<-read.csv("C:/Users/Fiona/Desktop/PhD/all_EU_mean_data_check_21_08_15.csv")
-all_EU_max_data<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_max_data_check_24_08_15_50kbuffnarm.csv")
-all_EU_min_data<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_min_data_24_08_15_50kbuffnarm.csv")
-all_EU_pcp_data<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_pcp_data_24_08_15_50kbuffnarm.csv")
+all_EU_mean_data<-read.csv("all_EU_mean_data_check_24_08_15_50kbuffnarm.csv")
+all_EU_max_data<-read.csv("all_EU_max_data_check_24_08_15_50kbuffnarm.csv")
+all_EU_min_data<-read.csv("all_EU_min_data_24_08_15_50kbuffnarm.csv")
+all_EU_pcp_data<-read.csv("all_EU_pcp_data_24_08_15_50kbuffnarm.csv")
 
 mo2Num <- function(x) match(tolower(x), tolower(month.abb))
 
