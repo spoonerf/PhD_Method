@@ -1,0 +1,2222 @@
+---
+title: "Methods"
+author: "Fiona Spooner"
+date: "Wednesday, September 09, 2015"
+output: word_document
+---
+```{r, warning=FALSE,message=FALSE}
+
+
+setwd("D:/Fiona/PhD1/Git_Directory/PhD1/Method_RMd")
+rm(list=ls())
+
+# install.packages("zoo")
+# install.packages("mgcv")
+# install.packages("broom") 
+# install.packages("rgeos")
+# install.packages("raster")
+# install.packages("plyr")
+# install.packages("proj4")
+# install.packages("maptools")
+# install.packages("taRifx")
+# install.packages("lme4")
+# install.packages("pgirmess")
+# install.packages("ggplot2")
+# install.packages("MuMIn")
+# install.packages("arm")
+# install.packages("Rcpp")
+# install.packages("effects")
+# install.packages("ggmap")
+```
+
+```{r, message=FALSE}
+library(Rcpp)
+library(zoo)
+library(mgcv)
+library(broom) 
+library(rgeos)
+library(raster)
+library(plyr)
+library(proj4)
+library(maptools)
+library(taRifx)
+library(lme4)
+library(pgirmess)
+library(ggplot2)
+library(MuMIn)
+library(arm)
+library(effects)
+library(ggmap)
+
+```
+
+###Population Trends
+The population time series data used in this study are from the Living Planet (LP) database, which has population abundance trends for >15,300 populations of 3,438 mammal, bird, reptile, amphibian and fish species (McRae, Freeman and Deinet, 2014). The data set covers the time period 1950-2012, with each data entry containing population estimates, for a species in a given area, for at least two of the years within this time period.
+
+(Note that the term ‘population’ is not used here in an ecological sense—it refers to a sub-group of a species for which repeated abundance measurements are available at a specified location.) - from Arctic report?
+
+The LP data was subset so that only populations with specific known locations and those within the extent of the climatic and land use data were kept.
+
+This section inputs the LP time series data and excludes any Fish populations, those without a specific location and those with only one data point.
+
+
+```{r, warning=FALSE, message=FALSE}
+
+Clim<-read.csv("Climate_Slopes_08_09_15_50kmbuffnarm.csv")
+
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+#LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
+
+Clim2<-merge(Clim, LPI[c(1,2)], by="ID")
+
+LU<-read.csv("all_EU_Land_Use_Change_26_08_15.csv")
+Traits<-read.csv("LPI_pops_20150529_EDRank2.csv")
+Pop_all<-read.csv("Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
+mess_all <- merge(merge(Clim2, LU, by="ID"), merge(Pop_all, Traits, by="ID"), by="ID")
+
+#LPI_EU<-subset(LPI, ClassX != "Fishes"  & Specific_location =="1")
+#LPI2<-subset(LPI, Specific_location =="1"& ClassX != "Fishes")
+LPI_EU<-subset(LPI, Specific_location =="1" & ClassX != "Fishes" &Latitude >= 25.5 & Latitude <= 75.5 & Longitude >= -40.5 & Longitude <= 75.5)
+
+ID<-LPI_EU$ID
+pop_data<- LPI_EU[,c(1,63:125)]
+
+pop_datab <- (pop_data [,2:64] !="NULL")
+points_per_pop1950_2012 = rowSums(pop_datab)
+length_id <- data.frame(ID,points_per_pop1950_2012)
+
+LPI_EU<-merge(length_id, LPI_EU, by = "ID")
+LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=2)
+
+LPI_EU2<-LPI_EU[,c(1:3,64:126)]
+LPI_EU2[LPI_EU2 == 'NULL'] = NA
+```
+
+```{r}
+Title<-c("Total Populations", "Subset of Populations" ,"Populations with Climate Data", "Populations with Land Use Data", "Populations with Climate and Land Use Data")
+Length_pop<-c(length(LPI$ID), length(LPI_EU2$ID), length(Clim2$ID), length(LU$ID), length(mess_all$ID))
+Length_sp<-c(length(unique(LPI$Binomial)), length(unique(LPI_EU2$Binomial)), length(unique(Clim2$Binomial)), length(unique(LU$Binomial)), length(unique(mess_all$Binomial.x)))
+
+Length_pop2<-matrix(data = Length_pop, nrow = 1)
+Length_sp2<-matrix(data = Length_sp, nrow = 1)
+table<-rbind(Length_pop2, Length_sp2)
+
+colnames(table)<-as.character(Title)
+Sp_Pop<-matrix(c("Populations", "Species"), nrow=2)
+table2<-cbind(Sp_Pop, table)
+table3<-data.frame(table2)
+colnames(table3)[1]<-""
+table3
+
+###need to add column with number of European populations/species as these numbers are referred to later on but not included in this table
+
+
+```
+
+For each of the 979 remaining populations the time series of population data was modelled using either a General Additive Model or a Linear Model. As in Collen 2009 - populations with less than six recorded data points in the time series were modelled using a linear model. Those with more than six data points were modelled using a General Additive Model. This was done so that missing data (for years when the population wasn’t estimated) could be interpolated from the fitted models.
+
+From the 979 populations, 161 (16.4%) were fitted using linear models and 818 (83.6%) were fitted using GAMs. 
+
+The $R^{2}$ value for each of the fitted population models were recorded so that the populations with poorly fit models could be omitted from later stages of analysis.
+
+```{r,message=FALSE, warning=FALSE}
+
+doFit = function(sp_name) {
+  spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
+  spid = spid2[,4:66]                     #subsetting only the dates
+  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
+  missing<-time-points
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 
+  
+  df<-data.frame(Year,Population)
+    
+  
+  if (points >=6) {           ###should I be trying GAMs for populations with less than six points and if that doesn't fit then use a linear model - here I am automatically fitting a linear model if there are less than six points
+    PopN = log10(Population)
+    if (length(na.omit(PopN)) >=6) {
+      SmoothParm = round(length(na.omit(PopN))/2)    ####added na.omit in as was getting " A term has fewer unique covariate combinations than specified maximum degrees of freedom" error
+    } else{
+      SmoothParm=3
+    }
+#     mg1<-mgcv:::gam(Population ~ s(Year))
+#     mg2<-mgcv:::gam(PopN ~ s(Year))
+    mg1<-mgcv:::gam(Population ~ s(Year, k=SmoothParm), fx=TRUE)
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv1 <- predict(mg1,df,type="response",se=TRUE) 
+    pv2 <- predict(mg2,df,type="response",se=TRUE) 
+    R_sq1<-summary(mg1)$r.sq
+    R_sq2<-summary(mg2)$r.sq
+    model<-1
+    pv1$fit[pv1$fit <= 0] <- NA
+    pv2$fit[pv2$fit <= 0] <- NA
+    lambda1<-diff(log10(pv1$fit))
+    lambda2<-diff(pv2$fit)
+    lambda_sum1<-sum(lambda1, na.rm=TRUE)
+    lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    lambda_mean1<-mean(lambda1, na.rm=TRUE)
+    lambda_mean2<-mean(lambda2, na.rm=TRUE)
+ 
+  } else {
+    SmoothParm<-NA
+    PopN = log10(Population)
+    ml1<-lm(df$Population~df$Year)
+    ml2<-lm(PopN~df$Year)
+    R_sq1<-summary(ml1)$r.sq
+    R_sq2<-summary(ml2)$r.sq
+    model<-0
+    Pop_interp1<-na.approx(Population)
+    Pop_interp2<-na.approx(PopN)
+    Pop_interp1[Pop_interp1<=0] <- NA
+    Pop_interp2[Pop_interp2<=0] <- NA
+    lambda1<-diff(log10(Pop_interp1))
+    lambda2<-diff(Pop_interp2)
+    lambda_sum1<-sum(lambda1, na.rm=TRUE)
+    lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    lambda_mean1<-mean(lambda1, na.rm=TRUE)
+    lambda_mean2<-mean(lambda2, na.rm=TRUE)
+  }
+  
+  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq1=R_sq1, r_sq2=R_sq2, model=model,lambda_sum1=lambda_sum1,lambda_sum2=lambda_sum2,lambda_mean1=lambda_mean1,lambda_mean2=lambda_mean2,time=time, missing=missing)
+  
+  print(res_df)
+  return(res_df)
+}
+
+all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
+
+all_matrix <- matrix(unlist(all_df_list), ncol=12, byrow=TRUE)
+all_df <- data.frame(all_matrix)
+colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq1","r_sq2", "model", "lambda_sum1","lambda_sum2","lambda_mean1","lambda_mean2", "length_time", "missing_years")
+
+hist(all_df$points, breaks=100, xlab="Number of Population Estimates within the Time Series", main="")
+
+hist(all_df$missing_years, breaks=100, xlab="Number of Population Estimates within the Time Series", main="")
+
+sum(all_df$missing_years)/sum(all_df$length_time)
+
+#write.csv(all_df, "All_Population_Trends_Rsq_Lambda_12_09_15.csv")
+#write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
+#write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
+write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+
+#all_df_fit<-subset(all_df, r_sq>0.5)
+
+#write.csv(all_df_fit, "Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv")
+
+
+```
+
+
+```{r}
+all_df<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+
+capra_lpi<-subset(LPI_EU2, Binomial=="Capra_ibex")
+
+years<-1950:2005
+
+pop<-capra_lpi[,c(4:59)]
+
+plot(pop, years)
+```
+
+This is an example plot of a logged population trend over time. The fitted GAM shown in red, with two standard errors shown in dashed red.
+
+```{r}
+spid2 = subset(LPI_EU2, ID == 10694)
+  spid = spid2[,4:66]                     
+  colnames(spid)<-1950:2012             
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-as.numeric(t(spid))
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 
+  PopN = log10(Population)
+  df<-data.frame(Year,PopN)
+  smooth<-round(length(na.omit(PopN))/2)
+  mg<-mgcv:::gam(PopN ~ s(Year, k=smooth), fx=TRUE)
+  pv <- predict(mg,df,type="response",se=TRUE) 
+  pv$fit[pv$fit <= 0] <- NA
+  lambda<-diff(log10(pv$fit))
+
+plot(Year, PopN, type="o", ylab=expression("Log"[10]* " Population"), main=expression(Alpine~ibex~italic((Capra~ibex))), ylim=c(min(PopN*0.975),max(PopN*1.025)))
+    lines(Year,pv$fit, col="red", type="l") 
+    lines(Year,pv$fit+2*pv$se.fit,lty=2, col="red") 
+    lines(Year,pv$fit-2*pv$se.fit,lty=2, col="red") 
+
+```
+
+
+This is an example plot of the same population as before but here lambda (rate of population change) is plotted against year. 
+
+Values above zero show times when the population is increasing and values below zero show times when the population is decreasing.
+
+By summing all of these values we can get an idea of the net change in this population over the time series. Here we can see that this populations has declined over the time series.
+
+```{r}
+plot(Year[2:length(Year)], lambda, type= "o", main=expression(Alpine~ibex~italic((Capra~ibex))), xlab="Year", ylab="Lambda")
+
+sum(lambda)    
+    
+```
+
+Histogram showing the distribution of the total lambdas for the populations.
+The mean value is just slightly over zero and there is a fairly normal distribution of the values around this. Large peak just below zero - lots of populations slightly declining but a small number of populations doing very well.
+
+
+```{r}
+all_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
+hist(all_df$lambda_sum2, xlab="Total Lambda", main="Histogram of Total Lambda", breaks=70)
+mean(all_df$lambda_sum2)
+sd(all_df$lambda_sum2)
+
+```
+
+Histogram showing the $R^{2}$ values for the fitted population time series - large number of extremely well fit, perhaps due to a large number of populations with only 2 data points?
+Does seem to be the case that all of the 'perfectly fit' models are made up of only two points.
+
+Also concerning are those with negative $R^{2}$ - in 147 of the GAMs - Reason for negative $R^{2}$ (Copied from mgcv package documentation)
+
+The adjusted r-squared for the model. Defined as the proportion of variance explained, where original variance and residual variance are both estimated using unbiased estimators. This quantity can be negative if your model is worse than a one parameter constant model, and can be higher for the smaller of two nested models! The proportion null deviance explained is probably more appropriate for non-normal errors. Note that r.sq does not include any offset in the one parameter model.
+
+Probably a good idea to compare the characteristics of populations/species that are increasing/decreasing. Some papers have mentioned that species that are closely related are likely to have similar responses to climate/land use change - is it possible to test that or account for it here?
+
+```{r}
+#hist(all_df$r_sq2, xlab="R Squared", main="Histogram of R squared", breaks=70)
+hist(subset(all_df, model==1)$r_sq2, breaks=70, xlab="R Squared", main="Histogram of R squared for GAMs")
+hist(subset(all_df, model==1)$points, main="Histogram showing number of data points in GAMs", xlab="Number of data points in a time series", breaks=70)
+length(subset(all_df, model==1)$ID)
+
+hist(subset(all_df, model==0)$r_sq2, breaks=70, xlab="R Squared", main="Histogram of R squared for Linear Models")
+table(subset(all_df, model==0)$points)
+#perfectly fit populations
+table(subset(all_df, model==0 & r_sq2==1)$points)
+#88 linear models with only two data points and therefore have an R sq of 1, two populations have an R sq of NA as there is no change in the population between the two years
+
+#subset(all_df, points==2 & model==0)
+
+
+```
+
+
+Number of LP time series within each $R^{2}$ bracket 
+
+```{r}
+
+Rsqlev<-round(seq(1,-0.3, by=-0.1), digits=1)
+
+fill<-data.frame(Rsqlev=numeric(0), length=numeric(0))
+
+for (i in 1:length(Rsqlev)){
+  
+  length<-length(subset(all_df, r_sq2>=Rsqlev[i] & r_sq2<=Rsqlev[i]+0.1)$ID)
+  
+  Rsq_band<-matrix(c(  "1.0",  "1.0 - 0.9", "0.9 - 0.8", "0.8 - 0.7","0.7 - 0.6","0.6 - 0.5","0.5 - 0.4","0.4 - 0.3",  "0.3 - 0.2","0.2 - 0.1","0.1 - 0.0",  "0.0 - -0.1","-0.1 - -0.2","-0.2 - -0.3"  ), ncol=1)
+  testdf<-cbind(Rsq_band[i],length(subset(all_df, model==1& r_sq2>=Rsqlev[i] & r_sq2<=Rsqlev[i]+0.1)$ID), length(subset(all_df, model==0& r_sq2>=Rsqlev[i] & r_sq2<=Rsqlev[i]+0.1)$ID))
+  fill<-rbind(fill, testdf)
+  
+}
+
+colnames(fill)<-c("R Squared", "Frequency_GAM", "Frequency_LM")
+
+fill
+
+```
+
+
+###Climate Data
+
+European climate data was downloaded in NetCDF format from [here](http://eca.knmi.nl/download/ensembles/download_paars.php) 
+
+The data were daily values for maximum and minimum temperatures (°C) and precipitation (mm) for the years 1950-2014. The spatial resolution of the grids is 0.25 degrees (~25km), in WGS84 projection and covering the spatial extent -40.5 to 75.5 E and 25.25 to 75.75 N.
+
+The data were converted from daily to monthly values by averaging the daily maximum and minimum temperature over each month and summing the daily precipitation over each month. A raster layer was created for each month and an example can be seen below.
+
+
+
+Here the LPI data is added again and once again the data for Fish, populations without a specific location and those with only one data point are excluded.
+
+```{r}
+#LPI<-read.csv("C:/Users/Fiona/Desktop/PhD/LPI/Data/LPI_populations_IP_fishedit_201#40310_nonconf.csv", stringsAsFactors=FALSE)
+
+LPI<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
+
+LPI_EU<-subset(LPI, ClassX != "Fishes"& Specific_location =="1")
+
+ID<-LPI_EU$ID
+pop_data<- LPI_EU[,c(1,63:125)]
+
+pop_datab <- (pop_data [,2:64] !="NULL")
+points_per_pop1950_2012 = rowSums(pop_datab)
+length_id <- data.frame(ID,points_per_pop1950_2012)
+
+LPI_EU2<-merge(length_id, LPI_EU, by = "ID")
+LPI_EU3<-subset(LPI_EU2, points_per_pop1950_2012 >=2)    #disregarding any populations with less than two time points
+
+LPI_EU4<-subset(LPI_EU3, Latitude >= 25.5 & Latitude <= 75.5 & Longitude >= -40.5 & Longitude <= 75.5) 
+
+id<-LPI_EU4$ID
+xy<-cbind(LPI_EU4$Longitude,LPI_EU4$Latitude)
+
+binomial<-LPI_EU4$Binomial
+
+```
+
+```{r, eval=FALSE}
+xmean<- raster ()
+
+rmean<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/MeanT/tg_0.25deg_reg_v11.0.nc", varname = "tg")
+
+tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
+r2 <- setZ(rmean, tm, 'days')
+xmean <- zApply(r2, by=as.yearmon, fun=mean, name='months')   #this bit can take ages (hours) - it is summarasing the daily data into monthly data
+
+writeRaster(xmean, filename="Europe_mean_mon.grd", bandorder='BIL', overwrite=TRUE)
+
+```
+
+
+```{r, eval=FALSE}
+xmax <- raster("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Processed/Europe_maxt_mon.grd")
+
+rmax<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Maxt/tx_0.25deg_reg_v11.0.nc/tx_0.25deg_reg_v11.0.nc", varname = "tx")
+
+tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
+r2 <- setZ(rmax, tm, 'days')
+xmax <- zApply(r2, by=as.yearmon, fun=mean, name='months')   #this bit can take ages (hours) - it is summarasing the daily data into monthly data
+
+```
+
+
+```{r, eval=FALSE}
+all_EU_mean_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
+
+for (i in 1:nlayers(xmean)) {
+  
+  rasterex <- extract(xmean[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+  date<-names(xmean[[i]])
+  date2 <- as.yearmon(date, "%b.%Y")
+  dataex<-data.frame(id, binomial,xy, format(date2, "%Y"),format(date2, "%b"), rasterex)   
+  print(date2)
+  all_EU_mean_data = rbind(all_EU_mean_data, dataex)
+  
+}
+
+colnames(all_EU_mean_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Mean_Temp")
+
+write.csv(all_EU_mean_data, "all_EU_mean_data_check_24_08_15_50kbuffnarm.csv")
+
+all_EU_mean_data_NArm<-na.omit(all_EU_mean_data)
+write.csv(all_EU_mean_data_NArm, "all_EU_mean_data_NArm_24_08_15_50kbuffnarm.csv")
+
+```
+
+
+```{r}
+#xmax <- brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proc#essed/Europe_maxt_mon.grd")
+
+xmax<-brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_maxt_mon.grd")
+
+plot(xmax[[1]],legend.shrink=0.75,main="Average Daily Maximum Temperature - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Degrees Celsius',side=4, font=2, line=2.5, cex=0.8))
+```
+
+
+
+```{r, eval=FALSE}
+all_EU_max_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
+
+for (i in 1:nlayers(xmax)) {
+  
+  rasterex <- extract(xmax[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+  date<-names(xmax[[i]])
+  date2 <- as.yearmon(date, "%b.%Y")
+  dataex<-data.frame(id, binomial,xy, format(date2, "%Y"),format(date2, "%b"), rasterex)   
+  print(date2)
+  all_EU_max_data = rbind(all_EU_max_data, dataex)
+  
+}
+
+colnames(all_EU_max_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Max_Temp")
+
+write.csv(all_EU_max_data, "all_EU_max_data_check_24_08_15_50kbuffnarm.csv")
+
+all_EU_max_data_NArm<-na.omit(all_EU_max_data)
+write.csv(all_EU_max_data_NArm, "all_EU_max_data_NArm_24_08_15_50kbuffnarm.csv")
+
+```
+
+
+
+
+```{r ,eval=FALSE}
+
+rmin<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Mint/tn_0.25deg_reg_v11.0.nc/tn_0.25deg_reg_v11.0.nc", varname = "tn")
+
+tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
+rmin2 <- setZ(rmin, tm, 'days')
+xmin <- zApply(rmin2, by=as.yearmon, fun=mean, name='months')
+
+
+```
+
+
+
+
+```{r}
+#xmin <- brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proc#essed/Europe_mint_mon.grd")
+
+xmin<- brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_mint_mon.grd")
+
+plot(xmin[[1]],legend.shrink=0.75,main="Average Daily Minimum Temperature - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Degrees Celsius',side=4, font=2, line=2.5, cex=0.8))
+```
+
+
+
+
+```{r, eval=FALSE}
+
+all_EU_min_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
+
+
+for (i in 1:nlayers(xmin)) {
+  
+  rasterex <- extract(xmin[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)   ###add ",buffer=50000" at the end here if you want a 50km buffer around the population
+  date<-names(xmin[[i]])
+  date2 <- as.yearmon(date, "%b.%Y")
+  dataex<-data.frame(id, binomial,xy, format(date2, "%Y"),format(date2, "%b"), rasterex)   
+  print(date2)
+  all_EU_min_data = rbind(all_EU_min_data, dataex)
+  
+}
+
+colnames(all_EU_min_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Min_Temp")
+
+
+write.csv(all_EU_min_data, "all_EU_min_data_24_08_15_50kbuffnarm.csv")
+
+all_EU_min_data_NArm<-na.omit(all_EU_min_data)
+
+write.csv(all_EU_min_data_NArm, "all_EU_min_data_NArm_24_08_15_50kbuffnarm.csv")
+
+```
+
+
+
+
+```{r, eval=FALSE}
+
+rpcp<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Pcp/rr_0.25deg_reg_v11.0.nc/rr_0.25deg_reg_v11.0.nc", varname = "rr")
+
+rpcp2 <- setZ(rpcp, tm, 'days')
+
+xpcp2 <- zApply(rpcp2, by=as.yearmon, fun=sum, name='months')    #summing the monthly precipitation data - rather than the averaging used for min and max temp
+
+
+```
+
+
+
+
+```{r}
+#xpcp2<-brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proce#ssed/Europe_pcp_mon.grd")
+
+xpcp2<-brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_pcp_mon.grd")
+
+plot(xpcp2[[1]],legend.shrink=0.75,main="Summed Daily Precipitation - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Millimetres',side=4, font=2, line=2.5, cex=0.8))
+```
+
+
+
+
+```{r, eval=FALSE}
+
+all_EU_pcp_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
+
+
+for (i in 1:nlayers(xpcp2)) {
+  
+  rasterex <- extract(xpcp2[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)    ###add ",buffer=50000" at the end here if you want a 50km buffer around the population
+  date<-names(xpcp2[[i]])
+  date2 <- as.yearmon(date, "%b.%Y")
+  dataex<-data.frame(id, binomial,xy, format(date2, "%Y"),format(date2, "%b"), rasterex)   
+  print(date2)
+  dim(dataex)
+  all_EU_pcp_data = rbind(all_EU_pcp_data, dataex)
+  
+}
+
+colnames(all_EU_pcp_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Precip")
+
+
+write.csv(all_EU_pcp_data, "all_EU_pcp_data_24_08_15_50kbuffnarm.csv")
+
+
+all_EU_pcp_data_zeroplus<-subset(all_EU_pcp_data, Precip!="0")
+
+write.csv(all_EU_pcp_data_zeroplus, "all_EU_pcp_data_Nzeroplus_24_08_15_50kbuffnarm.csv")
+
+
+
+```
+
+
+
+
+```{r, eval=FALSE}
+
+all_EU_mean_data<-read.csv("C:/Users/Fiona/Desktop/PhD/all_EU_mean_data_check_21_08_15.csv")
+all_EU_max_data<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_max_data_check_24_08_15_50kbuffnarm.csv")
+all_EU_min_data<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_min_data_24_08_15_50kbuffnarm.csv")
+all_EU_pcp_data<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_pcp_data_24_08_15_50kbuffnarm.csv")
+
+mo2Num <- function(x) match(tolower(x), tolower(month.abb))
+
+all_EU_max_data$Month<-mo2Num(all_EU_max_data$Month)
+
+all_EU_max_data$Month<-as.numeric(all_EU_max_data$Month)
+all_EU_max_data$Year<-as.numeric(as.character(all_EU_max_data$Year))
+all_EU_max_data$yearmon<-all_EU_max_data$Year + all_EU_max_data$Month/12
+
+#write.csv(all_EU_max_data, "all_EU_pop_max_data_no_buff.csv")
+
+EUclim<- cbind(all_EU_max_data, all_EU_pcp_data$Precip, all_EU_min_data$Min_Temp, all_EU_mean_data$Mean_Temp)
+colnames(EUclim)[c(10:12)]<-c("Precip","Min_Temp","Mean_Temp")
+
+#write.csv(EUclim, "all_EU_clim_data_28_09_15_50kbuffnarm.csv")
+
+EUclim_NArm<-na.omit(EUclim)
+
+#write.csv(EUclim_NArm, "all_EU_clim_data_NArm_26_08_15_50kbuffnarm.csv")
+
+```
+
+
+
+
+```{r}
+#EUclim_new<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/all_EU_clim_da#ta_26_08_15_50kbuffnarm.csv")
+
+#EUclim_new<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_clim_data_26_08_15_50kbuffnarm.csv")
+
+EUclim_new<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_clim_data_28_09_15_50kbuffnarm.csv")
+
+
+```
+
+
+For every population within the LPI database, which were within the extent of the climate raster a monthly value for each of the climatic variables (maximum and minimum temperature and precipitation) were extracted. So that for each population the climatic conditions for 1950-2014 were known. 
+
+For each of these climatic time series a linear model was run in order to get a value for the slope/rate of change of each climate variable per year. This was done to quantify how much the climate had changed over the time the population had been recorded, so that the influence of climate on the population characteristics could be estimated.
+
+```{r, eval=FALSE}
+doMean = function(sp_name) {
+  spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  climid=subset(EUclim_new, id == sp_name)  #subsetting the climate data by each population
+  
+  year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
+                     mean_mean = mean(na.omit(Mean_Temp)))
+  
+  lt_avg <- ddply(climid, "id", summarise,              #calculating the long term mean (1950-2014) of the max temp, min temp and precipitation - for each population
+                  lt_avg_mean = mean(na.omit(Mean_Temp)))
+  
+  year_temp$anom_mean = year_temp$mean_mean - lt_avg$lt_avg_mean     #calculating anomalies 1950-2014
+  
+  
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  
+   Mean_mon<-climid[climid$Year %in% Year, ]$Mean_Temp
+  Mon_var<-var(Mean_mon)
+  Mon_sd<- sd(Mean_mon)
+  
+  Mean_anom<-year_temp$anom_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Mean<-year_temp$mean_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Year_anom_sd<-sd(Mean_anom)
+  Year_anom_var<-var(Mean_anom)
+  Year_sd<-sd(Mean)
+  Year_var<-var(Mean)   #getting climate for the years which the population is recorded - should get some #of the years before the time series start? but won't work for series that start in #1950-1954
+  
+  
+  if (sum(is.nan(Mean))!=length(Mean)){
+  
+  lm_mean<-lm(Mean~Year)
+  lm_mean_df<-tidy(lm_mean)[2,]  
+  mean_df<-cbind(id,lm_mean_df)
+  
+  } else{
+    
+  mean_df<-matrix(c(id,NA,NA,NA,NA,NA), nrow=1, ncol=6)
+  colnames(mean_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value")
+  mean_df<-data.frame(mean_df)
+  }
+  
+  mean_df$Mon_var<-Mon_var
+  mean_df$Year_var<-Year_var
+
+  print(mean_df)  
+  return(mean_df)
+}
+
+all_df_list <- lapply(unique(LPI_EU4$ID), doMean)
+
+all_matrix <- matrix(unlist(all_df_list), ncol=8, byrow=TRUE)
+mean_df <- data.frame(all_matrix)
+colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var", "Year_var")
+
+#write.csv(mean_df, "mean_df_slope_28_09_15_50kmbuffnarm.csv")
+
+
+write.csv(mean_df, "mean_df_slope_17_10_15_50kmbuffnarm.csv")
+
+```
+
+
+```{r, eval=FALSE}
+doMax = function(sp_name) {
+  spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  climid=subset(EUclim_new, id == sp_name)  #subsetting the climate data by each population
+  
+  year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
+                     mean_max = mean(na.omit(Max_Temp)))
+  
+  lt_avg <- ddply(climid, "id", summarise,              #calculating the long term mean (1950-2014) of the max temp, min temp and precipitation - for each population
+                  lt_avg_max = mean(na.omit(Max_Temp)))
+  
+  year_temp$anom_max = year_temp$mean_max - lt_avg$lt_avg_max     #calculating anomalies 1950-2014
+  
+  
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  
+  Max_mon<-climid[climid$Year %in% Year, ]$Max_Temp
+  year_mon<-climid[climid$Year %in% Year, ]$yearmon
+  
+  Mon_var<-var(Max_mon)
+  Mon_sd<- sd(Max_mon)
+  
+  Max_anom<-year_temp$anom_max[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Max<-year_temp$mean_max[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Year_anom_sd<-sd(Max_anom)
+  Year_anom_var<-var(Max_anom)
+  Year_sd<-sd(Max)
+  Year_var<-var(Max)
+  #getting climate for the years which the population is recorded - should get some #of the years before the time series start? but won't work for series that start in #1950-1954
+  
+  
+  if (sum(is.nan(Max))!=length(Max)){
+  
+  lm_max<-lm(Max~Year)
+  lm_max_df<-tidy(lm_max)[2,]  
+  max_df<-cbind(id,lm_max_df)
+  
+  
+  } else{
+    
+  max_df<-matrix(c(id,NA,NA,NA,NA,NA), nrow=1, ncol=6)
+  colnames(max_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value")
+  max_df<-data.frame(max_df)
+  }
+  max_df$Mon_var<-Mon_var
+  max_df$Year_var<-Year_var
+  
+  print(max_df)
+  return(max_df)
+}
+
+all_df_list <- lapply(unique(LPI_EU4$ID), doMax)
+
+all_matrix <- matrix(unlist(all_df_list), ncol=8, byrow=TRUE)
+max_df <- data.frame(all_matrix)
+colnames(max_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var", "Year_var")
+
+#write.csv(max_df, "max_df_slope_08_09_15_50kmbuffnarm.csv")
+
+write.csv(max_df, "max_df_slope_17_10_15_50kmbuffnarm.csv")
+
+```
+
+
+
+
+```{r}
+#max_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/max_df_slope_08_09_15_50kmbuffnarm.csv")
+
+max_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/max_df_slope_17_10_15_50kmbuffnarm.csv")
+
+```
+
+
+
+```{r,eval=FALSE}
+doMin = function(sp_name) {
+  spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  climid=subset(EUclim_new, id == sp_name)   #subestting the climate data by each population
+  
+  year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
+                     mean_min = mean(na.omit(Min_Temp)))
+  
+  lt_avg <- ddply(climid, "id", summarise,              #calculating the long term mean (1950-2014) of the max temp, min temp and precipitation - for each population
+                  lt_avg_min = mean(na.omit(Min_Temp)))
+  
+  year_temp$anom_min = year_temp$mean_min - lt_avg$lt_avg_min              #calculating anomalies 1950-2014
+  #renaming the date column names as R doesn't like numbered column names
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]  #getting climate for the years which the population is recorded - should get some of the years before the time series start? but won't work for series that start in 1950-1954
+  Mean_mon<-climid[climid$Year %in% Year, ]$Min_Temp
+  Mon_var<-var(Mean_mon)
+  Mon_sd<- sd(Mean_mon)
+  
+  Min_anom<-year_temp$anom_min[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Min<-year_temp$mean_min[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Year_anom_sd<-sd(Min_anom)
+  Year_anom_var<-var(Min_anom)
+  Year_sd<-sd(Min)
+  Year_var<-var(Min)
+  
+  if (sum(is.nan(Min))!=length(Min)){
+    
+    lm_min<-lm(Min~Year)
+    lm_min_df<-tidy(lm_min)[2,]  
+    min_df<-cbind(id,lm_min_df)
+    
+  } else{
+    
+    min_df<-matrix(c(id,NA,NA,NA,NA,NA), nrow=1, ncol=6)
+    colnames(min_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value")
+    min_df<-data.frame(min_df)
+  }
+  min_df$Mon_var<-Mon_var
+  min_df$Year_var<-Year_var
+  
+  print(min_df)
+  return(min_df)
+}
+
+all_df_list <- lapply(unique(LPI_EU4$ID), doMin)
+
+all_matrix <- matrix(unlist(all_df_list), ncol=8, byrow=TRUE)
+min_df <- data.frame(all_matrix)
+colnames(min_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var", "Year_var")
+
+#write.csv(min_df, "min_df_slope_08_09_15_50kmbuffnarm.csv")
+
+write.csv(min_df, "min_df_slope_17_10_15_50kmbuffnarm.csv")
+
+```
+
+
+
+
+```{r}
+#min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/min_df_slope_08_09_15_50kmbuffnarm.csv")
+
+min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/min_df_slope_17_10_15_50kmbuffnarm.csv")
+
+```
+
+
+
+
+```{r,eval=FALSE}
+
+doPcp = function(sp_name) {
+  spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  climid=subset(EUclim_new, id == sp_name)   #subestting the climate data by each population
+  
+  year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
+                     mean_pcp = mean(na.omit(Precip)))
+  
+  lt_avg <- ddply(climid, "id", summarise,              #calculating the long term mean (1950-2014) of the max temp, min temp and precipitation - for each population
+                  lt_avg_pcp = mean(na.omit(Precip)))
+  
+  year_temp$anom_pcp = year_temp$mean_pcp - lt_avg$lt_avg_pcp              #calculating anomalies 1950-2014
+  #renaming the date column names as R doesn't like numbered column names
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]  #getting climate for the years which the population is recorded - should get some of the years before the time series start? but won't work for series that start in 1950-1954
+  
+ Mean_mon<-climid[climid$Year %in% Year, ]$Precip
+  Mon_var<-var(Mean_mon)
+  Mon_sd<- sd(Mean_mon)
+  
+  Pcp_anom<-year_temp$anom_pcp[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Pcp<-year_temp$mean_pcp[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Year_anom_sd<-sd(Pcp_anom)
+  Year_anom_var<-var(Pcp_anom)
+  Year_sd<-sd(Pcp)
+  Year_var<-var(Pcp)
+  
+  if (sum(is.nan(Pcp))!=length(Pcp)){
+    
+    lm_pcp<-lm(Pcp~Year)
+    lm_pcp_df<-tidy(lm_pcp)[2,]  
+    pcp_df<-cbind(id,lm_pcp_df)
+    
+  } else{
+    
+    pcp_df<-matrix(c(id,NA,NA,NA,NA,NA), nrow=1, ncol=6)
+    colnames(pcp_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value")
+    pcp_df<-data.frame(pcp_df)
+  }
+  
+  pcp_df$Mon_var<-Mon_var
+  pcp_df$Year_var<-Year_var
+  
+  print(pcp_df)
+  return(pcp_df)
+}
+all_df_list <- lapply(unique(LPI_EU4$ID), doPcp)
+
+all_matrix <- matrix(unlist(all_df_list), ncol=8, byrow=TRUE)
+pcp_df <- data.frame(all_matrix)
+colnames(pcp_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var", "Year_var")
+
+#write.csv(pcp_df, "pcp_df_slope_08_09_15_50kmbuffnarm.csv")
+
+write.csv(pcp_df, "pcp_df_slope_17_10_15_50kmbuffnarm.csv")
+
+```
+
+
+
+
+```{r}
+
+#mean_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/mean_df_slope_28_09_15_50kmbuffnarm.csv")
+
+mean_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/mean_df_slope_17_10_15_50kmbuffnarm.csv")
+##tryig mean_df with monthly average slope and se - to capture more variation
+
+#mean_df<-read.csv("mean_df_slope_mon_avg_01_10_15_50kmbuffnarm.csv")
+
+#max_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/max_df_slope_25_08_15_50kmbuffnarm.csv")
+max_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/max_df_slope_17_10_15_50kmbuffnarm.csv")
+
+#min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/min_df_slope_25_08_15_50kmbuffnarm.csv")
+min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/min_df_slope_17_10_15_50kmbuffnarm.csv")
+
+
+#pcp_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/pcp_df_slope_08_09_15_50kmbuffnarm.csv")
+
+pcp_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/pcp_df_slope_17_10_15_50kmbuffnarm.csv")
+
+
+EUclim_slope<-merge(merge(max_df[,c(2,4,5,8,9)], min_df[,c(2,4,5,8,9)], by="ID"), merge(pcp_df[,c(2,4,5,8,9)], mean_df[,c(2,4,5,8,9)], by="ID"), by="ID")
+
+
+colnames(EUclim_slope)[2:17]<-c("max_slope","max_slope_se", "max_mon_var", "max_year_var", "min_slope","min_slope_se","min_mon_var", "min_year_var", "pcp_slope","pcp_slope_se","pcp_mon_var", "pcp_year_var", "mean_slope", "mean_slope_se", "mean_mon_var", "mean_year_var")
+
+#write.csv(EUclim_slope, "Climate_Slopes_28_09_15_50kmbuffnarm.csv")
+
+write.csv(EUclim_slope, "Climate_Slopes_17_10_15_50kmbuffnarm.csv" )
+
+```
+
+
+###Land Use Change
+
+
+This sections looks at land use change in Europe 1950-2010 and attempts to capture the amount of land use change experienced by each population at their location and in the surrounding area.
+
+The data is from the [HILDA](http://www.wageningenur.nl/en/Expertise-Services/Chair-groups/Environmental-Sciences/Laboratory-of-Geoinformation-Science-and-Remote-Sensing/Models/Hilda.htm) project. It is 1 x 1km spatial resolution and decadal temporal resolution.
+
+Big assumption is that land-use change is equivalent to habitat loss - where as with this method habitat restoration could be counted as land use change. It just means that the category has changed from the first value taken.
+
+I should test for confounding correlations between climate and land use change variables - Oliver and Morecroft 2014
+
+An example of the land use data is shown below:
+
+```{r,message=FALSE, warning=FALSE}
+
+r_1950 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1950.asc"))
+r_1960 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1960.asc"))
+r_1970 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1970.asc"))
+r_1980 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1980.asc"))
+r_1990 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1990.asc"))
+r_2000 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch2000.asc"))
+r_2010 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch2010.asc"))
+
+
+r_2010b<-crop(r_2010, r_1950)    #the 2010 raster is larger than the other years so has to be ropped to the same size so that they can be stacked
+
+# projection(r_1950) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+# 
+# newproj <- "+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84"
+# pr1 <- projectRaster(r_1950, crs=newproj)
+
+r<-stack(r_1950,r_1960,r_1970,r_1980,r_1990,r_2000,r_2010b)
+
+names(r)<-seq(1950,2010, by=10)
+
+frequency<-freq(r)
+freq_df<-data.frame(matrix(unlist(frequency), nrow=7))
+
+freq_df<-freq_df[,c(1,2,4,6,8,10,12,14)]
+
+freq_dft<-t(freq_df)
+freq_dft2<-freq_dft[c(2:8),c(1:6)]
+
+
+colnames(freq_dft2)<-c("Settlement", "Cropland", "Forest", "Grassland", "Other Land", "Water")
+rownames(freq_dft2)<-seq(1950,2010, by=10)
+
+freq_dft3<-data.frame(freq_dft2)
+freq_dft3$Total<-rowSums(freq_dft3)
+
+plot(rownames(freq_dft3), freq_dft3$Settlement, type="l", ylim=c(60000,1500000))
+lines(rownames(freq_dft3), freq_dft3$Cropland, type="l")
+lines(rownames(freq_dft3), freq_dft3$Forest, type="l")
+lines(rownames(freq_dft3), freq_dft3$Grassland, type="l")
+lines(rownames(freq_dft3), freq_dft3$Other.Land, type="l")
+lines(rownames(freq_dft3), freq_dft3$Water, type="l")
+
+freq_dft3$Settlement_per<-freq_dft3$Settlement/freq_dft3$Total
+freq_dft3$Cropland_per<-freq_dft3$Cropland/freq_dft3$Total
+freq_dft3$Forest_per<-freq_dft3$Forest/freq_dft3$Total
+freq_dft3$Grassland_per<-freq_dft3$Grassland/freq_dft3$Total
+freq_dft3$Other.Land_per<-freq_dft3$Other.Land/freq_dft3$Total
+freq_dft3$Water_per<-freq_dft3$Water/freq_dft3$Total
+
+plot(rownames(freq_dft3), freq_dft3$Settlement_per, type="o", ylim=c(0,0.35), col="red")
+lines(rownames(freq_dft3), freq_dft3$Cropland_per, type="o", col="#EEB99FFF")
+lines(rownames(freq_dft3), freq_dft3$Forest_per, type="o", col="#00A600FF")
+lines(rownames(freq_dft3), freq_dft3$Grassland_per, type="o", col="#63C600FF")
+lines(rownames(freq_dft3), freq_dft3$Other.Land_per, type="o", col="#E6E600FF")
+lines(rownames(freq_dft3), freq_dft3$Water_per, type="o", col="lightblue")
+
+
+
+
+Year<-as.numeric(colnames(freq_df[2:8]))
+Settlement<-as.matrix(freq_df[1,c(2:8)])
+
+plot(freq_df[1,c(2:8)])
+
+```
+
+```{r}
+r<-brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Land_Use_1950_2010.grd")
+
+# crs.geo <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+# 
+# proj4string(r) <- crs.geo 
+# 
+# rwgs84 <- projectRaster(r, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84" ) 
+
+plot(rwgs84)
+
+colors<-c("#F2F2F2FF","#EEB99FFF","#00A600FF","#63C600FF","#E6E600FF","lightblue")
+plot(r[[1]], xlim=c(-30,40), ylim=c(30,72), main="Land Use Map of Europe in 1950", xlab="Longitude", ylab="Latitude", legend = FALSE, bty="L", col=colors)
+par(xpd=TRUE)
+legend(6095000,5315409, legend = c("Settlement", "Cropland", "Forest", "Grassland", "Other Land", "Water"), fill = colors, inset=0.05)
+
+```
+
+For each population location the raster of Europe was cropped to the location and the surrounding 121km^2, so that there was a 11 x 11km grid, with the population located within the central cell. 
+
+An example of this is shown below:
+
+
+
+```{r}
+
+#LPI_LUC<-read.csv("LPI_pops_20150529_EDRank2_climslope_nobuff2.csv")  
+#LPI_LUC<-read.csv("C:/Users/Fiona/Desktop/PhD/LPI/Data/LPI_populations_IP_fishedit#_20140310_nonconf.csv")
+
+LPI_LUC<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+id<-LPI_LUC$ID
+latlong<-cbind(LPI_LUC$Longitude,LPI_LUC$Latitude)
+
+xy<-project(latlong,"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+
+check_xy<-data.frame(id,xy)      #subsetting the populations so that only those within the landuse raster are included - means that non-EU27 populations are lost
+
+check_xy$check<-extract(r,check_xy[,(2:3)])
+
+check_xy2<-na.omit(check_xy)
+#check_xy2<-subset(check_xy, check != "NA")
+
+crop_id<-check_xy2[,1]
+
+selectedRows <- (LPI_LUC$ID %in% check_xy2$id)   ####selecting the rows that are in the match up file and in the EU populations I'm working with
+
+LPI_LUC_sel <- LPI_LUC[selectedRows,]
+
+
+points <- SpatialPoints(cbind(check_xy2[,2], y<-check_xy2[,3]))
+projection(points)<-"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+
+
+x<-check_xy2[,2]
+y<-check_xy2[,3]
+
+xy<-cbind(x,y)        #creating the grid around the population - 5km either side gives a grid of 121km^2
+
+xmin<- colFromX(r[[1]], points[1:length(points),]) - 12
+xmax<- colFromX(r[[1]], points[1:length(points),]) + 12
+ymin<- rowFromY(r[[1]], points[1:length(points),]) - 12
+ymax<- rowFromY(r[[1]], points[1:length(points),]) + 12    #changed from 5 to 12
+
+
+grid_crop<-data.frame(ID=crop_id,xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)   #setting extents of grid to extract
+
+grid_crop2<-merge(grid_crop,LPI_LUC_sel, by="ID")
+
+grid_crop2<-subset(grid_crop2, Specific_location ==1)    #690 populations left
+
+# 
+# crop_freq<-freq(crop(r, extent(r,grid_crop2[1,4], grid_crop2[1,5],grid_crop2[1,2],grid_crop2[1,3])))
+# 
+# crop_freq_df<-data.frame(matrix(unlist(crop_freq), nrow=7))
+
+```
+
+
+
+
+```{r}
+colors<-c("#F2F2F2FF","#EEB99FFF","#00A600FF","#63C600FF","#E6E600FF","lightblue")
+plot(crop(r[[1]], extent(r[[1]], grid_crop[100,4],grid_crop[100,5],grid_crop[100,2],grid_crop[100,3])),main="Crop of Land Use Raster", xlab="Longitude", ylab="Latitude", legend = FALSE, bty="L", col=colors)
+points(x[100],y[100], pch=16)
+par(xpd=TRUE)
+legend(5231419,3867409, legend = c("Settlement", "Cropland", "Forest", "Grassland", "Other Land", "Water"), fill = colors)
+
+
+```
+
+
+
+
+
+This section finds the land use rasters for every time series (the beginning and the end of the time series are rounded to the nearest decade)
+
+```{r, eval=FALSE, message=FALSE,warning=FALSE,}
+result <- data.frame() #empty result dataframe
+
+
+for (i in 1:length(grid_crop2$ID)) {
+  
+ID<-grid_crop2[i,1]
+  Binomial<-as.character(grid_crop2[i,6])
+  spid = grid_crop2[i,67:129]                     #subsetting only the dates
+  colnames(spid)<-1950:2012
+  
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  
+  LUmin<-min(round_any(Year, 10))
+  LUmax<-max(round_any(Year, 10))
+  
+  crop_check<-crop(r, extent(r, grid_crop2[i,4],grid_crop2[i,5],grid_crop2[i,2],grid_crop2[i,3]))
+  
+  crop_df<-data.frame(as.matrix(crop_check))
+  
+  #crop_df<-na.omit(crop_df)
+  
+  colnames(crop_df)<-seq(1950,2010, by=10)
+  
+  col<-as.numeric(colnames(crop_df[,1:7]))
+  
+  min_yr<-min(which(col>=LUmin))
+  max_yr<-max(which(col<=LUmax))
+  
+  if (min_yr != max_yr) {
+    
+    crop_df$check<-rowSums(crop_df[,min_yr] == crop_df[,c(min_yr:max_yr)])
+    
+  }else{
+    crop_df$check<-1
+  }
+  
+#   ham <- function(i,j,data) {hamming.distance(data[,i],data[,j])}
+#   v_ham <- Vectorize(ham, vectorize.args=list("i","j"))
+#   churn<-diff(as.vector(outer(min_yr,min_yr:max_yr,v_ham,data=crop_df)))
+
+  # print(churn)
+  crop_df$change<-  crop_df$check != length(seq(min_yr,max_yr, by=1))
+  
+  change_rate<-sum(na.omit(crop_df$change=="TRUE"))/length(na.omit(crop_df$change))
+  
+  print(change_rate)
+  
+  final<-cbind(ID,Binomial,change_rate) 
+  result<-rbind(final,result)
+  
+}
+
+
+LPI_LUC_sel2<-subset(LPI_LUC_sel, Specific_location ==1) 
+
+LPI_LUC_selm<-merge(LPI_LUC_sel2, result[,c(1,3)], by="ID",all = TRUE)
+
+LPI_LUC_selm$change_rate<-as.numeric(as.character(LPI_LUC_selm$change_rate))
+hist(LPI_LUC_selm$change_rate, breaks=100)
+
+# hist(log10(LPI_LUC_selm$change_rate+1), breaks=100)
+# result$log_change_rate<-log10(as.numeric(as.character(result$change_rate)))
+#write.csv(LPI_LUC_selm, "LPI_LandUse_121_21_08_2015.csv" )
+write.csv(LPI_LUC_selm, "LPI_LandUse_625_29_09_2015.csv" )
+#write.csv(LPI_LUC_selm, "LPI_LandUse_121_18_09_2015.csv" )
+
+```
+
+
+
+
+
+```{r}
+LPI_LUC_selm<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_121_18_09_2015.csv")
+
+hist(LPI_LUC_selm$change_rate, breaks=100, main="Histogram of Land Use Change for each Time Series", xlab="Land Use Change in Surrounding 121km^2 over Time Series")
+
+hist(LPI_LUC_selm$log_change_rate, breaks=100, main="Histogram of Logged(base 10) Land Use Change for each Time Series", xlab="Land Use Change in Surrounding 121km^2 over Time Series")
+
+
+```
+
+
+###Joining all of the data together
+```{r,eval=FALSE}
+# Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Climate_Slopes_08_09_15_50kmbuffnarm.csv")
+# 
+# LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/all_EU_Land_Use_Change_26_08_15.csv")
+# #Pop<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Use_This/Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv") #POpulations with model Rsq >0.5
+# Traits<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Model Input/LPI_pops_20150529_EDRank2.csv")
+# Pop_all<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/All_Population_Trends_Rsq_Lambda_18_08_15.csv")
+####
+#Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_08_09_15_50kmbuffnarm.csv")
+#Clim<-read.csv("mean_df_slope_mon_avg_01_10_15_50kmbuffnarm.csv") ##monthly average mean slope and se
+#Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_28_09_15_50kmbuffnarm.csv")
+Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_17_10_15_50kmbuffnarm.csv")
+
+LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_625_29_09_2015.csv")
+#LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_Land_Use_Change_26_08_15.csv")
+#LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_121_18_09_2015.csv")
+#Pop<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Use_This/Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv") #POpulations with model Rsq >0.5
+Traits<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_pops_20150529_EDRank2.csv")
+#Pop_all<-read.csv("All_Population_Trends_Rsq_Lambda_18_08_15.csv")
+#Pop_all<-read.csv("All_Population_Trends_Rsq_Lambda_12_09_15.csv")
+#Pop_all<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
+Pop_all<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+#mess <- merge(merge(Clim, LU, by="ID"), merge(Pop, Traits, by="ID"), by="ID")
+mess_all <- merge(merge(Clim, LU[c(2,150)], by="ID"), merge(Pop_all, Traits, by="ID"), by="ID")
+
+
+clim_all<-merge(Clim, Traits, by="ID")
+clim_all2<-merge(clim_all, Pop_all, by="ID")  #just climate, traits and populations, ignoring land use data
+
+#write.csv(mess_all, "2015_09_13_LMEModel_data3.csv")
+#write.csv(mess_all, "2015_09_18_LMEModel_data3.csv")
+#write.csv(mess_all, "2015_09_22_LMEModel_data3.csv")
+#write.csv(mess_all, "2015_09_28_LMEModel_data3.csv")   #added mean temp
+#write.csv(mess_all, "2015_09_29_LMEModel_data3.csv")  #wider land use grid
+#write.csv(mess_all, "2015_10_17_LMEModel_data3.csv")  #yearly and monthly variance added
+write.csv(mess_all, "2015_10_26_LMEModel_data3.csv")   #added missing year counts
+write.csv(clim_all2, "2015_11_05_LMEModel_data_clim.csv")#no land use data
+#write.csv(mess_all, "2015_10_01_LMEModel_data3.csv")  ##trying with monthly mean slope and se
+```
+
+```{r}
+Clim<-read.csv("Climate_Slopes_17_10_15_50kmbuffnarm.csv")
+
+LU<-read.csv("LPI_LandUse_625_29_09_2015.csv")
+
+Traits<-read.csv("LPI_pops_20150529_EDRank2.csv")
+
+Pop_all<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+
+mess_all <- merge(merge(Clim, LU[c(2,150)], by="ID"), merge(Pop_all, Traits, by="ID"), by="ID")
+
+clim_all<-merge(Clim, Traits, by="ID")
+clim_all2<-merge(clim_all, Pop_all, by="ID")
+
+#write.csv(mess_all, "2015_09_29_LMEModel_data3.csv") 
+write.csv(clim_all2, "2015_11_09_ClimateModel_data.csv")
+
+```
+
+###Climate-population models
+
+```{r}
+Clim_pop<-read.csv("2015_11_09_ClimateModel_data.csv")
+
+Climate_Temp<- subset(Clim_pop, !is.na(max_slope_se)&!is.na(max_slope)&r_sq2 >= 0.5 &Include5 == "Yes"&Class != "Amphibia" )
+
+clim_count<-Climate_Temp[,c(2,84:148)]
+Year_data_nodups<-colSums(!is.na(clim_count[,c(2:66)]))
+Years<-1950:2014
+
+plot(Years,Year_data_nodups, type="l", xlab= "Year", ylab="Number of population counts", main="Climate data with duplicates")
+
+
+mx<-lmer(TL~mean_slope*mean_slope_se +(1|Binomial_old)+ (1|Country), data=Climate_Temp)
+
+plot(effect("mean_slope*mean_slope_se",xlevels=4, mx, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+
+
+#remove duplicates
+nrow(Climate_Temp)
+
+clim_dups<-data.frame(ddply(Climate_Temp,.(Longitude,Latitude),nrow))
+clim_dups$loc_id<-1:length(clim_dups$Longitude)
+clim_dups_df<-merge(clim_dups, Climate_Temp, by=c("Longitude","Latitude"))
+
+library(plyr)
+coefs <- ddply(clim_dups_df, .(Class), function(df) {
+  m <- lm(TL ~ log10(mean_slope_se), data=df)
+  n<- summary(lm(TL ~ log10(mean_slope_se), data=df))
+  data.frame(Intercept = coef(m)[1], Slope = coef(m)[2], Rsq= n$r.squared, PValue=pf(n$fstatistic[1], n$fstatistic[2], n$fstatistic[3],
+     lower.tail = FALSE))
+})
+
+coefs
+
+q<-lm(clim_dups_df$TL ~ clim_dups_df$mean_slope_se)
+
+library(ggplot2)
+p<-ggplot(clim_dups_df,aes(x=log10(mean_slope_se),y=TL,color=Class)) +geom_point(size=3) 
+p + geom_smooth(aes(group=Class), method="lm") + xlab("Log10 Standard Error of Mean Temperature") +ylab("Total Lambda") + scale_colour_discrete(name="Class",breaks=c("Aves", "Mammalia"),labels=c("Birds", "Mammals"))
+
+
+
+
+####sampling by locations
+##should only get one population from each location - in order to remove bias of lots of pops in Spain
+library(data.table)
+dt = as.data.table(clim_dups_df)
+
+R=99
+Est_se_m1=numeric(R)
+PValue_m1 = numeric(R)
+RSq_m1= numeric(R)
+int_m1= numeric(R)
+AIC_m1= numeric(R)
+
+est_slope_m2= numeric(R)
+est_slope_se_m2= numeric(R)
+Est_se_m2=numeric(R)
+PValue_m2 = numeric(R)
+RSq_m2= numeric(R)
+int_m2= numeric(R)
+AIC_m2= numeric(R)
+for (i in 1:R) {
+dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])    #.N signifies the number of rows when using data.table
+colnames(dt2)[2]<-"ID"
+clim_dups_df2<-clim_dups_df[clim_dups_df$ID %in% dt2$ID,]
+m1<-lm(clim_dups_df2$TL~log10(clim_dups_df2$mean_slope_se))
+AIC_m1[i]<-AIC(m1)
+int_m1[i]<-summary(m1)$coef[1]
+Est_se_m1[i]<-summary(m1)$coef[2] #estimated value of mean_slope_se
+RSq_m1[i]<-summary(m1)$r.square
+PValue_m1[i]<-pf(summary(m1)$fstatistic[1], summary(m1)$fstatistic[2], summary(m1)$fstatistic[3],lower.tail = FALSE)
+
+m2<-lm(clim_dups_df2$TL~log10(clim_dups_df2$mean_slope_se)*clim_dups_df2$mean_slope)
+AIC_m2[i]<-AIC(m2)
+int_m2[i]<-summary(m2)$coef[1]
+Est_se_m2[i]<-summary(m2)$coef[2]
+est_slope_m2[i]<-summary(m2)$coef[3]
+est_slope_se_m2[i]<-summary(m2)$coef[4]#estimated value of mean_slope_se
+RSq_m2[i]<-summary(m2)$r.square
+PValue_m2<-pf(summary(m2)$fstatistic[1], summary(m2)$fstatistic[2], summary(m2)$fstatistic[3],lower.tail = FALSE)
+
+}
+
+
+
+hist(Est_se, breaks=100)
+hist(RSq, breaks=100)
+hist(PValue, breaks=100)
+
+Est_se<-sort(Est_se)
+RSq<-sort(RSq)
+
+# sum(Est_se>Est_se[25]&Est_se<Est_se[975])/length(Est_se)  #this much data in 95%CI?
+# sum(RSq>RSq[25]&RSq<RSq[975])/length(RSq) 
+
+clim_no_dups<-subset(clim_dups_df, V1==1)
+
+clim_count_nodups<-clim_no_dups[,c(5,86:150)]
+Year_data_nodups<-colSums(!is.na(clim_count_nodups[,c(2:66)]))
+Years<-1950:2014
+
+plot(Years,Year_data_nodups, type="l", xlab= "Year", ylab="Number of population counts", main="Climate data no duplicates")
+
+nrow(clim_no_dups)
+
+r<-lm(clim_no_dups$TL ~ clim_no_dups$mean_slope_se)
+
+
+p<-ggplot(clim_no_dups,aes(x=log10(mean_slope_se),y=TL,color=Class)) +geom_point(size=3) 
+p + geom_smooth(aes(group=Class), method="lm") + xlab("Log10 Standard Error of Mean Temperature") +ylab("Total Lambda") + scale_colour_discrete(name="Class",breaks=c("Aves", "Mammalia"),labels=c("Birds", "Mammals"))
+
+mp<-lm(Inc5MammalsTemp$TL~log10(Inc5MammalsTemp$mean_slope_se))
+summary(mp)
+
+
+coefs <- ddply(clim_no_dups, .(Class), function(df) {
+  m <- lm(TL ~ log10(mean_slope_se), data=df)
+  n<- summary(lm(TL ~ log10(mean_slope_se), data=df))
+  data.frame(Intercept = coef(m)[1], Slope = coef(m)[2], R_Sq=n$r.squared, PValue=pf(n$fstatistic[1], n$fstatistic[2], n$fstatistic[3],
+     lower.tail = FALSE))
+})
+
+coefs
+
+
+library(ggmap)
+library(mapproj)
+bbox <- ggmap::make_bbox(Longitude, Latitude, clim_no_dups, f = 0.3)
+map <- get_map(location = bbox, source ="google",color = "bw")
+ggmap(map, fullpage = TRUE) 
+mapPoints<- ggmap(map) + geom_point(aes(x = Longitude, y = Latitude), color="red", data = clim_no_dups, alpha = .5) +labs(x = "Longitude", y = "Latitude")+ggtitle("Location of Populations - No Duplicates")+theme(legend.position = "none")
+mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
+
+
+```
+
+
+###Mixed Effects Models
+
+
+```{r}
+#LPI_EDScores<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/2015_09_29_LMEModel_data3.csv")   #added mean temp #added 625 land use
+#LPI_EDScores<-read.csv("2015_09_28_LMEModel_data3.csv")   #added mean temp
+LPI_EDScores<-read.csv("2015_10_26_LMEModel_data3.csv") 
+Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(max_slope_se)&!is.na(max_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" )
+
+# center_scale <- function(x) {
+#     scale(x, scale = FALSE)
+# }
+
+#center_scale(LPI_EDScores$mean_slope)
+
+
+nrow(Inc5MammalsTemp)
+
+#counting duplicates at each location
+sp_dups<-data.frame(ddply(Inc5MammalsTemp,.(Longitude,Latitude),nrow))
+sp_dups$loc_id<-1:length(sp_dups$Longitude)
+sp_dups_df<-merge(sp_dups, Inc5MammalsTemp, by=c("Longitude","Latitude"))
+
+result<-data.frame()
+
+
+for (i in 1:length(sp_dups$loc_id)){
+  
+  sub<-subset(sp_dups_df, loc_id==i)
+  bird_loc<-sum(sub$Class == "Aves")
+  mamm_loc<-sum(sub$Class == "Mammalia")
+  count_loc<-cbind(i,bird_loc, mamm_loc)
+  print(count_loc)
+  result<-rbind(count_loc,result)
+}
+
+colnames(result)[1]<-"loc_id"
+
+sp_dups_df2<-merge(sp_dups_df, result, by="loc_id")
+
+unique_bm<-unique(sp_dups_df2[,c(1:4,252,253)])
+
+
+#write.csv(unique_bm, "bird_mamm_count.csv")
+
+
+
+sp_no_dups<-subset(sp_dups_df, V1==1)
+
+#write.csv(sp_dups_df, "population_duplicate_count.csv")
+
+#looking at temporal distribution of pop counts
+pop_count<-LPI_EDScores[,c(2,97:161)]
+Year_data<-colSums(!is.na(pop_count[,c(2:66)]))
+Years<-1950:2014
+plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts", main="mixed effects data with reps")
+
+library(ggplot2)
+library(ggmap)
+#map showing magnitude of duplication
+bbox <- ggmap::make_bbox(Longitude, Latitude, sp_dups_df, f = 0.5)
+map <- get_map(location = bbox, source ="google",color = "bw")
+ggmap(map, fullpage = TRUE) 
+mapPoints <- ggmap(map) + geom_point(aes(x = Longitude, y = Latitude, size = V1), color="red", data = sp_dups_mamm, alpha = .3)+scale_size_continuous(range = c(3,10),name="Number of Populations") +labs(x = "Longitude", y = "Latitude")+ggtitle("Location of Mammal Populations")+scale_colour_discrete(guide=F)
+mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
+###bootstrapping
+
+sp_dups_bird<-subset(sp_dups_df, Class=="Aves")
+sp_dups_mamm<-subset(sp_dups_df, Class=="Mammalia")
+
+library(data.table)
+dt = as.data.table(sp_dups_df)
+dt_bird= as.data.table(sp_dups_bird)
+dt_mamm= as.data.table(sp_dups_mamm)
+
+parm_df<-sp_dups_df[,c(6,20,21,24)]
+parm_bird<-sp_dups_bird[,c(6,20,21,24)]
+parm_mamm<-sp_dups_mamm[,c(6,20,21,24)]
+
+parm_mat<-as.matrix(parm_df)
+parm_bird_mat<-as.matrix(parm_bird)
+parm_mamm_mat<-as.matrix(parm_mamm)
+
+parm_scale<-scale(parm_mat[,c(2:4)])
+parm_bird_scale<-scale(parm_bird_mat[,c(2:4)])
+parm_mamm_scale<-scale(parm_mamm_mat[,c(2:4)])
+
+parm_id<-parm_mat[,1]
+parm_bird_id<-parm_bird_mat[,1]
+parm_mamm_id<-parm_mamm_mat[,1]
+
+parm_df_scale<-data.frame(parm_id,parm_scale)
+parm_birddf_scale<-data.frame(parm_bird_id, parm_bird_scale)
+parm_mammdf_scale<-data.frame(parm_mamm_id, parm_mamm_scale)
+
+colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_slope_se_scale", "change_rate_scale")
+
+colnames(parm_birddf_scale)<-c("ID", "mean_slope_scale", "mean_slope_se_scale", "change_rate_scale")
+
+colnames(parm_mammdf_scale)<-c("ID", "mean_slope_scale", "mean_slope_se_scale", "change_rate_scale")
+
+sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
+
+sp_bird_scale<-merge(sp_dups_bird, parm_birddf_scale, by="ID")
+
+sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
+###############
+library(lme4)
+scale_mod<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_df_scale)
+
+birdscale_mod<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_bird_scale)
+
+mammscale_mod<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_mamm_scale)
+
+#not sure if the raster values have to be scaled if the model inputs are - probably?
+
+rc<-stack("land_clim_se_stack2.tif")
+rc_bird<-stack("land_clim_se_stack_bird.tif")
+rc_mamm<-stack("land_clim_se_stack_mamm.tif")
+names(rc)<-c("mean_slope_scale", "mean_slope_se_scale","change_rate_scale")
+names(rc_bird)<-c("mean_slope_scale", "mean_slope_se_scale","change_rate_scale")
+names(rc_mamm)<-c("mean_slope_scale", "mean_slope_se_scale","change_rate_scale")
+rcm<-as.matrix(rc) 
+rcm_bird<-as.matrix(rc_bird)
+rcm_mamm<-as.matrix(rc_mamm)
+
+rcmd<-data.frame(rcm)
+rcmd_bird<-data.frame(rcm_bird)
+rcmd_mamm<-data.frame(rcm_mamm)
+
+p3s <- predict(scale_mod,rcmd,re.form=NA)  
+pbird<-predict(scale_mod, rcmd_bird, re.form=NA)
+pmamm<-predict(scale_mod,rcmd_mamm,re.form=NA)
+#p3s <- predict(mod,rcmd,re.form=NA)  
+
+
+p4s<-raster(matrix(p3s, nrow=4701, ncol=6070, byrow=T))
+
+pbird_rast<-raster(matrix(pbird, nrow=4701, ncol=6070, byrow=T))
+
+pmamm_rast<-raster(matrix(pmamm, nrow=4701, ncol=6070, byrow=T))
+  
+extent(p4s)<-c(-31.76583,59.67167,31.26143,71.16211)
+extent(pbird_rast)<-c(-31.76583,59.67167,31.26143,71.16211)
+extent(pmamm_rast)<-c(-31.76583,59.67167,31.26143,71.16211)
+
+projection(p4s)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+projection(pbird_rast)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+projection(pmamm_rast)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+
+
+plot(p4s, main="all populations")
+plot(pbird_rast, main="birds")
+plot(pmamm_rast, main="mammals")
+
+
+writeRaster(p4s, "predict_abundance_change.tif", format="GTiff", overwrite=TRUE)
+writeRaster(pbird_rast, "predict_bird_abnd_change.tif", format="GTiff", overwrite=TRUE)
+writeRaster(pmamm_rast, "predict_mamm_abnd_change.tif", format="GTiff", overwrite=TRUE)
+
+mb<-lmer(TL ~ log10(change_rate+1)*log10(mean_slope_se)+log10(change_rate+1)*mean_slope+mean_slope*log10(mean_slope_se) +(1|Binomial_old)+(1|Country),data=dt_bird)
+models_list<-list(mb)
+modelsR<-lapply(models_list,rsquared.glmm)
+modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+
+
+mm<-lmer(TL ~ log10(change_rate+1)*log10(mean_slope_se)+log10(change_rate+1)*mean_slope+mean_slope*log10(mean_slope_se) +(1|Binomial_old)+(1|Country),data=dt_mamm)
+models_list<-list(mm)
+modelsR<-lapply(models_list,rsquared.glmm)
+modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+
+
+mn<-lmer(TL ~ log10(change_rate+1)*log10(mean_slope_se)+log10(change_rate+1)*mean_slope+mean_slope*log10(mean_slope_se)+(1|Binomial_old)+(1|Country),data=dt)
+
+mn_bird<-lmer(TL ~ log10(change_rate+1)*log10(mean_slope_se)+log10(change_rate+1)*mean_slope+mean_slope*log10(mean_slope_se)+(1|Binomial_old)+(1|Country),data=dt_bird)
+
+mn_mamm<-lmer(TL ~ log10(change_rate+1)*log10(mean_slope_se)+log10(change_rate+1)*mean_slope+mean_slope*log10(mean_slope_se)+(1|Binomial_old)+(1|Country),data=dt_mamm)
+
+
+rc<-stack("land_clim_se_stack.tif")
+names(rc)<-c("change_rate", "mean_slope", "mean_slope_se")
+rcm<-as.matrix(rc) # from total land use change code
+rcmd<-data.frame(rcm)
+
+
+p3 <- predict(mn,rcmd,re.form=NA)  
+p3_bird <- predict(mn_bird,rcmd,re.form=NA)
+p3_mamm <- predict(mn_mamm,rcmd,re.form=NA)
+
+p4<-raster(matrix(p3, nrow=201, ncol=464, byrow=T))
+p4_bird<-raster(matrix(p3_bird, nrow=201, ncol=464, byrow=T))
+p4_mamm<-raster(matrix(p3_mamm, nrow=201, ncol=464, byrow=T))
+
+extent(p4)<-c(-40.5,75.5,25.25,75.5)
+extent(p4_bird)<-c(-40.5,75.5,25.25,75.5)
+extent(p4_mamm)<-c(-40.5,75.5,25.25,75.5)
+
+projection(p4)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+projection(p4_bird)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+projection(p4_mamm)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+
+plot(p4, main="change_rate*mean_slope + change_rate*mean_slope_se+mean_slope*mean_slope_se")
+
+plot(p4_bird, main="change_rate*mean_slope + change_rate*mean_slope_se+mean_slope*mean_slope_se")
+
+plot(p4_mamm, main="change_rate*mean_slope + change_rate*mean_slope_se+mean_slope*mean_slope_se")
+
+writeRaster(p4, "change_mean_slope_mean_se_int.tif", format="GTiff", overwrite=TRUE)
+####reform=NA
+  
+scale(x, center = TRUE, scale = TRUE)
+  
+source("rsquaredglmm.R")
+
+R=9999
+PValue = numeric(R)
+AIC_m1= numeric(R)
+intercept = numeric(R)
+change_rate = numeric(R)
+mean_se = numeric(R)
+mean_slope = numeric(R)
+change_mean_se = numeric(R)
+change_mean_slope = numeric(R)
+mean_se_mean_slope = numeric(R)
+marg_Rsq = numeric(R)
+cond_Rsq = numeric(R)
+
+for (i in 1:R) {
+dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N signifies the number of rows when using data.table
+colnames(dt2)[2]<-"ID"
+sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
+m1<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+models_list<-list(m1)
+modelsR<-lapply(models_list,rsquared.glmm)
+modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+marg_Rsq[i]<-modelsRsq[1,4]
+cond_Rsq[i]<-modelsRsq[1,5]
+AIC_m1[i]<-AIC(m1)
+intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
+change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
+mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
+mean_slope[i]<-coef(summary(m1))[ 4, "Estimate"]
+change_mean_se[i]<-coef(summary(m1))[ 5, "Estimate"]
+change_mean_slope[i]<-coef(summary(m1))[ 6, "Estimate"]
+mean_se_mean_slope[i]<-coef(summary(m1))[ 7, "Estimate"]
+
+print(i)
+}
+
+
+
+hist(marg_Rsq, breaks=100)
+hist(cond_Rsq, breaks=100)
+hist(AIC_m1, breaks=100)
+#hist(RSq, breaks=100)
+hist(intercept, breaks=100)
+hist(change_rate, breaks=100)
+hist(mean_se, breaks=100)
+hist(mean_slope, breaks=100)
+hist(change_mean_se, breaks=100)
+hist(change_mean_slope, breaks=100)
+hist(mean_se_mean_slope, breaks=100)
+
+coef_df<-cbind(intercept,change_rate,mean_se,mean_slope,change_mean_se,change_mean_slope,mean_se_mean_slope)
+
+
+
+Variable<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change", "Land Use Change*Mean Temp Var", "Land Use Change*Mean Temp Change", "Mean Temp Var*Mean Temp Change")
+
+mean_conf<-c(mean(intercept), mean(change_rate), mean(mean_se),mean(mean_slope), mean(change_mean_se), mean(change_mean_slope), mean(mean_se_mean_slope))
+
+lowCI<-c(sort(intercept)[250],sort(change_rate)[250],sort(mean_se)[250],sort(mean_slope)[250],sort(change_mean_se)[250],sort(change_mean_slope)[250],sort(mean_se_mean_slope)[250])
+
+highCI<-c(sort(intercept)[9750],sort(change_rate)[9750],sort(mean_se)[9750],sort(mean_slope)[9750],sort(change_mean_se)[9750],sort(change_mean_slope)[9750], sort(mean_se_mean_slope)[9750])
+
+conf<-data.frame(rbind( lowCI, mean_conf, highCI))
+colnames(conf)<-Variable
+
+RSq_df<-cbind(marg_Rsq,cond_Rsq)
+Var_RSq<-c("Marginal R Squared","Conditional R Squared")
+Mean_RSq<-c(mean(marg_Rsq),mean(cond_Rsq))
+LowCI_RSq<-c(sort(marg_Rsq)[250],sort(cond_Rsq)[250])
+HighCI_RSq<-c(sort(marg_Rsq)[9750],sort(cond_Rsq)[9750])
+
+library(plotrix)
+
+
+
+par(cex.axis=0.8)
+par(mar=c(14,5,1,1))
+par(mgp=c(2, 1,0))
+plotCI(1:7, mean_conf, (highCI-mean_conf), (mean_conf-lowCI), ylab="Coefficient Values", xlab="" ,xaxt = "n")
+axis(1, at=1:7, labels=colnames(conf), las=2)
+abline(h=0, col="red", lty =2)
+points(fixy, col="red", pch="x", cex=1.5)
+
+
+#taking out change_rate*mean_slope - which is massive
+plotCI(1:8, mean_conf[c(1:7,9)], (highCI[c(1:7,9)]-mean_conf[c(1:7,9)]), (mean_conf[c(1:7,9)]-lowCI[c(1:7,9)]), ylab="Confidence Intervals", xlab="" ,xaxt = "n")
+axis(1, at=1:8, labels=colnames(conf)[c(1:7,9)], las=2)
+
+####R Squared
+plotCI(1:2, Mean_RSq,(HighCI_RSq-Mean_RSq), (Mean_RSq-LowCI_RSq),ylab="Confidence Intervals", xlab="" ,xaxt = "n")
+axis(1, at=1:2, labels=Var_RSq, las=2)
+
+
+m23<-lmer(TL ~ change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale +(1|Binomial_old)+(1|Country),data=sp_df_scale)
+plot(effect("change_rate_scale*mean_slope_scale",xlevels=4, m23, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+plot(effect("change_rate_scale*mean_slope_se_scale", m23, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+plot(effect("mean_slope_se_scale*mean_slope_scale", m23,xlevels=4, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+
+plot(effect("mean_slope_se_scale*mean_slope_scale", m23,xlevels=4, factor.names=FALSE, layout=c(4,1), alternating=FALSE), ylab="Logged Population Change", main="Interaction between mean temperature change and mean temperature variability", xlab="Mean Temperature Variation")
+
+
+######with duplicates removed
+
+nrow(sp_no_dups)
+
+pop_count_nodups<-sp_no_dups[,c(5,99:163)]
+Year_data_nodups<-colSums(!is.na(pop_count_nodups[,c(2:66)]))
+Years<-1950:2014
+
+plot(Years,Year_data_nodups, type="l", xlab= "Year", ylab="Number of population counts", main="mixed effects data No duplicates")
+
+library(ggmap)
+library(mapproj)
+
+map <- get_map(location = 'Europe', zoom = 4, source ="google",color = "bw")
+mapPoints<- ggmap(map) + geom_point(aes(x = Longitude, y = Latitude, size = V1), color="red", data = sp_no_dups, alpha = .5) +labs(x = "Longitude", y = "Latitude")+ggtitle("Location of Populations - No Duplicates")+theme(legend.position = "none")
+mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
+
+
+
+library(effects)
+library(lme4)
+
+m23<-lmer(TL ~ log10(change_rate+1)*log10(mean_slope_se)+log10(change_rate+1)*mean_slope+mean_slope*log10(mean_slope_se) +(1|Binomial_old)+(1|Country),data=sp_no_dups)
+plot(effect("log10(change_rate + 1)*mean_slope",xlevels=4, m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("log10(change_rate + 1)*log10(mean_slope_se)", m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("log10(mean_slope_se)*mean_slope", m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+
+
+
+
+#bootMer to bootstrap mixed effects models
+
+
+```
+
+
+```{r}
+#mapping location duplicates
+library(plyr)
+location_dups<-data.frame(ddply(Inc5MammalsTemp,.(Longitude,Latitude),nrow))
+location_dups<-data.frame(ddply(Climate_Temp,.(Longitude,Latitude),nrow))
+
+library(ggmap)
+library(mapproj)
+map <- get_map(location = 'Europe', zoom = 4, source ="google",color = "bw")
+ggmap(map, fullpage = TRUE) 
+mapPoints <- ggmap(map) + geom_point(aes(x = Longitude, y = Latitude, size = V1), color="red", data = location_dups, alpha = .5)+scale_size_continuous(range = c(3,10),name="Number of Populations") +labs(x = "Longitude", y = "Latitude")+ggtitle("Location of Populations")+scale_colour_discrete(guide=F)
+mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
+
+```
+
+
+The output of the models 
+```{r}
+
+
+mclim<-lmer(TL ~mean_slope*log10(mean_slope_se)+(1|Binomial_old)+(1|Country),data=Climate_Temp, REML=F)
+plot(effect("mean_slope*log10(mean_slope_se)", mclim, factor.names=FALSE, layout=c(4,1), alternating=FALSE), xlab="Rate of Mean Temperature Change", ylab="Total Lambda", main="Interaction between average climate change and climate variability")
+
+
+# mclim.effects<-allEffects(mclim)
+# summary(mclim.effects)
+# 
+# plot(mclim.effects, multiline=T, xlab="Rate of  Mean Temperature Change", ylab="Total Lambda", main="Interaction between average climate change and climate variability")
+# 
+# eff_cf <- effect("mean_slope*log10(mean_slope_se)", mclim)
+# 
+# eff_df<-data.frame(eff_cf)
+# 
+# summary(mclim)
+
+
+#testing if models with env variables are better than models without env variables
+m0<-lmer(TL~(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp, REML=F)
+
+m22<-lmer(TL ~ log10(change_rate+1)+mean_slope+mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp, REML=F)
+
+m23<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+log10(change_rate+1)*mean_slope+mean_slope*mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp,REML=F)
+
+m23a<-lmer(TL ~ log10(change_rate+1)*mean_year_var+log10(change_rate+1)*mean_slope+mean_slope*mean_year_var+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp, REML=F)
+
+m23b<-lmer(TL ~ log10(change_rate+1)*sqrt(mean_mon_var)+log10(change_rate+1)*mean_slope+mean_slope*sqrt(mean_mon_var)+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp,REML=F)
+
+m23c<-lmer(TL ~ log10(change_rate+1):mean_slope_se:mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp,REML=F)
+
+AIC(m22,m23)
+
+models<-model.sel(list(m0,m22,m23, m23a,m23b,m23c))
+
+models_list<-list(m23)
+
+source("rsquaredglmm.R")
+
+modelsR<-lapply(models_list,rsquared.glmm)
+modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+colnames(modelsRsq) <- c("a","b", "c", "marginal", "conditional", "AIC")
+modelsRsq_df<-data.frame(modelsRsq)
+modelsRsq_df
+
+
+
+
+###forgetting climate variability for now
+
+m0<-lmer(TL~1+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m1<-lmer(TL ~ log10(change_rate+1)+mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m1a<-lmer(TL ~ log10(change_rate+1)+mean_slope+mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m1b<-lmer(TL ~ log10(change_rate+1)+mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m1c<-lmer(TL ~ mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m1d<-lmer(TL ~ log10(change_rate+1)+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+
+m2<-lmer(TL ~ log10(change_rate+1)*mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m2a<-lmer(TL ~ log10(change_rate+1):mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m2b<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m2c<-lmer(TL ~ log10(change_rate+1):mean_slope_se:mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m2d<-lmer(TL ~ log10(change_rate+1)*max_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+models2<-model.sel(list(m0,m1,m1a,m1b,m1c,m1d,m2,m2a,m2b,m2c,m2d))
+
+
+LMER62<-lmer(TL ~ mean_slope+mean_slope_se+max_slope_se+min_slope_se+pcp_slope_se+Migratory+change_rate+max_slope+min_slope+pcp_slope+ED_score+Bodymass+Red_list_category_recoded+PA_recoded+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+#scales<-scale(Inc5MammalsTemp[c(4:11,14)])[1]
+
+m1<-lmer(TL ~ change_rate*max_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m2<-lmer(TL ~ change_rate+max_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m3<-lmer(TL ~ log10(change_rate+1)*max_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m4<-lmer(TL ~ log10(change_rate+1)+max_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m5<-lmer(TL ~ log10(change_rate+1)*max_slope+PA_recoded+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m6<-lmer(TL ~ log10(change_rate+1)*max_slope+Bodymass+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m7<-lmer(TL ~ log10(change_rate+1)+min_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m8<-lmer(TL ~ log10(change_rate+1)*min_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m9<-lmer(TL ~ log10(change_rate+1)+pcp_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m10<-lmer(TL ~ log10(change_rate+1)*pcp_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m11<-lmer(TL ~ change_rate*mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m12<-lmer(TL ~ change_rate+mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m13<-lmer(TL ~ log10(change_rate+1)*mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m14<-lmer(TL ~ log10(change_rate+1)+mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m15<-lmer(TL ~ log10(change_rate+1)*mean_slope+PA_recoded+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m16<-lmer(TL ~ log10(change_rate+1)+mean_slope+Bodymass+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m17<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+PA_recoded+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m18<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m19<-lmer(TL ~ log10(change_rate+1)+mean_slope_se+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m20<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+log10(change_rate+1)*mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m21<-lmer(TL ~ change_rate*mean_slope_se+change_rate*mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+m22<-lmer(TL ~ PA_recoded+log10(change_rate+1)*mean_slope_se+log10(change_rate+1)*mean_slope+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+m23<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+log10(change_rate+1)*mean_slope+mean_slope*mean_slope_se +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+models<-model.sel(list(m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20, m21,m22))
+
+#step<-lmer(TL~. +(1|Binomial_old)+(1|Country), data=Inc5MammalsTemp)
+
+Inc5MammalsTemp_b <- subset(Inc5MammalsTemp, change_rate < 0.8)
+
+Inc5MammalsTemp_c <- subset(LPI_EDScores, !is.na(max_slope_se)&!is.na(max_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include10 == "Yes" & PA_recoded != "Unknown" & change_rate <=0.001)
+
+m23<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+log10(change_rate+1)*mean_slope+mean_slope*mean_slope_se +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+plot(effect("log10(change_rate + 1)*mean_slope", m23,xlevels=4, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("log10(change_rate + 1)*mean_slope_se", m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("mean_slope_se*mean_slope", m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+
+
+m24<-lmer(TL ~ log10(change_rate+1)*mean_mon_var+log10(change_rate+1)*mean_slope+mean_slope*mean_mon_var +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+plot(effect("log10(change_rate + 1)*mean_slope", m24,xlevels=4, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("log10(change_rate + 1)*mean_mon_var", m24, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("mean_mon_var*mean_slope", m24, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+
+
+m25<-lmer(TL ~ log10(change_rate+1)*mean_year_var+log10(change_rate+1)*mean_slope+mean_slope*mean_year_var +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+plot(effect("log10(change_rate + 1)*mean_slope", m25,xlevels=4, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("log10(change_rate + 1)*mean_year_var", m25, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("mean_year_var*mean_slope", m25, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+
+
+
+
+
+
+
+
+# m23<-lmer(TL ~ change_rate*mean_slope_se+change_rate*mean_slope+mean_slope:mean_slope_se +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+
+m23<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+log10(change_rate+1)*mean_slope+mean_slope*mean_slope_se +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp_b)
+plot(effect("log10(change_rate + 1)*mean_slope",m23,xlevels=4, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+plot(effect("log10(change_rate + 1)*mean_slope_se", m23,xlevels=4, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+plot(effect("mean_slope_se*mean_slope", m23,xlevels=4, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+
+# m24<-lmer(TL ~ log10(change_rate+1)*mean_slope_se+log10(change_rate+1)*mean_slope+mean_slope*mean_slope_se +Bodymass+ED_score+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+# 
+# plot(effect("log10(change_rate + 1)*mean_slope",xlevels=4, m24, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+# plot(effect("log10(change_rate + 1)*mean_slope_se", m24,xlevels=4, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+# plot(effect("mean_slope_se*mean_slope", m24,xlevels=4, factor.names=FALSE, layout=c(4,1), alternating=FALSE))
+
+
+
+m23<-lmer(TL ~ mean_slope*mean_slope_se +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp_c)
+plot(effect("mean_slope*mean_slope_se", m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+
+###trying with monthly mean slope
+
+m23<-lmer(TL ~ log10(change_rate+1)*SE+log10(change_rate+1)*Estimate+Estimate*SE +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+plot(effect("log10(change_rate + 1)*Estimate",xlevels=4, m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("log10(change_rate + 1)*SE", m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+plot(effect("SE*Estimate", m23, factor.names=FALSE, layout=c(5,1), alternating=FALSE))
+
+
+
+#   
+# top_dredge2_rsq<-lapply(LMER62_list,rsquared.glmm)
+#            
+```
+
+```{r, eval=FALSE}
+stan_LMER62 <- standardize(LMER62,standardize.y = FALSE) 
+
+
+options(na.action = "na.fail")
+#dd <- dredge(LMER62)
+dd <- dredge(stan_LMER62, REML=FALSE)
+
+top_dredge2<-subset(dd, delta < 2)
+top_dredge6<-subset(dd, delta < 6)
+ave_dredge2<-model.avg(top_dredge2)
+ave_dredge2<-model.avg(top_dredge2)
+ave_dredge6<-model.avg(top_dredge6)
+
+summary(ave_dredge2)    #what do you do with the model weights?!
+
+# lmer(TL ~ (1*Management_recoded)+(1*change_rate)+(1*ED_score)+(1*max_slope_se)+(1*precip_slope)+(0.82*Bodymass)+(0.76*PA_recoded)+(0.16*min_slope_se)+(0.12*min_slope)+(0.09*max_slope)+(0.08*Migratory)+(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+
+
+fit <- lmer(TL ~ Bodymass+log10(change_rate+2)+log10(max_slope+2) +(1|Binomial_old)+(1|Country),data=Inc5MammalsTemp)
+ vis_fit<-visreg(fit)       #visreg not really used for mixed models
+
+
+top_dredge2_get<-get.models(top_dredge2, subset=TRUE)
+top_dredge6_get<-get.models(top_dredge6, subset=TRUE)
+
+source("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/rsquaredglmm.R")
+
+top_dredge2_rsq<-lapply(top_dredge2_get,rsquared.glmm)
+top_dredge2_rsqm <- matrix(unlist(top_dredge2_rsq), ncol=6, byrow=T)
+colnames(top_dredge2_rsqm) <- c("a","b", "c", "marginal", "conditional", "AIC")
+top_dredge2_rsqm_df<-data.frame(top_dredge2_rsqm)
+top_dredge2_rsqm_df
+
+coefs2AIC<-as.data.frame(coefTable(ave_dredge2, full = FALSE, adjust.se = TRUE))
+coefs2AIC$min2se<-round(coefs2AIC$Estimate-(2*coefs2AIC$`Std. Error`), digits=4)
+coefs2AIC$pls2se<-round(coefs2AIC$Estimate+(2*coefs2AIC$`Std. Error`), digits=4)
+coefs2AIC$TwoSE<-paste(coefs2AIC$min2se,coefs2AIC$pls2se, sep="-")
+
+coefs2AIC[,c(1,2,6)]
+
+
+summary(ave_dredge6)
+
+top_dredge6_rsq<-lapply(top_dredge6_get,rsquared.glmm)
+top_dredge6_rsqm <- matrix(unlist(top_dredge6_rsq), ncol=6, byrow=T)
+colnames(top_dredge6_rsqm) <- c("a","b", "c", "marginal", "conditional", "AIC")
+top_dredge6_rsqm_df<-data.frame(top_dredge6_rsqm)
+top_dredge6_rsqm_df
+
+coefs6AIC<-as.data.frame(coefTable(ave_dredge6, full = FALSE, adjust.se = TRUE))
+coefs6AIC$min2se<-round(coefs6AIC$Estimate-(2*coefs6AIC$`Std. Error`), digits=4)
+coefs6AIC$pls2se<-round(coefs6AIC$Estimate+(2*coefs6AIC$`Std. Error`), digits=4)
+coefs6AIC$TwoSE<-paste(coefs6AIC$min2se,coefs6AIC$pls2se, sep="-")
+
+coefs6AIC[,c(1,2,6)]
+
+library(visreg)
+
+
+
+
+```
+
+
+```{r, eval=FALSE}
+
+stan_LMER62 <- standardize(LMER62,standardize.y = FALSE)   #standardises the variables (?) #gelman 2008 - mean of 0 and SD of 0.5 so that they are more comparable?
+model.set62<-dredge(stan_LMER62)
+top.models.AIC<-get.models(model.set62, subset = delta<2)
+#top.models.conf<-get.models(model.set62, cumsum(weight)<=0.95)    #AIC much more selective than confidence intervals
+
+avg.top.models.AIC<-model.avg(top.models.AIC)   
+summary(avg.top.models.AIC)
+
+#MuMIn:::predict(avg.top.models.AIC)
+
+coefs<-as.data.frame(coefTable(avg.top.models.AIC, full = FALSE, adjust.se = TRUE))
+coefs$min2se<-round(coefs$Estimate-(2*coefs$`Std. Error`), digits=4)
+coefs$pls2se<-round(coefs$Estimate+(2*coefs$`Std. Error`), digits=4)
+coefs$TwoSE<-paste(coefs$min2se,coefs$pls2se, sep="-")
+
+coefs
+#management recorded (unknown), bodymass, change_rate, max_slope_se and pcp_slope, PA_recoded_yes - more than 2SD away from zero - (confidence intervals do not include zero) so you can say that they do affect TL in one direction or another (Dredge paper) 
+
+```
+Justifying dredging in Coad et al. 2012
+
+(We took an information-theoretic approach in model building and selection and the choice of which predictor variables to include in the maximal model was driven by our hypotheses (Burnham & Anderson 2010).
+
+Minimal adequate models were selected from the maximal model with the “dredge” function (package Mu-MIn) (Barton 2012), which searches all possible predictor combinations and selects models by comparing values of second-order Akaike’s information criterion (AICc)
+(Pinheiro & Bates 2002; Barton 2012).)
+
+They had a small sample size so used AICc - I would be using AIC
+
+Still not sure how legit it is? 
+
+Should management be nested within PA?
+
+
+Can you run the top models again but with weights attached to each of the parameters - so here Red list category would be down weighted relative to bodymass/change rate etc?
+
+
+How to deal with climate extremes? Would be good to capture the frequency and intensity of extreme events:
+
+Could look at the number of events where values is +/- 2SD of mean, count number of these per year?
+
+Intensity - how extreme are the events - can't think of a good way of capturing this so that there is just one value for the population- how extreme is the most extreme? - mean of all of the extreme events?
+
+
+Compare the characteristics of decreasing/increasing populations - is phylogenetic closeness important?
+
+Look at correlations between land use change and climate variables
+
+Are population declines greatest where climate and land use change is greatest? Compare impacts of high climate change to high land use change
+
+Hamming Distance – Looking at land use change between time slices rather than overall change?
+Gives values for change from decade to decade – so get more of an idea of the churn of land use type rather than just the net change over the time series. But not sure how to convert the hamming distance numbers into something that is useful for the model
+
+
+Location of population not just restricted to one point but we assume the given point (and surrounding area) is representative of the area actually occupied by the population
+
+Scaling issues - climate data much coarser spatial scale than land use - but much higher temporal.
+
+Should take equivalent areas for land use/climate data? min poss for climate is 25x25km=625km2 but am currently doing a 50km buffer around the point (~750km2), which could encompass a few diffferent cells depending on the location of the point.
+Currently doing 11x11=121km2 for land use.
+
+
+Try gams for <6 point pops?
+
+
+Seddon: In terms of worrying about extreme events, are you saying the linear models don't accurately characterize the relationship between the variables at the extremes of your data range?
+
+In terms of lag times, do sensitivity analysis and do your regression again to get the best model.
+
+To determine how much climatic variations effect populations, you could do an attribution study. That would give you the discrete impacts of each of the explanatory variables.
+
+
+#Birds
+
+```{r, eval=FALSE}
+Bird_LMER <- subset(LPI_EDScores,Class=="Aves"&!is.na(max_slope) &!is.na(ED_score) &r_sq2 >= 0.5 & !is.na(change_rate)&  Include5 == "Yes" )
+nrow(Bird_LMER)
+
+Bird_Global<-lmer(TL ~ max_slope_se+min_slope_se+precip_slope_se+Migratory+change_rate+max_slope+min_slope+pcp_slope+ED_score+Bodymass+Red_list_category_recoded+PA_recoded+Management_recoded+(1|Binomial_old)+(1|Country),data=Bird_LMER)
+
+
+
+stan_Bird_Global<- standardize(Bird_Global,standardize.y = FALSE) 
+
+options(na.action = "na.fail")
+#dd <- dredge(LMER62)
+ddb <- dredge(stan_Bird_Global, REML=FALSE)
+top_bird_dredge2<-subset(ddb, delta < 2)
+top_bird_dredge6<-subset(ddb, delta < 6)
+ave_bird_dredge2<-model.avg(top_bird_dredge2)
+ave_bird_dredge6<-model.avg(top_bird_dredge6)
+
+summary(ave_bird_dredge2)
+
+top_bird_dredge2_get<-get.models(top_bird_dredge2, subset=TRUE)
+top_bird_dredge6_get<-get.models(top_bird_dredge6, subset=TRUE)
+
+source("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/rsquaredglmm.R")
+
+top_bird_dredge2_rsq<-lapply(top_bird_dredge2_get,rsquared.glmm)
+top_bird_dredge2_rsqm <- matrix(unlist(top_bird_dredge2_rsq), ncol=6, byrow=T)
+colnames(top_bird_dredge2_rsqm) <- c("a","b", "c", "marginal", "conditional", "AIC")
+top_bird_dredge2_rsqm_df<-data.frame(top_bird_dredge2_rsqm)
+top_bird_dredge2_rsqm_df
+
+coefs2AIC_bird<-as.data.frame(coefTable(ave_bird_dredge2, full = FALSE, adjust.se = TRUE))
+coefs2AIC_bird$min2se<-round(coefs2AIC_bird$Estimate-(2*coefs2AIC_bird$`Std. Error`), digits=4)
+coefs2AIC_bird$pls2se<-round(coefs2AIC_bird$Estimate+(2*coefs2AIC_bird$`Std. Error`), digits=4)
+coefs2AIC_bird$TwoSE<-paste(coefs2AIC_bird$min2se,coefs2AIC_bird$pls2se, sep="-")
+
+coefs2AIC_bird[,c(1,2,6)]
+
+summary(ave_bird_dredge6)
+
+top_bird_dredge6_rsq<-lapply(top_bird_dredge6_get,rsquared.glmm)
+top_bird_dredge6_rsqm <- matrix(unlist(top_bird_dredge6_rsq), ncol=6, byrow=T)
+colnames(top_bird_dredge6_rsqm) <- c("a","b", "c", "marginal", "conditional", "AIC")
+top_bird_dredge6_rsqm_df<-data.frame(top_bird_dredge6_rsqm)
+top_bird_dredge6_rsqm_df
+
+coefs6AIC_bird<-as.data.frame(coefTable(ave_bird_dredge6, full = FALSE, adjust.se = TRUE))
+coefs6AIC_bird$min2se<-round(coefs6AIC_bird$Estimate-(2*coefs6AIC_bird$`Std. Error`), digits=4)
+coefs6AIC_bird$pls2se<-round(coefs6AIC_bird$Estimate+(2*coefs6AIC_bird$`Std. Error`), digits=4)
+coefs6AIC_bird$TwoSE<-paste(coefs6AIC_bird$min2se,coefs6AIC_bird$pls2se, sep="-")
+
+coefs6AIC_bird[,c(1,2,6)]
+
+
+```
+
+
+Smaller number of mammal populations - should do histgram of time series length, list of species?
+
+```{r, eval=FALSE}
+Mammal_LMER <- subset(LPI_EDScores,Class=="Mammalia"&!is.na(max_slope) &!is.na(ED_score) &r_sq2 >= 0.5 & !is.na(change_rate)&  Include5 == "Yes" )
+nrow(Mammal_LMER)
+
+Mammal_Global<-lmer(TL ~ max_slope_se+min_slope_se+precip_slope_se+Migratory+change_rate+max_slope+min_slope+pcp_slope+ED_score+Bodymass+Red_list_category_recoded+PA_recoded+Management_recoded+(1|Binomial_old)+(1|Country),data=Mammal_LMER)
+
+
+
+stan_Mammal_Global<- standardize(Mammal_Global,standardize.y = FALSE) 
+
+options(na.action = "na.fail")
+#dd <- dredge(LMER62)
+ddm <- dredge(stan_Mammal_Global, REML=FALSE)
+top_Mammal_dredge2<-subset(ddm, delta < 2)
+top_Mammal_dredge6<-subset(ddm, delta < 6)
+ave_Mammal_dredge2<-model.avg(top_Mammal_dredge2)
+ave_Mammal_dredge6<-model.avg(top_Mammal_dredge6)
+
+summary(ave_Mammal_dredge2)
+
+top_Mammal_dredge2_get<-get.models(top_Mammal_dredge2, subset=TRUE)
+top_Mammal_dredge6_get<-get.models(top_Mammal_dredge6, subset=TRUE)
+
+source("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/rsquaredglmm.R")
+
+top_Mammal_dredge2_rsq<-lapply(top_Mammal_dredge2_get,rsquared.glmm)
+top_Mammal_dredge2_rsqm <- matrix(unlist(top_Mammal_dredge2_rsq), ncol=6, byrow=T)
+colnames(top_Mammal_dredge2_rsqm) <- c("a","b", "c", "marginal", "conditional", "AIC")
+top_Mammal_dredge2_rsqm_df<-data.frame(top_Mammal_dredge2_rsqm)
+top_Mammal_dredge2_rsqm_df
+
+coefs2AIC_Mammal<-as.data.frame(coefTable(ave_Mammal_dredge2, full = FALSE, adjust.se = TRUE))
+coefs2AIC_Mammal$min2se<-round(coefs2AIC_Mammal$Estimate-(2*coefs2AIC_Mammal$`Std. Error`), digits=4)
+coefs2AIC_Mammal$pls2se<-round(coefs2AIC_Mammal$Estimate+(2*coefs2AIC_Mammal$`Std. Error`), digits=4)
+coefs2AIC_Mammal$TwoSE<-paste(coefs2AIC_Mammal$min2se,coefs2AIC_Mammal$pls2se, sep="-")
+
+coefs2AIC_Mammal[,c(1,2,6)]
+
+summary(ave_Mammal_dredge6)
+
+top_Mammal_dredge6_rsq<-lapply(top_Mammal_dredge6_get,rsquared.glmm)
+top_Mammal_dredge6_rsqm <- matrix(unlist(top_Mammal_dredge6_rsq), ncol=6, byrow=T)
+colnames(top_Mammal_dredge6_rsqm) <- c("a","b", "c", "marginal", "conditional", "AIC")
+top_Mammal_dredge6_rsqm_df<-data.frame(top_Mammal_dredge6_rsqm)
+top_Mammal_dredge6_rsqm_df
+
+coefs6AIC_Mammal<-as.data.frame(coefTable(ave_Mammal_dredge6, full = FALSE, adjust.se = TRUE))
+coefs6AIC_Mammal$min2se<-round(coefs6AIC_Mammal$Estimate-(2*coefs6AIC_Mammal$`Std. Error`), digits=4)
+coefs6AIC_Mammal$pls2se<-round(coefs6AIC_Mammal$Estimate+(2*coefs6AIC_Mammal$`Std. Error`), digits=4)
+coefs6AIC_Mammal$TwoSE<-paste(coefs6AIC_Mammal$min2se,coefs6AIC_Mammal$pls2se, sep="-")
+
+coefs6AIC_Mammal[,c(1,2,6)]
+```
+
+
