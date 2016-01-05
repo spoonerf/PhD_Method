@@ -477,7 +477,7 @@ xmin <- zApply(rmin2, by=as.yearmon, fun=mean, name='months')
 
 ```{r}
 
-xmin<- brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_mint_mon.grd")
+xmin<- brick("Europe_mint_mon.grd")
 
 plot(xmin[[1]],legend.shrink=0.75,main="Average Daily Minimum Temperature - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Degrees Celsius',side=4, font=2, line=2.5, cex=0.8))
 ```
@@ -525,7 +525,7 @@ xpcp2 <- zApply(rpcp2, by=as.yearmon, fun=sum, name='months')    #summing the mo
 ```{r}
 #xpcp2<-brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proce#ssed/Europe_pcp_mon.grd")
 
-xpcp2<-brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_pcp_mon.grd")
+xpcp2<-brick("Europe_pcp_mon.grd")
 
 plot(xpcp2[[1]],legend.shrink=0.75,main="Summed Daily Precipitation - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Millimetres',side=4, font=2, line=2.5, cex=0.8))
 ```
@@ -583,6 +583,9 @@ EUclim<- cbind(all_EU_max_data, all_EU_pcp_data$Precip, all_EU_min_data$Min_Temp
 colnames(EUclim)[c(10:12)]<-c("Precip","Min_Temp","Mean_Temp")
 
 #write.csv(EUclim, "all_EU_clim_data_28_09_15_50kbuffnarm.csv")
+#write.csv(EUclim, "all_EU_clim_data_16_01_05_50kbuffnarm.csv")
+
+
 
 EUclim_NArm<-na.omit(EUclim)
 
@@ -598,8 +601,9 @@ EUclim_NArm<-na.omit(EUclim)
 
 #EUclim_new<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_clim_data_26_08_15_50kbuffnarm.csv")
 
-EUclim_new<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_clim_data_28_09_15_50kbuffnarm.csv")
+#EUclim_new<-read.csv("all_EU_clim_data_28_09_15_50kbuffnarm.csv")
 
+EUclim_new<-read.csv("all_EU_clim_data_16_01_05_50kbuffnarm.csv")
 
 ```
 
@@ -674,8 +678,9 @@ colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_va
 
 #write.csv(mean_df, "mean_df_slope_28_09_15_50kmbuffnarm.csv")
 
+#write.csv(mean_df, "mean_df_slope_17_10_15_50kmbuffnarm.csv")
 
-write.csv(mean_df, "mean_df_slope_17_10_15_50kmbuffnarm.csv")
+#write.csv(mean_df, "mean_df_slope_16_01_05_50kmbuffnarm.csv")
 
 ```
 
@@ -749,7 +754,9 @@ colnames(max_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var
 
 #write.csv(max_df, "max_df_slope_08_09_15_50kmbuffnarm.csv")
 
-write.csv(max_df, "max_df_slope_17_10_15_50kmbuffnarm.csv")
+#write.csv(max_df, "max_df_slope_17_10_15_50kmbuffnarm.csv")
+
+#write.csv(max_df, "max_df_slope_16_01_05_50kmbuffnarm.csv")
 
 ```
 
@@ -759,7 +766,7 @@ write.csv(max_df, "max_df_slope_17_10_15_50kmbuffnarm.csv")
 ```{r}
 #max_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/max_df_slope_08_09_15_50kmbuffnarm.csv")
 
-max_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/max_df_slope_17_10_15_50kmbuffnarm.csv")
+#max_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/max_df_slope_17_10_15_50kmbuffnarm.csv")
 
 ```
 
@@ -827,7 +834,9 @@ colnames(min_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var
 
 #write.csv(min_df, "min_df_slope_08_09_15_50kmbuffnarm.csv")
 
-write.csv(min_df, "min_df_slope_17_10_15_50kmbuffnarm.csv")
+#write.csv(min_df, "min_df_slope_17_10_15_50kmbuffnarm.csv")
+
+write.csv(max_df, "min_df_slope_16_01_05_50kmbuffnarm.csv")
 
 ```
 
@@ -837,7 +846,7 @@ write.csv(min_df, "min_df_slope_17_10_15_50kmbuffnarm.csv")
 ```{r}
 #min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/min_df_slope_08_09_15_50kmbuffnarm.csv")
 
-min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/min_df_slope_17_10_15_50kmbuffnarm.csv")
+#min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/min_df_slope_17_10_15_50kmbuffnarm.csv")
 
 ```
 
@@ -908,7 +917,9 @@ colnames(pcp_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var
 
 #write.csv(pcp_df, "pcp_df_slope_08_09_15_50kmbuffnarm.csv")
 
-write.csv(pcp_df, "pcp_df_slope_17_10_15_50kmbuffnarm.csv")
+#write.csv(pcp_df, "pcp_df_slope_17_10_15_50kmbuffnarm.csv")
+
+write.csv(pcp_df, "pcp_df_slope_16_01_05_50kmbuffnarm.csv")
 
 ```
 
@@ -917,10 +928,15 @@ write.csv(pcp_df, "pcp_df_slope_17_10_15_50kmbuffnarm.csv")
 
 ```{r}
 
-#mean_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/mean_df_slope_28_09_15_50kmbuffnarm.csv")
+mean_df<-read.csv("mean_df_slope_16_01_05_50kmbuffnarm.csv")
+max_df<-read.csv("max_df_slope_16_01_05_50kmbuffnarm.csv")
+min_df<-read.csv("min_df_slope_16_01_05_50kmbuffnarm.csv")
+pcp_df<-read.csv("pcp_df_slope_16_01_05_50kmbuffnarm.csv")
 
 mean_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/mean_df_slope_17_10_15_50kmbuffnarm.csv")
 ##tryig mean_df with monthly average slope and se - to capture more variation
+
+#mean_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/mean_df_slope_28_09_15_50kmbuffnarm.csv")
 
 #mean_df<-read.csv("mean_df_slope_mon_avg_01_10_15_50kmbuffnarm.csv")
 
@@ -934,6 +950,9 @@ min_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/min_d
 #pcp_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/pcp_df_slope_08_09_15_50kmbuffnarm.csv")
 
 pcp_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/pcp_df_slope_17_10_15_50kmbuffnarm.csv")
+
+
+EUclim_slope<-merge(merge(max_df[,c(2,4,5,8,9)], min_df[,c(2,4,5,8,9)], by="ID"), merge(pcp_df[,c(2,4,5,8,9)], mean_df[,c(2,4,5,8,9)], by="ID"), by="ID")
 
 
 EUclim_slope<-merge(merge(max_df[,c(2,4,5,8,9)], min_df[,c(2,4,5,8,9)], by="ID"), merge(pcp_df[,c(2,4,5,8,9)], mean_df[,c(2,4,5,8,9)], by="ID"), by="ID")
