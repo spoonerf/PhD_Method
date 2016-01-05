@@ -1277,15 +1277,18 @@ write.csv(clim_all2, "2015_11_05_LMEModel_data_clim.csv")#no land use data
 ####Climate-population models
 
 ```{r}
-Clim_pop<-read.csv("2015_11_09_ClimateModel_data.csv")
+#Clim_pop<-read.csv("2015_11_09_ClimateModel_data.csv")
+#Clim_pop<-read.csv("2015_10_26_LMEModel_data3.csv")
+
+Clim_pop<-read.csv("2016_01_05_LMEModel_data.csv")
 
 Climate_Temp<- subset(Clim_pop, !is.na(max_slope_se)&!is.na(max_slope)&r_sq2 >= 0.5 &Include5 == "Yes"&Class != "Amphibia" )
 
-clim_count<-Climate_Temp[,c(2,84:148)]
-Year_data_nodups<-colSums(!is.na(clim_count[,c(2:66)]))
-Years<-1950:2014
-
-plot(Years,Year_data_nodups, type="l", xlab= "Year", ylab="Number of population counts", main="Climate data with duplicates")
+# clim_count<-Climate_Temp[,c(2,84:148)]
+# Year_data_nodups<-colSums(!is.na(clim_count[,c(2:66)]))
+# Years<-1950:2014
+# 
+# plot(Years,Year_data_nodups, type="l", xlab= "Year", ylab="Number of population counts", main="Climate data with duplicates")
 
 
 mx<-lmer(TL~mean_slope*mean_slope_se +(1|Binomial_old)+ (1|Country), data=Climate_Temp)
@@ -1296,12 +1299,12 @@ plot(effect("mean_slope*mean_slope_se",xlevels=4, mx, factor.names=FALSE, layout
 #remove duplicates
 nrow(Climate_Temp)
 
-clim_dups<-data.frame(ddply(Climate_Temp,.(Longitude,Latitude),nrow))
-clim_dups$loc_id<-1:length(clim_dups$Longitude)
-clim_dups_df<-merge(clim_dups, Climate_Temp, by=c("Longitude","Latitude"))
+# clim_dups<-data.frame(ddply(Climate_Temp,.(Longitude,Latitude),nrow))
+# clim_dups$loc_id<-1:length(clim_dups$Longitude)
+# clim_dups_df<-merge(clim_dups, Climate_Temp, by=c("Longitude","Latitude"))
 
 library(plyr)
-coefs <- ddply(clim_dups_df, .(Class), function(df) {
+coefs <- ddply(Climate_Temp, .(Class), function(df) {
   m <- lm(TL ~ log10(mean_slope_se), data=df)
   n<- summary(lm(TL ~ log10(mean_slope_se), data=df))
   data.frame(Intercept = coef(m)[1], Slope = coef(m)[2], Rsq= n$r.squared, PValue=pf(n$fstatistic[1], n$fstatistic[2], n$fstatistic[3],
@@ -1310,10 +1313,10 @@ coefs <- ddply(clim_dups_df, .(Class), function(df) {
 
 coefs
 
-q<-lm(clim_dups_df$TL ~ clim_dups_df$mean_slope_se)
+q<-lm(Climate_Temp$TL ~ Climate_Temp$mean_slope_se)
 
 library(ggplot2)
-p<-ggplot(clim_dups_df,aes(x=log10(mean_slope_se),y=TL,color=Class)) +geom_point(size=3) 
+p<-ggplot(Climate_Temp,aes(x=log10(mean_slope_se),y=TL,color=Class)) +geom_point(size=3) 
 p + geom_smooth(aes(group=Class), method="lm") + xlab("Log10 Standard Error of Mean Temperature") +ylab("Total Lambda") + scale_colour_discrete(name="Class",breaks=c("Aves", "Mammalia"),labels=c("Birds", "Mammals"))
 
 
