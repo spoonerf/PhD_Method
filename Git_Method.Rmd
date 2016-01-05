@@ -955,14 +955,13 @@ pcp_df<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/pcp_d
 EUclim_slope<-merge(merge(max_df[,c(2,4,5,8,9)], min_df[,c(2,4,5,8,9)], by="ID"), merge(pcp_df[,c(2,4,5,8,9)], mean_df[,c(2,4,5,8,9)], by="ID"), by="ID")
 
 
-EUclim_slope<-merge(merge(max_df[,c(2,4,5,8,9)], min_df[,c(2,4,5,8,9)], by="ID"), merge(pcp_df[,c(2,4,5,8,9)], mean_df[,c(2,4,5,8,9)], by="ID"), by="ID")
-
-
 colnames(EUclim_slope)[2:17]<-c("max_slope","max_slope_se", "max_mon_var", "max_year_var", "min_slope","min_slope_se","min_mon_var", "min_year_var", "pcp_slope","pcp_slope_se","pcp_mon_var", "pcp_year_var", "mean_slope", "mean_slope_se", "mean_mon_var", "mean_year_var")
 
 #write.csv(EUclim_slope, "Climate_Slopes_28_09_15_50kmbuffnarm.csv")
 
-write.csv(EUclim_slope, "Climate_Slopes_17_10_15_50kmbuffnarm.csv" )
+#write.csv(EUclim_slope, "Climate_Slopes_17_10_15_50kmbuffnarm.csv" )
+
+write.csv(EUclim_slope, "Climate_Slopes_16_01_05_50kmbuffnarm.csv" )
 
 ```
 
@@ -982,13 +981,13 @@ An example of the land use data is shown below:
 
 ```{r,message=FALSE, warning=FALSE}
 
-r_1950 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1950.asc"))
-r_1960 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1960.asc"))
-r_1970 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1970.asc"))
-r_1980 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1980.asc"))
-r_1990 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch1990.asc"))
-r_2000 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch2000.asc"))
-r_2010 <-raster(readAsciiGrid("C:/Users/Fiona/Desktop/PhD/Land_Use/HILDA/Gross_Final_1km_EU27CH_ASCII/eu27ch2010.asc"))
+r_1950 <-raster(readAsciiGrid("eu27ch1950.asc"))
+r_1960 <-raster(readAsciiGrid("eu27ch1960.asc"))
+r_1970 <-raster(readAsciiGrid("eu27ch1970.asc"))
+r_1980 <-raster(readAsciiGrid("eu27ch1980.asc"))
+r_1990 <-raster(readAsciiGrid("eu27ch1990.asc"))
+r_2000 <-raster(readAsciiGrid("eu27ch2000.asc"))
+r_2010 <-raster(readAsciiGrid("eu27ch2010.asc"))
 
 
 r_2010b<-crop(r_2010, r_1950)    #the 2010 raster is larger than the other years so has to be ropped to the same size so that they can be stacked
@@ -1048,14 +1047,16 @@ plot(freq_df[1,c(2:8)])
 
 ```
 
-```{r}
-r<-brick("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Land_Use_1950_2010.grd")
 
-# crs.geo <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
-# 
-# proj4string(r) <- crs.geo 
-# 
-# rwgs84 <- projectRaster(r, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84" ) 
+
+```{r}
+r<-brick("Land_Use_1950_2010.grd")
+
+crs.geo <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+
+proj4string(r) <- crs.geo
+
+rwgs84 <- projectRaster(r, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84" )
 
 plot(rwgs84)
 
@@ -1066,18 +1067,16 @@ legend(6095000,5315409, legend = c("Settlement", "Cropland", "Forest", "Grasslan
 
 ```
 
-For each population location the raster of Europe was cropped to the location and the surrounding 121km^2, so that there was a 11 x 11km grid, with the population located within the central cell. 
-
-An example of this is shown below:
 
 
+####Setting parameters for land use change cropping
 
 ```{r}
 
 #LPI_LUC<-read.csv("LPI_pops_20150529_EDRank2_climslope_nobuff2.csv")  
 #LPI_LUC<-read.csv("C:/Users/Fiona/Desktop/PhD/LPI/Data/LPI_populations_IP_fishedit#_20140310_nonconf.csv")
 
-LPI_LUC<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI_LUC<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 id<-LPI_LUC$ID
 latlong<-cbind(LPI_LUC$Longitude,LPI_LUC$Latitude)
@@ -1107,10 +1106,10 @@ y<-check_xy2[,3]
 
 xy<-cbind(x,y)        #creating the grid around the population - 5km either side gives a grid of 121km^2
 
-xmin<- colFromX(r[[1]], points[1:length(points),]) - 12
-xmax<- colFromX(r[[1]], points[1:length(points),]) + 12
-ymin<- rowFromY(r[[1]], points[1:length(points),]) - 12
-ymax<- rowFromY(r[[1]], points[1:length(points),]) + 12    #changed from 5 to 12
+xmin<- colFromX(r[[1]], points[1:length(points),]) - 5
+xmax<- colFromX(r[[1]], points[1:length(points),]) + 5
+ymin<- rowFromY(r[[1]], points[1:length(points),]) - 5
+ymax<- rowFromY(r[[1]], points[1:length(points),]) + 5    #changed from 5 to 12
 
 
 grid_crop<-data.frame(ID=crop_id,xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)   #setting extents of grid to extract
@@ -1126,23 +1125,23 @@ grid_crop2<-subset(grid_crop2, Specific_location ==1)    #690 populations left
 
 ```
 
+####Example Land Use Change plot
 
+For each population location the raster of Europe was cropped to the location and the surrounding 121km^2, so that there was a 11 x 11km grid, with the population located within the central cell. 
 
+An example of this is shown below:
 
 ```{r}
 colors<-c("#F2F2F2FF","#EEB99FFF","#00A600FF","#63C600FF","#E6E600FF","lightblue")
 plot(crop(r[[1]], extent(r[[1]], grid_crop[100,4],grid_crop[100,5],grid_crop[100,2],grid_crop[100,3])),main="Crop of Land Use Raster", xlab="Longitude", ylab="Latitude", legend = FALSE, bty="L", col=colors)
 points(x[100],y[100], pch=16)
 par(xpd=TRUE)
-legend(5231419,3867409, legend = c("Settlement", "Cropland", "Forest", "Grassland", "Other Land", "Water"), fill = colors)
+legend(5241419,3867409, legend = c("Settlement", "Cropland", "Forest", "Grassland", "Other Land", "Water"), fill = colors)
 
 
 ```
 
-
-
-
-
+####Land Use Change
 This section finds the land use rasters for every time series (the beginning and the end of the time series are rounded to the nearest decade)
 
 ```{r, eval=FALSE, message=FALSE,warning=FALSE,}
@@ -1213,8 +1212,9 @@ hist(LPI_LUC_selm$change_rate, breaks=100)
 # hist(log10(LPI_LUC_selm$change_rate+1), breaks=100)
 # result$log_change_rate<-log10(as.numeric(as.character(result$change_rate)))
 #write.csv(LPI_LUC_selm, "LPI_LandUse_121_21_08_2015.csv" )
-write.csv(LPI_LUC_selm, "LPI_LandUse_625_29_09_2015.csv" )
-#write.csv(LPI_LUC_selm, "LPI_LandUse_121_18_09_2015.csv" )
+#write.csv(LPI_LUC_selm, "LPI_LandUse_625_29_09_2015.csv" )
+write.csv(LPI_LUC_selm, "LPI_LandUse_121_18_09_2015.csv" )
+
 
 ```
 
@@ -1223,7 +1223,7 @@ write.csv(LPI_LUC_selm, "LPI_LandUse_625_29_09_2015.csv" )
 
 
 ```{r}
-LPI_LUC_selm<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_121_18_09_2015.csv")
+LPI_LUC_selm<-read.csv("LPI_LandUse_121_18_09_2015.csv")
 
 hist(LPI_LUC_selm$change_rate, breaks=100, main="Histogram of Land Use Change for each Time Series", xlab="Land Use Change in Surrounding 121km^2 over Time Series")
 
@@ -1233,35 +1233,34 @@ hist(LPI_LUC_selm$log_change_rate, breaks=100, main="Histogram of Logged(base 10
 ```
 
 
-###Joining all of the data together
+####Joining all of the data together
 ```{r,eval=FALSE}
-# Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Climate_Slopes_08_09_15_50kmbuffnarm.csv")
-# 
-# LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/all_EU_Land_Use_Change_26_08_15.csv")
-# #Pop<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Use_This/Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv") #POpulations with model Rsq >0.5
-# Traits<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Model Input/LPI_pops_20150529_EDRank2.csv")
-# Pop_all<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/All_Population_Trends_Rsq_Lambda_18_08_15.csv")
+
 ####
 #Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_08_09_15_50kmbuffnarm.csv")
 #Clim<-read.csv("mean_df_slope_mon_avg_01_10_15_50kmbuffnarm.csv") ##monthly average mean slope and se
 #Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_28_09_15_50kmbuffnarm.csv")
-Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_17_10_15_50kmbuffnarm.csv")
+#Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_17_10_15_50kmbuffnarm.csv")
+Clim<-read.csv("Climate_Slopes_16_01_05_50kmbuffnarm.csv")
 
-LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_625_29_09_2015.csv")
+#LU<-read.csv("LPI_LandUse_625_29_09_2015.csv")
 #LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_Land_Use_Change_26_08_15.csv")
 #LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_121_18_09_2015.csv")
+LU<-read.csv("LPI_LandUse_121_18_09_2015.csv")
+
 #Pop<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Use_This/Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv") #POpulations with model Rsq >0.5
-Traits<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_pops_20150529_EDRank2.csv")
+Traits<-read.csv("LPI_pops_20150529_EDRank2.csv")
+
 #Pop_all<-read.csv("All_Population_Trends_Rsq_Lambda_18_08_15.csv")
 #Pop_all<-read.csv("All_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #Pop_all<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
-Pop_all<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+Pop_all<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+
 #mess <- merge(merge(Clim, LU, by="ID"), merge(Pop, Traits, by="ID"), by="ID")
 mess_all <- merge(merge(Clim, LU[c(2,150)], by="ID"), merge(Pop_all, Traits, by="ID"), by="ID")
 
-
-clim_all<-merge(Clim, Traits, by="ID")
-clim_all2<-merge(clim_all, Pop_all, by="ID")  #just climate, traits and populations, ignoring land use data
+# clim_all<-merge(Clim, Traits, by="ID")
+# clim_all2<-merge(clim_all, Pop_all, by="ID")  #just climate, traits and populations, ignoring land use data
 
 #write.csv(mess_all, "2015_09_13_LMEModel_data3.csv")
 #write.csv(mess_all, "2015_09_18_LMEModel_data3.csv")
@@ -1269,31 +1268,13 @@ clim_all2<-merge(clim_all, Pop_all, by="ID")  #just climate, traits and populati
 #write.csv(mess_all, "2015_09_28_LMEModel_data3.csv")   #added mean temp
 #write.csv(mess_all, "2015_09_29_LMEModel_data3.csv")  #wider land use grid
 #write.csv(mess_all, "2015_10_17_LMEModel_data3.csv")  #yearly and monthly variance added
-write.csv(mess_all, "2015_10_26_LMEModel_data3.csv")   #added missing year counts
+write.csv(mess_all, "2015_10_26_LMEModel_data3.csv") #added missing year counts
+write.csv(mess_all, "2016_01_05_LMEModel_data.csv")  #climate var data diff?
 write.csv(clim_all2, "2015_11_05_LMEModel_data_clim.csv")#no land use data
 #write.csv(mess_all, "2015_10_01_LMEModel_data3.csv")  ##trying with monthly mean slope and se
 ```
 
-```{r}
-Clim<-read.csv("Climate_Slopes_17_10_15_50kmbuffnarm.csv")
-
-LU<-read.csv("LPI_LandUse_625_29_09_2015.csv")
-
-Traits<-read.csv("LPI_pops_20150529_EDRank2.csv")
-
-Pop_all<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
-
-mess_all <- merge(merge(Clim, LU[c(2,150)], by="ID"), merge(Pop_all, Traits, by="ID"), by="ID")
-
-clim_all<-merge(Clim, Traits, by="ID")
-clim_all2<-merge(clim_all, Pop_all, by="ID")
-
-#write.csv(mess_all, "2015_09_29_LMEModel_data3.csv") 
-write.csv(clim_all2, "2015_11_09_ClimateModel_data.csv")
-
-```
-
-###Climate-population models
+####Climate-population models
 
 ```{r}
 Clim_pop<-read.csv("2015_11_09_ClimateModel_data.csv")
