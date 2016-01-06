@@ -1699,6 +1699,60 @@ writeRaster(temp_rast_flip, filename="climate2.tif", format="GTiff", overwrite=T
 
 ```
 
+```{r Climate Variability}
+
+library(raster)
+
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
+
+LPI_EU<-subset(LPI, ClassX != "Fishes"& Specific_location =="1")
+
+ID<-LPI_EU$ID
+pop_data<- LPI_EU[,c(1,63:125)]
+
+pop_datab <- (pop_data [,2:64] !="NULL")
+points_per_pop1950_2012 = rowSums(pop_datab)
+length_id <- data.frame(ID,points_per_pop1950_2012)
+
+LPI_EU2<-merge(length_id, LPI_EU, by = "ID")
+LPI_EU3<-subset(LPI_EU2, points_per_pop1950_2012 >=2)    #disregarding any populations with less than two time points
+
+LPI_EU4<-subset(LPI_EU3, Latitude >= 25.5 & Latitude <= 75.5 & Longitude >= -40.5 & Longitude <= 75.5) 
+
+id<-LPI_EU4$ID
+xy<-cbind(LPI_EU4$Longitude,LPI_EU4$Latitude)
+
+binomial<-LPI_EU4$Binomial
+
+
+rmean<-brick("tg_0.25deg_reg_v11.0.nc", varname = "tg")
+tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
+r2 <- setZ(rmean, tm, 'days')
+
+# xy<-matrix(c(7,52), nrow=1, ncol=2)
+# xy<-SpatialPoints(xy)
+
+#xyex<- extract(r2[[1:23741]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+
+mean_var<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), Year=numeric(0), Month=numeric(0), rasterex=numeric(0))
+
+for (i in 1:nlayers(r2)) {
+  
+  rasterex <- extract(r2[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+  Date<-as.Date(substr(names(r2[[i]]), 2, 11), "%Y.%m.%d")
+  Year<-format(Date,format="%Y")
+  Month<-months(Date)
+  dataex<-data.frame(id, binomial,xy, Year,Month, rasterex)   
+  print(Date)
+  mean_var= rbind(mean_var, dataex)
+}
+
+
+```
+
+
+
+
 
 ```{r}
 
