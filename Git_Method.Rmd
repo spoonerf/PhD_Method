@@ -5,9 +5,8 @@ date: "Wednesday, September 09, 2015"
 output: word_document
 ---
 ```{r, warning=FALSE,message=FALSE}
-#hello
 
-setwd("D:/Fiona/Git_Method/Git_Method")
+#setwd("D:/Fiona/Git_Method/Git_Method")
 #rm(list=ls())
 
 # install.packages("zoo")
@@ -1039,12 +1038,10 @@ lines(rownames(freq_dft3), freq_dft3$Other.Land_per, type="o", col="#E6E600FF")
 lines(rownames(freq_dft3), freq_dft3$Water_per, type="o", col="lightblue")
 
 
-
-
-Year<-as.numeric(colnames(freq_df[2:8]))
-Settlement<-as.matrix(freq_df[1,c(2:8)])
-
-plot(freq_df[1,c(2:8)])
+# Year<-as.numeric(colnames(freq_df[2:8]))
+# Settlement<-as.matrix(freq_df[1,c(2:8)])
+# 
+# plot(freq_df[1,c(2:8)])
 
 ```
 
