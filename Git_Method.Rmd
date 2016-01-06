@@ -1537,9 +1537,15 @@ print(i)
 
 
 
-hist(marg_Rsq, breaks=100)
-hist(cond_Rsq, breaks=100)
+hist(marg_Rsq_m1, breaks=100)
+hist(marg_Rsq_m2, breaks=100)
+
+hist(cond_Rsq_m1, breaks=100)
+hist(cond_Rsq_m2, breaks=100)
+
 hist(AIC_m1, breaks=100)
+hist(AIC_m2, breaks=100)
+
 #hist(RSq, breaks=100)
 hist(intercept, breaks=100)
 hist(change_rate, breaks=100)
