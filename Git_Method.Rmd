@@ -1217,20 +1217,6 @@ write.csv(LPI_LUC_selm, "LPI_LandUse_121_18_09_2015.csv" )
 ```
 
 
-
-
-
-```{r}
-LPI_LUC_selm<-read.csv("LPI_LandUse_121_18_09_2015.csv")
-
-hist(LPI_LUC_selm$change_rate, breaks=100, main="Histogram of Land Use Change for each Time Series", xlab="Land Use Change in Surrounding 121km^2 over Time Series")
-
-hist(LPI_LUC_selm$log_change_rate, breaks=100, main="Histogram of Logged(base 10) Land Use Change for each Time Series", xlab="Land Use Change in Surrounding 121km^2 over Time Series")
-
-
-```
-
-
 ####Joining all of the data together
 ```{r,eval=FALSE}
 
@@ -1505,34 +1491,36 @@ cond_Rsq_m1 = numeric(R)
 marg_Rsq_m2 = numeric(R)
 cond_Rsq_m2 = numeric(R)
 
-
 for (i in 1:R) {
-dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N signifies the number of rows when using data.table
-colnames(dt2)[2]<-"ID"
-sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
-m1<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
-m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
-models_list<-list(m1,m2)
-modelsR<-lapply(models_list,rsquared.glmm)
-modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-marg_Rsq_m1[i]<-modelsRsq[1,4]
-marg_Rsq_m2[i]<-modelsRsq[2,4]
-cond_Rsq_m1[i]<-modelsRsq[1,5]
-cond_Rsq_m2[i]<-modelsRsq[2,5]
-AIC_m1[i]<-AIC(m1)
-AIC_m2[i]<-AIC(m2)
-intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
-change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
-mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
-mean_slope[i]<-coef(summary(m1))[ 4, "Estimate"]
-change_mean_se[i]<-coef(summary(m1))[ 5, "Estimate"]
-change_mean_slope[i]<-coef(summary(m1))[ 6, "Estimate"]
-mean_se_mean_slope[i]<-coef(summary(m1))[ 7, "Estimate"]
+    
+  dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
+  colnames(dt2)[2]<-"ID"
+  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
+  
+    m1<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+  
+    m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
 
-print(i)
+  models_list<-list(m1,m2)
+  modelsR<-lapply(models_list,rsquared.glmm)
+  modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+  
+  marg_Rsq_m1[i]<-modelsRsq[1,4]
+  marg_Rsq_m2[i]<-modelsRsq[2,4]
+  cond_Rsq_m1[i]<-modelsRsq[1,5]
+  cond_Rsq_m2[i]<-modelsRsq[2,5]
+  AIC_m1[i]<-AIC(m1)
+  AIC_m2[i]<-AIC(m2)
+  intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
+  change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
+  mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
+  mean_slope[i]<-coef(summary(m1))[ 4, "Estimate"]
+  change_mean_se[i]<-coef(summary(m1))[ 5, "Estimate"]
+  change_mean_slope[i]<-coef(summary(m1))[ 6, "Estimate"]
+  mean_se_mean_slope[i]<-coef(summary(m1))[ 7, "Estimate"]
+
+  print(i)
 }
-
-
 
 hist(marg_Rsq, breaks=100)
 hist(cond_Rsq, breaks=100)
