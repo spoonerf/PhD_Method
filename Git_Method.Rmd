@@ -5,6 +5,7 @@ date: "Wednesday, September 09, 2015"
 output: word_document
 ---
 ```{r, warning=FALSE,message=FALSE}
+#hello
 
 setwd("D:/Fiona/Git_Method/Git_Method")
 #rm(list=ls())
