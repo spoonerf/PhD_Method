@@ -1365,7 +1365,7 @@ print(i)
 }
 
 hist(Est_se_m1, breaks=100)
-hist(RSq_m2, breaks=100)
+hist(RSq_m1, breaks=100)
 hist(PValue, breaks=100)
 
 Est_se<-sort(Est_se)
@@ -1495,6 +1495,7 @@ source("rsquaredglmm.R")
 R=9999
 PValue = numeric(R)
 AIC_m1= numeric(R)
+AIC_m2= numeric(R)
 intercept = numeric(R)
 change_rate = numeric(R)
 mean_se = numeric(R)
@@ -1502,20 +1503,27 @@ mean_slope = numeric(R)
 change_mean_se = numeric(R)
 change_mean_slope = numeric(R)
 mean_se_mean_slope = numeric(R)
-marg_Rsq = numeric(R)
-cond_Rsq = numeric(R)
+marg_Rsq_m1 = numeric(R)
+cond_Rsq_m1 = numeric(R)
+marg_Rsq_m2 = numeric(R)
+cond_Rsq_m2 = numeric(R)
+
 
 for (i in 1:R) {
 dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N signifies the number of rows when using data.table
 colnames(dt2)[2]<-"ID"
 sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
-m1<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_df_scale)
-models_list<-list(m1)
+m1<-lmer(TL ~change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_slope_se_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+models_list<-list(m1,m2)
 modelsR<-lapply(models_list,rsquared.glmm)
 modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-marg_Rsq[i]<-modelsRsq[1,4]
-cond_Rsq[i]<-modelsRsq[1,5]
+marg_Rsq_m1[i]<-modelsRsq[1,4]
+marg_Rsq_m2[i]<-modelsRsq[2,4]
+cond_Rsq_m1[i]<-modelsRsq[1,5]
+cond_Rsq_m2[i]<-modelsRsq[2,5]
 AIC_m1[i]<-AIC(m1)
+AIC_m2[i]<-AIC(m2)
 intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
 change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
 mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
