@@ -4,7 +4,7 @@ author: "Fiona Spooner"
 date: "Wednesday, September 09, 2015"
 output: word_document
 ---
-```{r, warning=FALSE,message=FALSE}
+```{r Install Packages, warning=FALSE,message=FALSE}
 
 #setwd("D:/Fiona/Git_Method/Git_Method")
 #rm(list=ls())
@@ -28,7 +28,7 @@ output: word_document
 # install.packages("ggmap")
 ```
 
-```{r, message=FALSE}
+```{r Libraries, message=FALSE}
 library(Rcpp)
 library(zoo)
 library(mgcv)
@@ -59,7 +59,7 @@ The LP data was subset so that only populations with specific known locations an
 This section inputs the LP time series data and excludes any Fish populations, those without a specific location and those with only one data point.
 
 
-```{r, warning=FALSE, message=FALSE}
+```{r Counting population estimates, warning=FALSE, message=FALSE}
 
 Clim<-read.csv("Climate_Slopes_08_09_15_50kmbuffnarm.csv")
 
@@ -92,7 +92,7 @@ LPI_EU2<-LPI_EU[,c(1:3,64:126)]
 LPI_EU2[LPI_EU2 == 'NULL'] = NA
 ```
 
-```{r}
+```{r Number of populations with environmental data}
 Title<-c("Total Populations", "Subset of Populations" ,"Populations with Climate Data", "Populations with Land Use Data", "Populations with Climate and Land Use Data")
 Length_pop<-c(length(LPI$ID), length(LPI_EU2$ID), length(Clim2$ID), length(LU$ID), length(mess_all$ID))
 Length_sp<-c(length(unique(LPI$Binomial)), length(unique(LPI_EU2$Binomial)), length(unique(Clim2$Binomial)), length(unique(LU$Binomial)), length(unique(mess_all$Binomial.x)))
@@ -119,7 +119,7 @@ From the 979 populations, 161 (16.4%) were fitted using linear models and 818 (8
 
 The $R^{2}$ value for each of the fitted population models were recorded so that the populations with poorly fit models could be omitted from later stages of analysis.
 
-```{r,message=FALSE, warning=FALSE}
+```{r Fitting GAMs and calculating lambdas,message=FALSE, warning=FALSE}
 
 doFit = function(sp_name) {
   spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
@@ -218,7 +218,7 @@ write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
 ```
 
 
-```{r}
+```{r Example population trend}
 all_df<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
 
 capra_lpi<-subset(LPI_EU2, Binomial=="Capra_ibex")
@@ -232,7 +232,7 @@ plot(pop, years)
 
 This is an example plot of a logged population trend over time. The fitted GAM shown in red, with two standard errors shown in dashed red.
 
-```{r}
+```{r Example lambda trend}
 spid2 = subset(LPI_EU2, ID == 10694)
   spid = spid2[,4:66]                     
   colnames(spid)<-1950:2012             
@@ -278,7 +278,7 @@ Histogram showing the distribution of the total lambdas for the populations.
 The mean value is just slightly over zero and there is a fairly normal distribution of the values around this. Large peak just below zero - lots of populations slightly declining but a small number of populations doing very well.
 
 
-```{r}
+```{r Histogram of Lambdas}
 all_df<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
 hist(all_df$lambda_sum2, xlab="Total Lambda", main="Histogram of Total Lambda", breaks=70)
 mean(all_df$lambda_sum2)
@@ -295,7 +295,7 @@ The adjusted r-squared for the model. Defined as the proportion of variance expl
 
 Probably a good idea to compare the characteristics of populations/species that are increasing/decreasing. Some papers have mentioned that species that are closely related are likely to have similar responses to climate/land use change - is it possible to test that or account for it here?
 
-```{r}
+```{r Exploring how well the population trend models fit}
 #hist(all_df$r_sq2, xlab="R Squared", main="Histogram of R squared", breaks=70)
 hist(subset(all_df, model==1)$r_sq2, breaks=70, xlab="R Squared", main="Histogram of R squared for GAMs")
 hist(subset(all_df, model==1)$points, main="Histogram showing number of data points in GAMs", xlab="Number of data points in a time series", breaks=70)
@@ -315,7 +315,7 @@ table(subset(all_df, model==0 & r_sq2==1)$points)
 
 Number of LP time series within each $R^{2}$ bracket 
 
-```{r}
+```{r Summary table of how the population trend models fit}
 
 Rsqlev<-round(seq(1,-0.3, by=-0.1), digits=1)
 
@@ -346,11 +346,9 @@ The data were daily values for maximum and minimum temperatures (°C) and precip
 
 The data were converted from daily to monthly values by averaging the daily maximum and minimum temperature over each month and summing the daily precipitation over each month. A raster layer was created for each month and an example can be seen below.
 
-
-
 Here the LPI data is added again and once again the data for Fish, populations without a specific location and those with only one data point are excluded.
 
-```{r}
+```{r Subsetting the LPI data}
 #LPI<-read.csv("C:/Users/Fiona/Desktop/PhD/LPI/Data/LPI_populations_IP_fishedit_201#40310_nonconf.csv", stringsAsFactors=FALSE)
 
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
@@ -376,7 +374,7 @@ binomial<-LPI_EU4$Binomial
 
 ```
 
-```{r, eval=FALSE}
+```{r Averaging daily mean temp to monthly, eval=FALSE}
 xmean<- brick("Europe_mean_mon.grd")
 
 rmean<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/MeanT/tg_0.25deg_reg_v11.0.nc", varname = "tg")
@@ -390,19 +388,7 @@ writeRaster(xmean, filename="Europe_mean_mon.grd", bandorder='BIL', overwrite=TR
 ```
 
 
-```{r, eval=FALSE}
-xmax <- raster("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Processed/Europe_maxt_mon.grd")
-
-rmax<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Maxt/tx_0.25deg_reg_v11.0.nc/tx_0.25deg_reg_v11.0.nc", varname = "tx")
-
-tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
-r2 <- setZ(rmax, tm, 'days')
-xmax <- zApply(r2, by=as.yearmon, fun=mean, name='months')   #this bit can take ages (hours) - it is summarasing the daily data into monthly data
-
-```
-
-
-```{r, eval=FALSE}
+```{r Extracting monthly mean temp for each population, eval=FALSE}
 all_EU_mean_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
 
 
@@ -429,7 +415,18 @@ write.csv(all_EU_mean_data_NArm, "all_EU_mean_data_NArm_24_08_15_50kbuffnarm.csv
 ```
 
 
-```{r}
+```{r Averaging daily max temp to monthly, eval=FALSE}
+xmax <- raster("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Processed/Europe_maxt_mon.grd")
+
+rmax<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Maxt/tx_0.25deg_reg_v11.0.nc/tx_0.25deg_reg_v11.0.nc", varname = "tx")
+
+tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
+r2 <- setZ(rmax, tm, 'days')
+xmax <- zApply(r2, by=as.yearmon, fun=mean, name='months')   #this bit can take ages (hours) - it is summarasing the daily data into monthly data
+
+```
+
+```{r Example plot of max temp}
 #xmax <- brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proc#essed/Europe_maxt_mon.grd")
 
 xmax<-brick("Europe_maxt_mon.grd")
@@ -437,9 +434,7 @@ xmax<-brick("Europe_maxt_mon.grd")
 plot(xmax[[1]],legend.shrink=0.75,main="Average Daily Maximum Temperature - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Degrees Celsius',side=4, font=2, line=2.5, cex=0.8))
 ```
 
-
-
-```{r, eval=FALSE}
+```{r Extracting monthly mean temp for each population, eval=FALSE}
 all_EU_max_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
 
 for (i in 1:nlayers(xmax)) {
@@ -463,7 +458,7 @@ write.csv(all_EU_max_data_NArm, "all_EU_max_data_NArm_24_08_15_50kbuffnarm.csv")
 ```
 
 
-```{r ,eval=FALSE}
+```{r Averaging daily min temp to monthly ,eval=FALSE}
 
 rmin<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Mint/tn_0.25deg_reg_v11.0.nc/tn_0.25deg_reg_v11.0.nc", varname = "tn")
 
@@ -475,15 +470,9 @@ xmin <- zApply(rmin2, by=as.yearmon, fun=mean, name='months')
 ```
 
 
-```{r}
+```{r Extracting monthly min temp for each population, eval=FALSE}
 
 xmin<- brick("Europe_mint_mon.grd")
-
-plot(xmin[[1]],legend.shrink=0.75,main="Average Daily Minimum Temperature - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Degrees Celsius',side=4, font=2, line=2.5, cex=0.8))
-```
-
-
-```{r, eval=FALSE}
 
 all_EU_min_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
 
@@ -511,7 +500,7 @@ write.csv(all_EU_min_data_NArm, "all_EU_min_data_NArm_24_08_15_50kbuffnarm.csv")
 ```
 
 
-```{r, eval=FALSE}
+```{r Averaging daily precip to monthly, eval=FALSE}
 
 rpcp<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Pcp/rr_0.25deg_reg_v11.0.nc/rr_0.25deg_reg_v11.0.nc", varname = "rr")
 
@@ -522,19 +511,11 @@ xpcp2 <- zApply(rpcp2, by=as.yearmon, fun=sum, name='months')    #summing the mo
 ```
 
 
-```{r}
-#xpcp2<-brick("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Proce#ssed/Europe_pcp_mon.grd")
+```{r Extracting monthly precip for each population, eval=FALSE}
 
 xpcp2<-brick("Europe_pcp_mon.grd")
 
-plot(xpcp2[[1]],legend.shrink=0.75,main="Summed Daily Precipitation - January 1950", xlab="Longitude", ylab="Latitude", legend.args=list(text='Millimetres',side=4, font=2, line=2.5, cex=0.8))
-```
-
-
-```{r, eval=FALSE}
-
 all_EU_pcp_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
-
 
 for (i in 1:nlayers(xpcp2)) {
   
@@ -562,7 +543,7 @@ write.csv(all_EU_pcp_data_zeroplus, "all_EU_pcp_data_Nzeroplus_24_08_15_50kbuffn
 ```
 
 
-```{r, eval=FALSE}
+```{r Combining all extracted climate data, eval=FALSE}
 
 all_EU_mean_data<-read.csv("all_EU_mean_data_check_24_08_15_50kbuffnarm.csv")
 all_EU_max_data<-read.csv("all_EU_max_data_check_24_08_15_50kbuffnarm.csv")
@@ -584,8 +565,6 @@ colnames(EUclim)[c(10:12)]<-c("Precip","Min_Temp","Mean_Temp")
 
 #write.csv(EUclim, "all_EU_clim_data_28_09_15_50kbuffnarm.csv")
 #write.csv(EUclim, "all_EU_clim_data_16_01_05_50kbuffnarm.csv")
-
-
 
 EUclim_NArm<-na.omit(EUclim)
 
@@ -1640,7 +1619,7 @@ reproj<-raster("land_use_wgs84.tif")
 ```
 
 ####Prediction maps - Climate
-```{r}
+```{r Prediction maps - climate}
 mean_t<- brick("Europe_mean_mon.grd")
 mean_t2<-trim(mean_t)
 
