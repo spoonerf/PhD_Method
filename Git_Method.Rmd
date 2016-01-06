@@ -1522,9 +1522,22 @@ for (i in 1:R) {
   print(i)
 }
 
+<<<<<<< HEAD
 hist(marg_Rsq, breaks=100)
 hist(cond_Rsq, breaks=100)
+=======
+
+
+hist(marg_Rsq_m1, breaks=100)
+hist(marg_Rsq_m2, breaks=100)
+
+hist(cond_Rsq_m1, breaks=100)
+hist(cond_Rsq_m2, breaks=100)
+
+>>>>>>> 2b4aeeca6984741885fbe7010a69c5169238c195
 hist(AIC_m1, breaks=100)
+hist(AIC_m2, breaks=100)
+
 #hist(RSq, breaks=100)
 hist(intercept, breaks=100)
 hist(change_rate, breaks=100)
@@ -1549,15 +1562,13 @@ highCI<-c(sort(intercept)[9750],sort(change_rate)[9750],sort(mean_se)[9750],sort
 conf<-data.frame(rbind( lowCI, mean_conf, highCI))
 colnames(conf)<-Variable
 
-RSq_df<-cbind(marg_Rsq,cond_Rsq)
+RSq_df<-cbind(marg_Rsq_m1,cond_Rsq_m1)
 Var_RSq<-c("Marginal R Squared","Conditional R Squared")
-Mean_RSq<-c(mean(marg_Rsq),mean(cond_Rsq))
-LowCI_RSq<-c(sort(marg_Rsq)[250],sort(cond_Rsq)[250])
-HighCI_RSq<-c(sort(marg_Rsq)[9750],sort(cond_Rsq)[9750])
+Mean_RSq<-c(mean(marg_Rsq_m1),mean(cond_Rsq_m1))
+LowCI_RSq<-c(sort(marg_Rsq_m1)[250],sort(cond_Rsq_m1)[250])
+HighCI_RSq<-c(sort(marg_Rsq_m1)[9750],sort(cond_Rsq_m1)[9750])
 
 library(plotrix)
-
-
 
 par(cex.axis=0.8)
 par(mar=c(14,5,1,1))
@@ -1565,16 +1576,7 @@ par(mgp=c(2, 1,0))
 plotCI(1:7, mean_conf, (highCI-mean_conf), (mean_conf-lowCI), ylab="Coefficient Values", xlab="" ,xaxt = "n")
 axis(1, at=1:7, labels=colnames(conf), las=2)
 abline(h=0, col="red", lty =2)
-points(fixy, col="red", pch="x", cex=1.5)
-
-
-#taking out change_rate*mean_slope - which is massive
-plotCI(1:8, mean_conf[c(1:7,9)], (highCI[c(1:7,9)]-mean_conf[c(1:7,9)]), (mean_conf[c(1:7,9)]-lowCI[c(1:7,9)]), ylab="Confidence Intervals", xlab="" ,xaxt = "n")
-axis(1, at=1:8, labels=colnames(conf)[c(1:7,9)], las=2)
-
-####R Squared
-plotCI(1:2, Mean_RSq,(HighCI_RSq-Mean_RSq), (Mean_RSq-LowCI_RSq),ylab="Confidence Intervals", xlab="" ,xaxt = "n")
-axis(1, at=1:2, labels=Var_RSq, las=2)
+#points(fixy, col="red", pch="x", cex=1.5)
 
 
 m23<-lmer(TL ~ change_rate_scale*mean_slope_se_scale+change_rate_scale*mean_slope_scale+mean_slope_scale*mean_slope_se_scale +(1|Binomial_old)+(1|Country),data=sp_df_scale)
@@ -1591,6 +1593,118 @@ plot(effect("mean_slope_se_scale*mean_slope_scale", m23,xlevels=4, factor.names=
 
 
 ####Prediction Maps
+####Land Use
+```{r}
+r<-brick("Land_Use_1950_2010.grd")
+
+names(r)<-seq(1950,2010, by=10)
+
+r_df<-data.frame(as.matrix(r))
+
+r_df$a<-as.numeric(r_df[,1] != r_df[,2])   #checking for each decade if there is a change in land use category
+r_df$b<-as.numeric(r_df[,2] != r_df[,3])
+r_df$c<-as.numeric(r_df[,3] != r_df[,4])
+r_df$d<-as.numeric(r_df[,4] != r_df[,5])
+r_df$e<-as.numeric(r_df[,5] != r_df[,6])
+r_df$f<-as.numeric(r_df[,6] != r_df[,7])
+
+r_df$total_change<-rowSums(r_df[,c(8:13)])   #total number of category changes - a way of quantifying how unstable a landscape is?
+
+
+r_rast<-raster(matrix(r_df$total_change, nrow=4075,ncol=4011, byrow=T))
+
+plot(r_rast)
+
+extent(r_rast)<-c(2554419, 6565419, 1260409, 5335409)
+crs(r_rast)<-"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+
+r_rast
+
+n <- c(0,0.99,0,1,6,1)
+m <- matrix(n, ncol=3, byrow=TRUE)
+
+rc <- reclassify(r_rast, m)     #reclassifying to binary rather than number of changes
+
+f<-rep.int(1, 121)
+m<-matrix(f, nrow=11)
+my_fun2 <- function(x) {
+  result <- sum(na.omit(x))/length(na.omit(x))
+  return(result)
+}
+
+
+rm <- focal(rc, w=matrix(1,nrow=11,ncol=11), fun=my_fun2)    #looking at amount of change in the surrounding area
+
+plot(rm)
+
+writeRaster(rm, filename="land_use.tif", format="GTiff", overwrite=TRUE)
+
+#reprojected in Q because R was confusing!!
+reproj<-raster("land_use_wgs84.tif")
+
+
+```
+
+####Prediction maps - Climate
+```{r}
+mean_t<- brick("Europe_mean_mon.grd")
+mean_t2<-trim(mean_t)
+
+x<-seq(-38.625, 75.125, by=0.25)
+y<-seq(25.375, 71.875, by=0.25)
+
+xy<-expand.grid(x,y)
+colnames(xy)<-c("Lon", "Lat")
+
+#should trim raster before analysis - a lot of NAs slowing things down
+
+temp_change<-data.frame(temp_c=numeric(0))
+month<-seq(1,780, by=1)
+year_plot<-seq(1950,2014, by=1)
+Year<-rep(1950:2014, each=12)
+
+
+for (i in 1:ncell(mean_t)) {
+  
+  rasterex <- extract(mean_t, xy[i,], buffer=50000)      #the mean function seems to be broken?
+  ras_df<-data.frame(rasterex)
+  rast_mean<-colMeans(ras_df, na.rm = T)
+  rast_df<-data.frame(rast_mean)
+  rast_df2<-cbind(Year, rast_df)
+  year_temp <- ddply(rast_df2, "Year", summarise,mean_yt = mean(na.omit(rast_mean)))
+  
+  if (!is.nan(rast_mean[1])) {
+    temp_c<-coef(summary(lm(as.numeric(rast_mean)~month)))[2,1]
+    temp_se<-coef(summary(lm(as.numeric(rast_mean)~month)))[2,2]
+    temp_yr<-coef(summary(lm(year_temp$mean_yt~year_plot)))[2,1]
+    temp_yr_se<-coef(summary(lm(year_temp$mean_yt~year_plot)))[2,2]
+  }else{
+    temp_c<-NA
+    temp_se<-NA
+    temp_yr<-NA
+    temp_yr_se<-NA
+  }
+  
+  dataex<-data.frame(i,temp_c, temp_se, temp_yr, temp_yr_se)   
+  print(dataex)
+  temp_change = rbind(temp_change, dataex)
+}
+
+#####
+temp_rast<-raster(matrix(temp_change$temp_yr, nrow=187,ncol=456, byrow=T))
+
+plot(temp_rast)
+temp_rast_flip<-flip(temp_rast, direction="y")
+extent(temp_rast_flip)<-c(-38.75,75.25,25.25,72)
+
+projection(temp_rast_flip)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+plot(temp_rast_flip)
+writeRaster(temp_rast_flip, filename="climate2.tif", format="GTiff", overwrite=TRUE)
+
+
+
+```
+
 
 ```{r}
 
