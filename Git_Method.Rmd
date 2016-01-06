@@ -1522,11 +1522,6 @@ for (i in 1:R) {
   print(i)
 }
 
-<<<<<<< HEAD
-hist(marg_Rsq, breaks=100)
-hist(cond_Rsq, breaks=100)
-=======
-
 
 hist(marg_Rsq_m1, breaks=100)
 hist(marg_Rsq_m2, breaks=100)
@@ -1534,7 +1529,6 @@ hist(marg_Rsq_m2, breaks=100)
 hist(cond_Rsq_m1, breaks=100)
 hist(cond_Rsq_m2, breaks=100)
 
->>>>>>> 2b4aeeca6984741885fbe7010a69c5169238c195
 hist(AIC_m1, breaks=100)
 hist(AIC_m2, breaks=100)
 
