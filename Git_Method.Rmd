@@ -1703,28 +1703,69 @@ xy<-cbind(LPI_EU4$Longitude,LPI_EU4$Latitude)
 
 binomial<-LPI_EU4$Binomial
 
+df<-data.frame(cbind(id,binomial,xy))
+df<-rename(df, c("V3"="lon", "V4"="lat"))
+head(df)
+
 
 rmean<-brick("tg_0.25deg_reg_v11.0.nc", varname = "tg")
 tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
 r2 <- setZ(rmean, tm, 'days')
 
-# xy<-matrix(c(7,52), nrow=1, ncol=2)
-# xy<-SpatialPoints(xy)
 
-#xyex<- extract(r2[[1:23741]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+xyu<-unique(xy)
 
-mean_var<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), Year=numeric(0), Month=numeric(0), rasterex=numeric(0))
+mean_var<-data.frame(xyu=numeric(0), lon=numeric(0), lat=numeric(0), rasterex=numeric(0))
 
-for (i in 1:nlayers(r2)) {
+Date<-r2@z$days
+Year<-format(Date,format="%Y")
+Month<-format(Date,format="%m")
+Day<-format(Date,format="%d")
+
+for (i in 1:length(xyu[,1])) {
   
-  rasterex <- extract(r2[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)
-  Date<-as.Date(substr(names(r2[[i]]), 2, 11), "%Y.%m.%d")
-  Year<-format(Date,format="%Y")
-  Month<-months(Date)
-  dataex<-data.frame(id, binomial,xy, Year,Month, rasterex)   
-  print(Date)
+  sp<-matrix(xyu[i,], nrow=1,ncol=2)
+  rasterex <- extract(r2, sp, buffer=50000, fun=mean, na.rm=TRUE)
+  trasterex<-t(rasterex)
+  lon<-sp[1]
+  lat<-sp[2]
+  dataex<-data.frame(lon,lat,trasterex)   
+  print(i)
   mean_var= rbind(mean_var, dataex)
 }
+
+write.csv(mean_var, "Daily_Meant_Temp_Values.csv")
+
+
+Date<-as.Date(substr(row.names(mean_var), 2, 11), "%Y.%m.%d")
+mean_var$Year<-format(Date,format="%Y")
+mean_var$Month<-format(Date,format="%m")
+mean_var$Day<-format(Date,format="%d")
+
+mean_var2<-merge(df, mean_var, by = c("lon","lat"))
+mean_var3<-na.omit(mean_var2)
+
+doVar=function(sp_name) {
+  sp_var=subset(mean_var3, id==sp_name)
+  ID<-sp_var$id[1]
+  clim_var<-aggregate(trasterex ~  Year , sp_var , sd )
+  clim_var$Year<-as.numeric(clim_var$Year)
+  mvar<-lm(clim_var$trasterex ~ clim_var$Year)
+  plot(clim_var$trasterex~clim_var$Year, type="l")
+  var_mean<-mean(clim_var$trasterex)
+  varch<-coef(mvar)[2]
+  varid<-cbind(ID,var_mean, varch)
+  print(varid)
+  return(varid)
+}
+
+all_var<-lapply(unique(mean_var3$id), doVar)
+
+all_matrix <- matrix(unlist(all_var), ncol=3, byrow=TRUE)
+
+var_df <- data.frame(all_matrix)
+colnames(var_df) <- c("ID", "Mean_ Var","Var_Change")
+
 
 
 ```
