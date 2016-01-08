@@ -1748,6 +1748,36 @@ mean_var$Day<-format(Date,format="%d")
 mean_var2<-merge(LPI_EU4, mean_var, by = c("lon","lat"))
 mean_var3<-na.omit(mean_var2)
 
+
+doYear=function(sp_name) {
+spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  id<-spid2$ID
+  lon<-spid2$Longitude
+  lat<-spid2$Latitude
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  minYear<-Date[min(which(!is.na(spidt)))]
+  maxYear<-Date[max(which(!is.na(spidt)))]
+  year_cov<-cbind(id, lon, lat ,minYear,maxYear)
+  print(year_cov)
+  return(year_cov)
+}
+
+all_year<-lapply(unique(LPI_EU4$ID), doYear)
+
+all_matrix <- matrix(unlist(all_year), ncol=5, byrow=TRUE)
+
+year_df <- data.frame(all_matrix)
+colnames(year_df) <- c("ID", "lon","lat", "Min_Yr", "Max_Yr")
+
+
+mean_var4<-merge(year_df, mean_var, by=c("lon", "lat"))
+
+
+
+
 doVar=function(sp_name) {
   spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
   spid = spid2[,64:126]                     #subsetting only the dates
