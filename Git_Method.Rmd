@@ -1736,35 +1736,58 @@ for (i in 1:length(xyu[,1])) {
 
 write.csv(mean_var, "Daily_Meant_Temp_Values.csv")
 
+###
+
+mean_var<-read.csv("Daily_Meant_Temp_Values.csv")
 
 Date<-as.Date(substr(row.names(mean_var), 2, 11), "%Y.%m.%d")
 mean_var$Year<-format(Date,format="%Y")
 mean_var$Month<-format(Date,format="%m")
 mean_var$Day<-format(Date,format="%d")
 
-mean_var2<-merge(df, mean_var, by = c("lon","lat"))
+mean_var2<-merge(LPI_EU4, mean_var, by = c("lon","lat"))
 mean_var3<-na.omit(mean_var2)
 
 doVar=function(sp_name) {
+  spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012
+  
   sp_var=subset(mean_var3, id==sp_name)
-  ID<-sp_var$id[1]
   clim_var<-aggregate(trasterex ~  Year , sp_var , sd )
   clim_var$Year<-as.numeric(clim_var$Year)
+  
   mvar<-lm(clim_var$trasterex ~ clim_var$Year)
   plot(clim_var$trasterex~clim_var$Year, type="l")
   var_mean<-mean(clim_var$trasterex)
   varch<-coef(mvar)[2]
-  varid<-cbind(ID,var_mean, varch)
+  
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  
+  clim_yr<-clim_var[clim_var$Year %in% Year, ]$trasterex
+  mvar_yr<-lm(clim_yr ~ Year)
+  plot(clim_yr~Year, type="l")
+  abline(lm(clim_yr ~ Year), col="red")
+  var_mean_yr<-mean(clim_yr)
+  varch_yr<-coef(mvar_yr)[2]
+  varid<-cbind(ID,var_mean, varch, var_mean_yr, varch_yr)
   print(varid)
   return(varid)
 }
 
 all_var<-lapply(unique(mean_var3$id), doVar)
 
-all_matrix <- matrix(unlist(all_var), ncol=3, byrow=TRUE)
+all_matrix <- matrix(unlist(all_var), ncol=5, byrow=TRUE)
 
 var_df <- data.frame(all_matrix)
-colnames(var_df) <- c("ID", "Mean_ Var","Var_Change")
+colnames(var_df) <- c("ID", "Mean_ Var","Var_Change", "Mean_Var_Yr", "Var_Change_Yr")
 
 
 
