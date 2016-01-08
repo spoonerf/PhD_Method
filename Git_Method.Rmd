@@ -1775,45 +1775,50 @@ colnames(year_df) <- c("ID", "lon","lat", "Min_Yr", "Max_Yr")
 
 mean_var4<-merge(year_df, mean_var, by=c("lon", "lat"))
 
+Date<-as.Date(substr(mean_var4$X, 2, 11), "%Y.%m.%d")
+mean_var4$Year<-format(Date,format="%Y")
+mean_var4$Month<-format(Date,format="%m")
+mean_var4$Day<-format(Date,format="%d")
 
-
+mean_var5<-na.omit(mean_var4)
 
 
 doVar=function(sp_name) {
-  sp_var=subset(mean_var3, id==sp_name)
-  ID<-sp_var$id[1]
+  sp_var=subset(mean_var4, ID==sp_name)
+  ID<-sp_var$ID[1]
   clim_var<-aggregate(trasterex ~  Year , sp_var , sd )
-  clim_range<-aggregate(trasterex ~  Year , sp_var , range )
-  # clim_var$Year<-as.numeric(clim_var$Year)
-  # mvar<-lm(clim_var$trasterex ~ clim_var$Year)
-  # plot(clim_var$trasterex~clim_var$Year, type="l")
-  # var_mean<-mean(clim_var$trasterex)
-  # varch<-coef(mvar)[2]
-  # varid<-cbind(ID,var_mean, varch)
-  varid<-cbind(ID, clim_var, clim_range)
+  clim_min_max<-aggregate(trasterex ~  Year , sp_var , range )
+  clim_range<-data.frame(cbind(clim_min_max[,1], (clim_min_max[,2][,2] - clim_min_max[,2][,1])))
+  clim_range$X1<-as.numeric(as.character(clim_range$X1))
+  clim_range$X2<-as.numeric(as.character(clim_range$X2))
+  clim_var$Year<-as.numeric(clim_var$Year)
+  
+  mvar<-lm(clim_var$trasterex ~ clim_var$Year)
+  varch<-coef(mvar)[2]
+  
+  mrng<-lm(clim_range[,2] ~ clim_range[,1])
+  rngch<-coef(mrng)[2]
+  
+  Year<-sp_var$Min_Yr:sp_var$Max_Yr
+  
+  var_yr<-clim_var[clim_var$Year %in% Year, ]$trasterex
+  mvar_yr<-lm(var_yr ~ Year)
+  varch_yr<-coef(mvar_yr)[2]
+  
+  rng_yr<-clim_range[clim_range[,1] %in% Year, ][,2]
+  mrng_yr<-lm(rng_yr ~ Year)
+  rngch_yr<-coef(mrng_yr)[2]
+
+  varid<-cbind(ID, varch, rngch, varch_yr, rngch_yr)
   print(varid)
   return(varid)
 }
 
-all_var<-lapply(unique(mean_var3$id), doVar)
+all_var<-lapply(unique(mean_var4$ID), doVar)
 
 all_matrix <- matrix(unlist(all_var), ncol=6, byrow=F)
 
 var_df <- data.frame(all_matrix)
-colnames(var_df) <- c("ID","Year", "Mean_TEmp_SD", "Year", "Range_min", "Range_max")
-
-var_df$range<-var_df$Range_max - var_df$Range_min
-
-
-LPI_EU5<-LPI_EU4[,c(1,2,3,30,31,64:126)]
-
-mean_var4<-merge(LPI_EU5, var_df, by = "ID")
-
-
-doVarch=function(sp_name) {
-  spid2 = subset(mean_var4, ID == sp_name)   #subsetting the population data by each population
-  spid = spid2[,64:126]                     #subsetting only the dates
-  colnames(spid)<-1950:2012
 
 
 
