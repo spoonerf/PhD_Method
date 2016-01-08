@@ -1707,7 +1707,6 @@ df<-data.frame(cbind(id,binomial,xy))
 df<-rename(df, c("V3"="lon", "V4"="lat"))
 head(df)
 
-
 rmean<-brick("tg_0.25deg_reg_v11.0.nc", varname = "tg")
 tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
 r2 <- setZ(rmean, tm, 'days')
@@ -1736,35 +1735,86 @@ for (i in 1:length(xyu[,1])) {
 
 write.csv(mean_var, "Daily_Meant_Temp_Values.csv")
 
+mean_var<-read.csv("Daily_Meant_Temp_Values.csv")
 
 Date<-as.Date(substr(row.names(mean_var), 2, 11), "%Y.%m.%d")
 mean_var$Year<-format(Date,format="%Y")
 mean_var$Month<-format(Date,format="%m")
 mean_var$Day<-format(Date,format="%d")
 
+#LPI_EU5<-LPI_EU4[,c(1,2,3,30,31,64:126)]
+
 mean_var2<-merge(df, mean_var, by = c("lon","lat"))
 mean_var3<-na.omit(mean_var2)
+
+write.csv(mean_var3, "Daily_Mean_Temp_ID_merge.csv")
+
+doYear=function(sp_name) {
+spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  id<-spid2$ID
+  lon<-spid2$lon
+  lat<-spid2$lat
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  minYear<-Date[min(which(!is.na(spidt)))]
+  maxYear<-Date[max(which(!is.na(spidt)))]
+  year_cov<-cbind(id, lon, lat ,minYear,maxYear)
+  print(year_cov)
+  return(year_cov)
+}
+
+all_year<-lapply(unique(LPI_EU4$ID), doYear)
+
+all_matrix <- matrix(unlist(all_year), ncol=5, byrow=TRUE)
+
+year_df <- data.frame(all_matrix)
+colnames(year_df) <- c("ID", "lon","lat", "Min_Yr", "Max_Yr")
+
+
+mean_var4<-merge(year_df, mean_var, by=c("lon", "lat"))
+
+
+
+
 
 doVar=function(sp_name) {
   sp_var=subset(mean_var3, id==sp_name)
   ID<-sp_var$id[1]
   clim_var<-aggregate(trasterex ~  Year , sp_var , sd )
-  clim_var$Year<-as.numeric(clim_var$Year)
-  mvar<-lm(clim_var$trasterex ~ clim_var$Year)
-  plot(clim_var$trasterex~clim_var$Year, type="l")
-  var_mean<-mean(clim_var$trasterex)
-  varch<-coef(mvar)[2]
-  varid<-cbind(ID,var_mean, varch)
+  clim_range<-aggregate(trasterex ~  Year , sp_var , range )
+  # clim_var$Year<-as.numeric(clim_var$Year)
+  # mvar<-lm(clim_var$trasterex ~ clim_var$Year)
+  # plot(clim_var$trasterex~clim_var$Year, type="l")
+  # var_mean<-mean(clim_var$trasterex)
+  # varch<-coef(mvar)[2]
+  # varid<-cbind(ID,var_mean, varch)
+  varid<-cbind(ID, clim_var, clim_range)
   print(varid)
   return(varid)
 }
 
 all_var<-lapply(unique(mean_var3$id), doVar)
 
-all_matrix <- matrix(unlist(all_var), ncol=3, byrow=TRUE)
+all_matrix <- matrix(unlist(all_var), ncol=6, byrow=F)
 
 var_df <- data.frame(all_matrix)
-colnames(var_df) <- c("ID", "Mean_ Var","Var_Change")
+colnames(var_df) <- c("ID","Year", "Mean_TEmp_SD", "Year", "Range_min", "Range_max")
+
+var_df$range<-var_df$Range_max - var_df$Range_min
+
+
+LPI_EU5<-LPI_EU4[,c(1,2,3,30,31,64:126)]
+
+mean_var4<-merge(LPI_EU5, var_df, by = "ID")
+
+
+doVarch=function(sp_name) {
+  spid2 = subset(mean_var4, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,64:126]                     #subsetting only the dates
+  colnames(spid)<-1950:2012
+
 
 
 
