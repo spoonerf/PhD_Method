@@ -1552,6 +1552,7 @@ Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(SD_change_pop_yr)&!is.na(mean_slo
 
 nrow(Inc5MammalsTemp)
 
+library(plyr)
 #counting duplicates at each location
 sp_dups<-data.frame(ddply(Inc5MammalsTemp,.(Longitude,Latitude),nrow))
 sp_dups$loc_id<-1:length(sp_dups$Longitude)
@@ -1575,7 +1576,7 @@ colnames(result)[1]<-"loc_id"
 
 sp_dups_df2<-merge(sp_dups_df, result, by="loc_id")
 
-unique_bm<-unique(sp_dups_df2[,c(1:4,252,253)])
+#unique_bm<-unique(sp_dups_df2[,c(1:4,252,253)])
 
 
 #write.csv(unique_bm, "bird_mamm_count.csv")
@@ -1607,17 +1608,17 @@ dt = as.data.table(sp_dups_df)
 dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
-parm_df<-sp_dups_df[,c(6,8,11,13)]  ##ID, land use, and climate
-parm_bird<-sp_dups_bird[,c(6,8,11,13)]
-parm_mamm<-sp_dups_mamm[,c(6,8,11,13)]
+parm_df<-sp_dups_df[,c(6,8,11,12,13)]  ##ID, land use, and climate
+parm_bird<-sp_dups_bird[,c(6,8,11,12,13)]
+parm_mamm<-sp_dups_mamm[,c(6,8,11,12,13)]
 
 parm_mat<-as.matrix(parm_df)
 parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
-parm_scale<-scale(parm_mat[,c(2:4)])       #use the scaling factors at the bottom of these to scale the rasters
-parm_bird_scale<-scale(parm_bird_mat[,c(2:4)])
-parm_mamm_scale<-scale(parm_mamm_mat[,c(2:4)])
+parm_scale<-scale(parm_mat[,c(2:5)])       #use the scaling factors at the bottom of these to scale the rasters
+parm_bird_scale<-scale(parm_bird_mat[,c(2:5)])
+parm_mamm_scale<-scale(parm_mamm_mat[,c(2:5)])
 
 parm_id<-parm_mat[,1]
 parm_bird_id<-parm_bird_mat[,1]
@@ -1627,11 +1628,11 @@ parm_df_scale<-data.frame(parm_id,parm_scale)
 parm_birddf_scale<-data.frame(parm_bird_id, parm_bird_scale)
 parm_mammdf_scale<-data.frame(parm_mamm_id, parm_mamm_scale)
 
-colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "mean_rng_scale", "change_rate_scale")
 
-colnames(parm_birddf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
+colnames(parm_birddf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale","mean_rng_scale", "change_rate_scale")
 
-colnames(parm_mammdf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
+colnames(parm_mammdf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale","mean_rng_scale", "change_rate_scale")
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
@@ -1665,9 +1666,9 @@ for (i in 1:R) {
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
-    m1<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+    m1<-lmer(TL ~ change_rate_scale*mean_slope_scale+change_rate_scale*mean_rng_scale+mean_slope_scale*mean_rng_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
   
-    m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+    m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_rng_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
 
   models_list<-list(m1,m2)
   modelsR<-lapply(models_list,rsquared.glmm)
@@ -1681,15 +1682,18 @@ for (i in 1:R) {
   AIC_m2[i]<-AIC(m2)
   intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
   change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
-  #mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
-  mean_slope[i]<-coef(summary(m1))[ 3, "Estimate"]
-  #change_mean_se[i]<-coef(summary(m1))[ 5, "Estimate"]
-  change_mean_slope[i]<-coef(summary(m1))[ 4, "Estimate"]
-  #mean_se_mean_slope[i]<-coef(summary(m1))[ 7, "Estimate"]
+  mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
+  mean_slope[i]<-coef(summary(m1))[4, "Estimate"]
+  change_mean_se[i]<-coef(summary(m1))[5, "Estimate"]
+  change_mean_slope[i]<-coef(summary(m1))[6, "Estimate"]
+  mean_se_mean_slope[i]<-coef(summary(m1))[ 7, "Estimate"]
 
   print(i)
 }
+```
 
+
+```{r}
 
 hist(marg_Rsq_m1, breaks=100)
 hist(marg_Rsq_m2, breaks=100)
@@ -1754,6 +1758,9 @@ plot(effect("mean_slope_se_scale*mean_slope_scale", m23,xlevels=4, factor.names=
 
 ####Prediction Maps
 ####Land Use
+```
+
+
 ```{r}
 r<-brick("Land_Use_1950_2010.grd")
 
