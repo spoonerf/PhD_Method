@@ -1548,7 +1548,7 @@ mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 LPI_EDScores<-read.csv("2016_01_08_LMEModel_data.csv")
 
-Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(SD_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" )
+Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(SD_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10)
 
 nrow(Inc5MammalsTemp)
 
@@ -1608,17 +1608,17 @@ dt = as.data.table(sp_dups_df)
 dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
-parm_df<-sp_dups_df[,c(6,8,11,12,13)]  ##ID, land use, and climate
-parm_bird<-sp_dups_bird[,c(6,8,11,12,13)]
-parm_mamm<-sp_dups_mamm[,c(6,8,11,12,13)]
+parm_df<-sp_dups_df[,c(6,8:13)]  ##ID, land use, and climate
+parm_bird<-sp_dups_bird[,c(6,8:13)]
+parm_mamm<-sp_dups_mamm[,c(6,8:13)]
 
 parm_mat<-as.matrix(parm_df)
 parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
-parm_scale<-scale(parm_mat[,c(2:5)])       #use the scaling factors at the bottom of these to scale the rasters
-parm_bird_scale<-scale(parm_bird_mat[,c(2:5)])
-parm_mamm_scale<-scale(parm_mamm_mat[,c(2:5)])
+parm_scale<-scale(parm_mat[,c(2:7)])       #use the scaling factors at the bottom of these to scale the rasters
+parm_bird_scale<-scale(parm_bird_mat[,c(2:7)])
+parm_mamm_scale<-scale(parm_mamm_mat[,c(2:7)])
 
 parm_id<-parm_mat[,1]
 parm_bird_id<-parm_bird_mat[,1]
@@ -1628,11 +1628,11 @@ parm_df_scale<-data.frame(parm_id,parm_scale)
 parm_birddf_scale<-data.frame(parm_bird_id, parm_bird_scale)
 parm_mammdf_scale<-data.frame(parm_mamm_id, parm_mamm_scale)
 
-colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "mean_rng_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "mean_rng_scale", "mean_var_yr_scale", "mean_rng_yr_scale", "change_rate_scale")
 
-colnames(parm_birddf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale","mean_rng_scale", "change_rate_scale")
+colnames(parm_birddf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "mean_rng_scale", "mean_var_yr_scale", "mean_rng_yr_scale", "change_rate_scale")
 
-colnames(parm_mammdf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale","mean_rng_scale", "change_rate_scale")
+colnames(parm_mammdf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "mean_rng_scale", "mean_var_yr_scale", "mean_rng_yr_scale", "change_rate_scale")
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
@@ -1659,6 +1659,11 @@ marg_Rsq_m1 = numeric(R)
 cond_Rsq_m1 = numeric(R)
 marg_Rsq_m2 = numeric(R)
 cond_Rsq_m2 = numeric(R)
+
+intercept2 = numeric(R)
+change_rate2 = numeric(R)
+mean_se2 = numeric(R)
+mean_slope2 = numeric(R)
 
 for (i in 1:R) {
     
@@ -1687,6 +1692,11 @@ for (i in 1:R) {
   change_mean_se[i]<-coef(summary(m1))[5, "Estimate"]
   change_mean_slope[i]<-coef(summary(m1))[6, "Estimate"]
   mean_se_mean_slope[i]<-coef(summary(m1))[ 7, "Estimate"]
+  
+  intercept2[i]<-coef(summary(m2))[ 1, "Estimate"]
+  change_rate2[i]<-coef(summary(m2))[ 2, "Estimate"]
+  mean_se2[i]<-coef(summary(m2))[ 3, "Estimate"]
+  mean_slope2[i]<-coef(summary(m2))[4, "Estimate"]
 
   print(i)
 }
