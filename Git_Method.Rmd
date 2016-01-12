@@ -418,7 +418,7 @@ write.csv(all_EU_mean_data_NArm, "all_EU_mean_data_NArm_24_08_15_50kbuffnarm.csv
 ```{r Averaging daily max temp to monthly, eval=FALSE}
 xmax <- raster("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Europe Data/Climate_Processed/Europe_maxt_mon.grd")
 
-rmax<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Maxt/tx_0.25deg_reg_v11.0.nc/tx_0.25deg_reg_v11.0.nc", varname = "tx")
+rmax<-brick("tx_0.25deg_reg_v11.0.nc", varname = "tx")
 
 tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
 r2 <- setZ(rmax, tm, 'days')
@@ -460,7 +460,7 @@ write.csv(all_EU_max_data_NArm, "all_EU_max_data_NArm_24_08_15_50kbuffnarm.csv")
 
 ```{r Averaging daily min temp to monthly ,eval=FALSE}
 
-rmin<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/Mint/tn_0.25deg_reg_v11.0.nc/tn_0.25deg_reg_v11.0.nc", varname = "tn")
+rmin<-brick("tn_0.25deg_reg_v11.0.nc", varname = "tn")
 
 tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
 rmin2 <- setZ(rmin, tm, 'days')
@@ -1548,9 +1548,12 @@ mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")
 
+LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
+
+
 Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Range_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(Range_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 nrow(Inc5MammalsTemp)
 
@@ -1611,6 +1614,7 @@ dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
 parm_df<-sp_dups_df[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")]
 parm_bird<-sp_dups_bird[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
 parm_mamm<-sp_dups_mamm[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
 
@@ -1619,6 +1623,8 @@ parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
 parm_scale<-scale(parm_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")])
+
 parm_bird_scale<-scale(parm_bird_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
 parm_mamm_scale<-scale(parm_mamm_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
 
@@ -1632,6 +1638,8 @@ parm_mammdf_scale<-data.frame(parm_mamm_id, parm_mamm_scale)
 
 
 colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID","SD_change_all_yr_scale","Range_change_all_yr_scale","SD_change_pop_yr_scale","Range_change_pop_yr_scale", "max_slope_scale","max_slope_se_scale","max_mon_var_scale","max_year_var_scale","min_slope_scale","min_slope_se_scale","min_mon_var_scale","min_year_var_scale","pcp_slope_scale","pcp_slope_se_scale","pcp_mon_var_scale","pcp_year_var_scale","mean_slope_scale","mean_slope_se_scale","mean_mon_var_scale","mean_year_var_scale","change_rate_scale")
+
 colnames(parm_birddf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
 colnames(parm_mammdf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
 
@@ -1648,8 +1656,13 @@ sp_bird_scale<-merge(sp_dups_bird, parm_birddf_scale, by="ID")
 
 sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
 
+d<-lmer(TL ~ Range_change_pop_yr_scale+max_slope_scale+max_slope_se_scale+min_slope_scale+min_slope_se_scale+pcp_slope_scale+pcp_slope_se_scale+mean_slope_scale+mean_slope_se_scale+change_rate_scale+(1|Binomial_old)+(1|Country),data=sp_df_scale)
 
-  
+
+options(na.action = "na.fail")
+dd <-dredge(d)
+ 
+ 
 source("rsquaredglmm.R")
 
 R=9999
@@ -1857,6 +1870,7 @@ plot(effect("mean_slope_se_scale*mean_slope_scale", m23,xlevels=4, factor.names=
 ```
 
 
+
 ```{r}
 r<-brick("Land_Use_1950_2010.grd")
 
@@ -1890,6 +1904,7 @@ rc <- reclassify(r_rast, m)     #reclassifying to binary rather than number of c
 
 f<-rep.int(1, 121)
 m<-matrix(f, nrow=11)
+
 my_fun2 <- function(x) {
   result <- sum(na.omit(x))/length(na.omit(x))
   return(result)
