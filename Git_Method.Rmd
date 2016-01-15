@@ -1678,7 +1678,7 @@ sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
  
 source("rsquaredglmm.R")
 
-R=9999
+R=999
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
@@ -1800,7 +1800,7 @@ for (i in 1:R) {
   cond_Rsq_m2c[i]<-modelsRsq[11,5]
   cond_Rsq_m2d[i]<-modelsRsq[12,5]
   cond_Rsq_m2e[i]<-modelsRsq[13,5]
-  cond_Rsq_m2f[i]<-modelsRsq[15,5]
+  cond_Rsq_m2f[i]<-modelsRsq[14,5]
 
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
@@ -1844,10 +1844,35 @@ hist(cond_Rsq_m1, breaks=100)
 hist(cond_Rsq_m2, breaks=100)
 
 mean(marg_Rsq_m1)
+mean(marg_Rsq_m1a)
+mean(marg_Rsq_m1b)
+mean(marg_Rsq_m1c)
+mean(marg_Rsq_m1d)
+mean(marg_Rsq_m1e)
+mean(marg_Rsq_m1f)
 mean(marg_Rsq_m2)
+mean(marg_Rsq_m2a)
+mean(marg_Rsq_m2b)
+mean(marg_Rsq_m2c)
+mean(marg_Rsq_m2d)
+mean(marg_Rsq_m2e)
+mean(marg_Rsq_m2f)
 
 mean(AIC_m1)
+mean(AIC_m1a)
+mean(AIC_m1b)
+mean(AIC_m1c)
+mean(AIC_m1d)
+mean(AIC_m1e)
+mean(AIC_m1f)
 mean(AIC_m2)
+mean(AIC_m2a)
+mean(AIC_m2b)
+mean(AIC_m2c)
+mean(AIC_m2d)
+mean(AIC_m2e)
+mean(AIC_m2f)
+
 
 #hist(RSq, breaks=100)
 hist(intercept, breaks=100)
