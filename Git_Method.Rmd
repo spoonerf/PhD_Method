@@ -1546,14 +1546,22 @@ mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 # Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(max_slope_se)&!is.na(max_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" )
 
 LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
-LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")
+LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")   #seems to be 10 fewer populations in this one? 
 
 LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
 
 Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
-Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(Range_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Range_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+
+
+Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+
+Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+
+
+hist(Inc5MammalsTemp$mean_slope_se, breaks=100, xlab=expression(Residual~Variation~"in"~Linear~Regression~of~Mean~Temperature(~degree~C)), main="")
 
 nrow(Inc5MammalsTemp)
 
@@ -1590,7 +1598,7 @@ sp_dups_df2<-merge(sp_dups_df, result, by="loc_id")
 #write.csv(sp_dups_df, "population_duplicate_count.csv")
 
 #looking at temporal distribution of pop counts
-pop_count<-LPI_EDScores[,c(2,86:150)]
+pop_count<-LPI_EDScores[,c(2,97:161)]
 Year_data<-colSums(!is.na(pop_count[,c(2:66)]))
 Years<-1950:2014
 plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts", main="Number of population estimates over time")
@@ -1614,7 +1622,7 @@ dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
 parm_df<-sp_dups_df[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]  ##ID, land use, and climate
-parm_df<-sp_dups_df[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")]
+# parm_df<-sp_dups_df[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")]
 parm_bird<-sp_dups_bird[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
 parm_mamm<-sp_dups_mamm[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
 
@@ -1623,7 +1631,7 @@ parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
 parm_scale<-scale(parm_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])       #use the scaling factors at the bottom of these to scale the rasters
-parm_scale<-scale(parm_mat[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")])
+#parm_scale<-scale(parm_mat[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")])
 
 parm_bird_scale<-scale(parm_bird_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
 parm_mamm_scale<-scale(parm_mamm_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
@@ -1638,7 +1646,7 @@ parm_mammdf_scale<-data.frame(parm_mamm_id, parm_mamm_scale)
 
 
 colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
-colnames(parm_df_scale)<-c("ID","SD_change_all_yr_scale","Range_change_all_yr_scale","SD_change_pop_yr_scale","Range_change_pop_yr_scale", "max_slope_scale","max_slope_se_scale","max_mon_var_scale","max_year_var_scale","min_slope_scale","min_slope_se_scale","min_mon_var_scale","min_year_var_scale","pcp_slope_scale","pcp_slope_se_scale","pcp_mon_var_scale","pcp_year_var_scale","mean_slope_scale","mean_slope_se_scale","mean_mon_var_scale","mean_year_var_scale","change_rate_scale")
+#colnames(parm_df_scale)<-c("ID","SD_change_all_yr_scale","Range_change_all_yr_scale","SD_change_pop_yr_scale","Range_change_pop_yr_scale", "max_slope_scale","max_slope_se_scale","max_mon_var_scale","max_year_var_scale","min_slope_scale","min_slope_se_scale","min_mon_var_scale","min_year_var_scale","pcp_slope_scale","pcp_slope_se_scale","pcp_mon_var_scale","pcp_year_var_scale","mean_slope_scale","mean_slope_se_scale","mean_mon_var_scale","mean_year_var_scale","change_rate_scale")
 
 colnames(parm_birddf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
 colnames(parm_mammdf_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
@@ -1656,12 +1664,12 @@ sp_bird_scale<-merge(sp_dups_bird, parm_birddf_scale, by="ID")
 
 sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
 
-d<-lmer(TL ~ Range_change_pop_yr_scale+max_slope_scale+max_slope_se_scale+min_slope_scale+min_slope_se_scale+pcp_slope_scale+pcp_slope_se_scale+mean_slope_scale+mean_slope_se_scale+change_rate_scale+(1|Binomial_old)+(1|Country),data=sp_df_scale)
-
-
-options(na.action = "na.fail")
-dd <-dredge(d)
- 
+# d<-lmer(TL ~ Range_change_pop_yr_scale+max_slope_scale+max_slope_se_scale+min_slope_scale+min_slope_se_scale+pcp_slope_scale+pcp_slope_se_scale+mean_slope_scale+mean_slope_se_scale+change_rate_scale+(1|Binomial_old)+(1|Country),data=sp_df_scale)
+# 
+# 
+# options(na.action = "na.fail")
+# dd <-dredge(d)
+#  
  
 source("rsquaredglmm.R")
 
@@ -1669,10 +1677,6 @@ R=9999
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m2= numeric(R)
-AIC_m3= numeric(R)
-AIC_m4= numeric(R)
-AIC_m5= numeric(R)
-AIC_m6= numeric(R)
 intercept = numeric(R)
 change_rate = numeric(R)
 mean_se = numeric(R)
@@ -1684,62 +1688,93 @@ marg_Rsq_m1 = numeric(R)
 cond_Rsq_m1 = numeric(R)
 marg_Rsq_m2 = numeric(R)
 cond_Rsq_m2 = numeric(R)
-marg_Rsq_m3 = numeric(R)
-cond_Rsq_m3 = numeric(R)
-marg_Rsq_m4 = numeric(R)
-cond_Rsq_m4 = numeric(R)
-marg_Rsq_m5 = numeric(R)
-cond_Rsq_m5 = numeric(R)
-marg_Rsq_m6 = numeric(R)
-cond_Rsq_m6 = numeric(R)
-
 intercept2 = numeric(R)
 change_rate2 = numeric(R)
 mean_se2 = numeric(R)
 mean_slope2 = numeric(R)
 
 for (i in 1:R) {
-    
   dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
-    m1<-lmer(TL ~ change_rate_scale*mean_slope_scale+change_rate_scale*mean_var_scale+mean_slope_scale*mean_var_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+    m1<-lmer(TL ~ change_rate_scale*mean_slope_scale+change_rate_scale*mean_var_scale+mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m1a<-lmer(TL ~ change_rate_scale*mean_slope_scale+change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m1b<-lmer(TL ~ change_rate_scale*mean_slope_scale+mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m1c<-lmer(TL ~ +change_rate_scale*mean_var_scale+mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
   
-    m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+    m1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
     
-    m3<-lmer(TL ~change_rate_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
-
-    m4<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+    m1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
     
-    m5<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
-     m6<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old)+(1|Country),data=sp_dups_df2)
+    m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
     
-  models_list<-list(m1,m2,m3,m4,m5,m6)
+    m2a<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+  models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
   
   marg_Rsq_m1[i]<-modelsRsq[1,4]
-  marg_Rsq_m2[i]<-modelsRsq[2,4]
-  marg_Rsq_m3[i]<-modelsRsq[3,4]
-  marg_Rsq_m4[i]<-modelsRsq[4,4]
-  marg_Rsq_m5[i]<-modelsRsq[5,4]
-  marg_Rsq_m6[i]<-modelsRsq[6,4]
+  marg_Rsq_m1a[i]<-modelsRsq[2,4]
+  marg_Rsq_m1b[i]<-modelsRsq[3,4]
+  marg_Rsq_m1c[i]<-modelsRsq[4,4]
+  marg_Rsq_m1d[i]<-modelsRsq[5,4]
+  marg_Rsq_m1e[i]<-modelsRsq[6,4]
+  marg_Rsq_m1f[i]<-modelsRsq[7,4]
+  marg_Rsq_m2[i]<-modelsRsq[8,4]
+  marg_Rsq_m2a[i]<-modelsRsq[9,4]
+  marg_Rsq_m2b[i]<-modelsRsq[10,4]
+  marg_Rsq_m2c[i]<-modelsRsq[11,4]
+  marg_Rsq_m2d[i]<-modelsRsq[12,4]
+  marg_Rsq_m2e[i]<-modelsRsq[13,4]
+  marg_Rsq_m2f[i]<-modelsRsq[14,4]
   
   cond_Rsq_m1[i]<-modelsRsq[1,5]
-  cond_Rsq_m2[i]<-modelsRsq[2,5]
-  cond_Rsq_m3[i]<-modelsRsq[3,5]
-  cond_Rsq_m4[i]<-modelsRsq[4,5]
-  cond_Rsq_m5[i]<-modelsRsq[5,5]
-  cond_Rsq_m6[i]<-modelsRsq[6,5]
-  
+  cond_Rsq_m1a[i]<-modelsRsq[2,5]
+  cond_Rsq_m1b[i]<-modelsRsq[3,5]
+  cond_Rsq_m1c[i]<-modelsRsq[4,5]
+  cond_Rsq_m1d[i]<-modelsRsq[5,5]
+  cond_Rsq_m1e[i]<-modelsRsq[6,5]
+  cond_Rsq_m1f[i]<-modelsRsq[7,5]
+  cond_Rsq_m2[i]<-modelsRsq[8,5]
+  cond_Rsq_m2a[i]<-modelsRsq[9,5]
+  cond_Rsq_m2b[i]<-modelsRsq[10,5]
+  cond_Rsq_m2c[i]<-modelsRsq[11,5]
+  cond_Rsq_m2d[i]<-modelsRsq[12,5]
+  cond_Rsq_m2e[i]<-modelsRsq[13,5]
+  cond_Rsq_m2f[i]<-modelsRsq[15,5]
+
   AIC_m1[i]<-AIC(m1)
+  AIC_m1a[i]<-AIC(m1a)
+  AIC_m1b[i]<-AIC(m1b)
+  AIC_m1c[i]<-AIC(m1c)
+  AIC_m1d[i]<-AIC(m1d)
+  AIC_m1e[i]<-AIC(m1e)
+  AIC_m1f[i]<-AIC(m1f)
   AIC_m2[i]<-AIC(m2)
-  AIC_m3[i]<-AIC(m3)
-  AIC_m4[i]<-AIC(m4)
-  AIC_m5[i]<-AIC(m5)
-  AIC_m6[i]<-AIC(m6)
-  
+  AIC_m2a[i]<-AIC(m2a)
+  AIC_m2b[i]<-AIC(m2b)
+  AIC_m2c[i]<-AIC(m2c)
+  AIC_m2d[i]<-AIC(m2d)
+  AIC_m2e[i]<-AIC(m2e)
+  AIC_m2f[i]<-AIC(m2f)
+
   intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
   change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
   mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
@@ -1762,27 +1797,14 @@ for (i in 1:R) {
 
 hist(marg_Rsq_m1, breaks=100)
 hist(marg_Rsq_m2, breaks=100)
-hist(marg_Rsq_m3, breaks=100)
-hist(marg_Rsq_m4, breaks=100)
-hist(marg_Rsq_m5, breaks=100)
-hist(marg_Rsq_m6, breaks=100)
-
 hist(cond_Rsq_m1, breaks=100)
 hist(cond_Rsq_m2, breaks=100)
 
 mean(marg_Rsq_m1)
 mean(marg_Rsq_m2)
-mean(marg_Rsq_m3)
-mean(marg_Rsq_m4)
-mean(marg_Rsq_m5)
-mean(marg_Rsq_m6)
 
 mean(AIC_m1)
 mean(AIC_m2)
-mean(AIC_m3)
-mean(AIC_m4)
-mean(AIC_m5)
-mean(AIC_m6)
 
 #hist(RSq, breaks=100)
 hist(intercept, breaks=100)
@@ -1810,12 +1832,17 @@ highCI<-c(sort(intercept)[9750],sort(change_rate)[9750],sort(mean_se)[9750],sort
 
 conf<-data.frame(rbind( lowCI, mean_conf, highCI))
 colnames(conf)<-Variable
+conf
 
 RSq_df<-cbind(marg_Rsq_m1,cond_Rsq_m1)
 Var_RSq<-c("Marginal R Squared","Conditional R Squared")
 Mean_RSq<-c(mean(marg_Rsq_m1),mean(cond_Rsq_m1))
-LowCI_RSq<-c(sort(marg_Rsq_m1)[250],sort(cond_Rsq_m1)[250])
-HighCI_RSq<-c(sort(marg_Rsq_m1)[9750],sort(cond_Rsq_m1)[9750])
+LowCI_RSq<-c(sort(marg_Rsq_m1)[25],sort(cond_Rsq_m1)[25])   #should be 250 for R=9999
+HighCI_RSq<-c(sort(marg_Rsq_m1)[975],sort(cond_Rsq_m1)[975]) #should be 9750 for R=9999
+
+RSq_int<-rbind(LowCI_RSq,Mean_RSq,HighCI_RSq)
+colnames(RSq_int)<-Var_RSq
+RSq_int
 
 library(plotrix)
 
@@ -1827,6 +1854,8 @@ axis(1, at=1:7, labels=colnames(conf), las=2)
 abline(h=0, col="red", lty =2)
 #points(fixy, col="red", pch="x", cex=1.5)
 
+hist(AIC_m1, breaks=100)
+mean(AIC_m1)
 ##
 coef_df2<-cbind(intercept2,change_rate2,mean_se2,mean_slope2)
 
@@ -1840,6 +1869,7 @@ highCI2<-c(sort(intercept2)[9750],sort(change_rate2)[9750],sort(mean_se2)[9750],
 
 conf2<-data.frame(rbind(lowCI2, mean_conf2, highCI2))
 colnames(conf2)<-Variable2
+conf2
 
 RSq_df2<-cbind(marg_Rsq_m2,cond_Rsq_m2)
 Var_RSq<-c("Marginal R Squared","Conditional R Squared")
@@ -1847,10 +1877,17 @@ Mean_RSq2<-c(mean(marg_Rsq_m2),mean(cond_Rsq_m2))
 LowCI_RSq2<-c(sort(marg_Rsq_m2)[250],sort(cond_Rsq_m2)[250])
 HighCI_RSq2<-c(sort(marg_Rsq_m2)[9750],sort(cond_Rsq_m2)[9750])
 
+RSq_add<-rbind(LowCI_RSq2,Mean_RSq2,HighCI_RSq2)
+colnames(RSq_add)<-Var_RSq
+RSq_add
+
+
 plotCI(1:4, mean_conf2, (highCI2-mean_conf2), (mean_conf2-lowCI2), ylab="Coefficient Values", xlab="" ,xaxt = "n")
 axis(1, at=1:4, labels=colnames(conf2), las=2)
 abline(h=0, col="red", lty =2)
 
+hist(AIC_m2, breaks=100)
+mean(AIC_m2)
 
 #######
 
@@ -2060,6 +2097,8 @@ mapPoints <- ggmap(map) + geom_point(aes(x = Longitude, y = Latitude, size = V1)
 mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 
 ```
+
+##vvvsuperfluous###
 
 
 The output of the models 
