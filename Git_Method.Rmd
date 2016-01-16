@@ -1867,8 +1867,8 @@ for (i in 1:R) {
   
   print(i)
 }
-values()
-For plotting predicted values against real values
+
+ #For plotting predicted values against real values
 
  #pred<-predict(avg.top.models.AIC)
  
@@ -1914,21 +1914,6 @@ mean(AIC_m2d)
 mean(AIC_m2e)
 mean(AIC_m2f)
 
-
-#hist(RSq, breaks=100)
-hist(intercept, breaks=100)
-hist(change_rate, breaks=100)
-hist(mean_se, breaks=100)
-hist(mean_slope, breaks=100)
-hist(change_mean_se, breaks=100)
-hist(change_mean_slope, breaks=100)
-hist(mean_se_mean_slope, breaks=100)
-
-hist(intercept2, breaks=100)
-hist(change_rate2, breaks=100)
-hist(mean_se2, breaks=100)
-hist(mean_slope2, breaks=100)
-
 coef_df<-cbind(intercept,change_rate,mean_se,mean_slope,change_mean_se,change_mean_slope,mean_se_mean_slope)
 
 Variable<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change", "Land Use Change*Mean Temp Var", "Land Use Change*Mean Temp Change", "Mean Temp Var*Mean Temp Change")
@@ -1946,16 +1931,34 @@ conf
 RSq_df<-cbind(marg_Rsq_m1,cond_Rsq_m1)
 Var_RSq<-c("Marginal R Squared","Conditional R Squared")
 Mean_RSq<-c(mean(marg_Rsq_m1),mean(cond_Rsq_m1))
-LowCI_RSq<-c(sort(marg_Rsq_m1)[25],sort(cond_Rsq_m1)[25])   #should be 250 for R=9999
-HighCI_RSq<-c(sort(marg_Rsq_m1)[975],sort(cond_Rsq_m1)[975]) #should be 9750 for R=9999
+LowCI_RSq<-c(sort(marg_Rsq_m1)[250],sort(cond_Rsq_m1)[250])   #should be 250 for R=9999
+HighCI_RSq<-c(sort(marg_Rsq_m1)[9750],sort(cond_Rsq_m1)[9750]) #should be 9750 for R=9999
 
 RSq_int<-rbind(LowCI_RSq,Mean_RSq,HighCI_RSq)
 colnames(RSq_int)<-Var_RSq
 RSq_int
 
-RSq_int<-rbind(LowCI_RSq, Mean_RSq, HighCI_RSq)
-colnames(RSq_int)<-Var_RSq
-RSq_int
+library(plotrix)
+
+par(cex.axis=0.8)
+par(mar=c(14,5,1,1))
+par(mgp=c(2, 1,0))
+plotCI(1:7, mean_conf, (highCI-mean_conf), (mean_conf-lowCI), ylab="Coefficient Values", xlab="" ,xaxt = "n")
+axis(1, at=1:7, labels=colnames(conf), las=2)
+abline(h=0, col="red", lty =2)
+#points(fixy, col="red", pch="x", cex=1.5)
+
+
+
+mean_conf<-c(mean(interceptw), mean(change_ratew), mean(mean_sew),mean(mean_slopew), mean(change_mean_sew), mean(change_mean_slopew), mean(mean_se_mean_slopew))
+
+lowCI<-c(sort(interceptw)[250],sort(change_ratew)[250],sort(mean_sew)[250],sort(mean_slopew)[250],sort(change_mean_sew)[250],sort(change_mean_slopew)[250],sort(mean_se_mean_slopew)[250])
+
+highCI<-c(sort(interceptw)[9750],sort(change_ratew)[9750],sort(mean_sew)[9750],sort(mean_slopew)[9750],sort(change_mean_sew)[9750],sort(change_mean_slopew)[9750], sort(mean_se_mean_slopew)[9750])
+
+conf<-data.frame(rbind( lowCI, mean_conf, highCI))
+colnames(conf)<-Variable
+conf
 
 
 library(plotrix)
@@ -1971,34 +1974,35 @@ abline(h=0, col="red", lty =2)
 hist(AIC_m1, breaks=100)
 mean(AIC_m1)
 ##
-coef_df2<-cbind(intercept2,change_rate2,mean_se2,mean_slope2)
+coef_df2<-cbind(intercept2,change_rate2,mean_se2,mean_slope2,change_mean_se2,mean_se_mean_slope2)
 
-Variable2<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change")
+  
+Variable2<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change","Land Use Change*Mean Temp Var", "Mean Temp Var*Mean Temp Change")
 
-mean_conf2<-c(mean(intercept2), mean(change_rate2), mean(mean_se2),mean(mean_slope2))
+mean_conf2<-c(mean(intercept2), mean(change_rate2), mean(mean_se2),mean(mean_slope2), mean(change_mean_se2), mean(mean_se_mean_slope2))
 
-lowCI2<-c(sort(intercept2)[250],sort(change_rate2)[250],sort(mean_se2)[250],sort(mean_slope2)[250])
+lowCI2<-c(sort(intercept2)[250],sort(change_rate2)[250],sort(mean_se2)[250],sort(mean_slope2)[250], sort(change_mean_se2)[250], sort(mean_se_mean_slope)[250])
 
-highCI2<-c(sort(intercept2)[9750],sort(change_rate2)[9750],sort(mean_se2)[9750],sort(mean_slope2)[9750])
+highCI2<-c(sort(intercept2)[9750],sort(change_rate2)[9750],sort(mean_se2)[9750],sort(mean_slope2)[9750], sort(change_mean_se2)[9750], sort(mean_se_mean_slope)[9750])
 
 conf2<-data.frame(rbind(lowCI2, mean_conf2, highCI2))
 colnames(conf2)<-Variable2
 conf2
 
-RSq_df2<-cbind(marg_Rsq_m2,cond_Rsq_m2)
+RSq_df1c<-cbind(marg_Rsq_m1c,cond_Rsq_m1c)
 Var_RSq<-c("Marginal R Squared","Conditional R Squared")
-Mean_RSq2<-c(mean(marg_Rsq_m2),mean(cond_Rsq_m2))
-LowCI_RSq2<-c(sort(marg_Rsq_m2)[250],sort(cond_Rsq_m2)[250])
-HighCI_RSq2<-c(sort(marg_Rsq_m2)[9750],sort(cond_Rsq_m2)[9750])
+Mean_RSq1c<-c(mean(marg_Rsq_m1c),mean(cond_Rsq_m1c))
+LowCI_RSq1c<-c(sort(marg_Rsq_m1c)[250],sort(cond_Rsq_m1c)[250])
+HighCI_RSq1c<-c(sort(marg_Rsq_m1c)[9750],sort(cond_Rsq_m1c)[9750])
 
 
-RSq_add<-rbind(LowCI_RSq2, Mean_RSq2, HighCI_RSq2)
-colnames(RSq_add)<-Var_RSq
-RSq_add
+RSq_1c<-rbind(LowCI_RSq1c, Mean_RSq1c, HighCI_RSq1c)
+colnames(RSq_1c)<-Var_RSq
+RSq_1c
 
 
-plotCI(1:4, mean_conf2, (highCI2-mean_conf2), (mean_conf2-lowCI2), ylab="Coefficient Values", xlab="" ,xaxt = "n")
-axis(1, at=1:4, labels=colnames(conf2), las=2)
+plotCI(1:6, mean_conf2, (highCI2-mean_conf2), (mean_conf2-lowCI2), ylab="Coefficient Values", xlab="" ,xaxt = "n")
+axis(1, at=1:6, labels=colnames(conf2), las=2)
 abline(h=0, col="red", lty =2)
 
 hist(AIC_m2, breaks=100)
