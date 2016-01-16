@@ -1678,7 +1678,7 @@ sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
  
 source("rsquaredglmm.R")
 
-R=999
+R=9999
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
