@@ -1710,9 +1710,12 @@ sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
 # cond_Rsq_m2e = numeric(R)
 # marg_Rsq_m2f = numeric(R)
 # cond_Rsq_m2f = numeric(R)
+
+library(lme4)
+library(MuMIn)
 source("rsquaredglmm.R")
 
-R=9999
+R=10000
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1c= numeric(R)
@@ -1948,7 +1951,7 @@ axis(1, at=1:7, labels=colnames(conf), las=2)
 abline(h=0, col="red", lty =2)
 #points(fixy, col="red", pch="x", cex=1.5)
 
-
+####average of two top models
 
 mean_conf<-c(mean(interceptw), mean(change_ratew), mean(mean_sew),mean(mean_slopew), mean(change_mean_sew), mean(change_mean_slopew), mean(mean_se_mean_slopew))
 
@@ -1976,14 +1979,15 @@ mean(AIC_m1)
 ##
 coef_df2<-cbind(intercept2,change_rate2,mean_se2,mean_slope2,change_mean_se2,mean_se_mean_slope2)
 
-  
+####model 1c
+
 Variable2<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change","Land Use Change*Mean Temp Var", "Mean Temp Var*Mean Temp Change")
 
 mean_conf2<-c(mean(intercept2), mean(change_rate2), mean(mean_se2),mean(mean_slope2), mean(change_mean_se2), mean(mean_se_mean_slope2))
 
-lowCI2<-c(sort(intercept2)[250],sort(change_rate2)[250],sort(mean_se2)[250],sort(mean_slope2)[250], sort(change_mean_se2)[250], sort(mean_se_mean_slope)[250])
+lowCI2<-c(sort(intercept2)[250],sort(change_rate2)[250],sort(mean_se2)[250],sort(mean_slope2)[250], sort(change_mean_se2)[250], sort(mean_se_mean_slope2)[250])
 
-highCI2<-c(sort(intercept2)[9750],sort(change_rate2)[9750],sort(mean_se2)[9750],sort(mean_slope2)[9750], sort(change_mean_se2)[9750], sort(mean_se_mean_slope)[9750])
+highCI2<-c(sort(intercept2)[9750],sort(change_rate2)[9750],sort(mean_se2)[9750],sort(mean_slope2)[9750], sort(change_mean_se2)[9750], sort(mean_se_mean_slope2)[9750])
 
 conf2<-data.frame(rbind(lowCI2, mean_conf2, highCI2))
 colnames(conf2)<-Variable2
@@ -2005,8 +2009,8 @@ plotCI(1:6, mean_conf2, (highCI2-mean_conf2), (mean_conf2-lowCI2), ylab="Coeffic
 axis(1, at=1:6, labels=colnames(conf2), las=2)
 abline(h=0, col="red", lty =2)
 
-hist(AIC_m2, breaks=100)
-mean(AIC_m2)
+hist(AIC_m1c, breaks=100)
+mean(AIC_m1c)
 
 #######
 
