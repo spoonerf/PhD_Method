@@ -1154,43 +1154,43 @@ r_2010b<-crop(r_2010, r_1950)    #the 2010 raster is larger than the other years
 r<-stack(r_1950,r_1960,r_1970,r_1980,r_1990,r_2000,r_2010b)
 
 names(r)<-seq(1950,2010, by=10)
-
-frequency<-freq(r)
-freq_df<-data.frame(matrix(unlist(frequency), nrow=7))
-
-freq_df<-freq_df[,c(1,2,4,6,8,10,12,14)]
-
-freq_dft<-t(freq_df)
-freq_dft2<-freq_dft[c(2:8),c(1:6)]
-
-
-colnames(freq_dft2)<-c("Settlement", "Cropland", "Forest", "Grassland", "Other Land", "Water")
-rownames(freq_dft2)<-seq(1950,2010, by=10)
-
-freq_dft3<-data.frame(freq_dft2)
-freq_dft3$Total<-rowSums(freq_dft3)
-
-plot(rownames(freq_dft3), freq_dft3$Settlement, type="l", ylim=c(60000,1500000))
-lines(rownames(freq_dft3), freq_dft3$Cropland, type="l")
-lines(rownames(freq_dft3), freq_dft3$Forest, type="l")
-lines(rownames(freq_dft3), freq_dft3$Grassland, type="l")
-lines(rownames(freq_dft3), freq_dft3$Other.Land, type="l")
-lines(rownames(freq_dft3), freq_dft3$Water, type="l")
-
-freq_dft3$Settlement_per<-freq_dft3$Settlement/freq_dft3$Total
-freq_dft3$Cropland_per<-freq_dft3$Cropland/freq_dft3$Total
-freq_dft3$Forest_per<-freq_dft3$Forest/freq_dft3$Total
-freq_dft3$Grassland_per<-freq_dft3$Grassland/freq_dft3$Total
-freq_dft3$Other.Land_per<-freq_dft3$Other.Land/freq_dft3$Total
-freq_dft3$Water_per<-freq_dft3$Water/freq_dft3$Total
-
-plot(rownames(freq_dft3), freq_dft3$Settlement_per, type="o", ylim=c(0,0.35), col="red")
-lines(rownames(freq_dft3), freq_dft3$Cropland_per, type="o", col="#EEB99FFF")
-lines(rownames(freq_dft3), freq_dft3$Forest_per, type="o", col="#00A600FF")
-lines(rownames(freq_dft3), freq_dft3$Grassland_per, type="o", col="#63C600FF")
-lines(rownames(freq_dft3), freq_dft3$Other.Land_per, type="o", col="#E6E600FF")
-lines(rownames(freq_dft3), freq_dft3$Water_per, type="o", col="lightblue")
-
+# 
+# frequency<-freq(r)
+# freq_df<-data.frame(matrix(unlist(frequency), nrow=7))
+# 
+# freq_df<-freq_df[,c(1,2,4,6,8,10,12,14)]
+# 
+# freq_dft<-t(freq_df)
+# freq_dft2<-freq_dft[c(2:8),c(1:6)]
+# 
+# 
+# colnames(freq_dft2)<-c("Settlement", "Cropland", "Forest", "Grassland", "Other Land", "Water")
+# rownames(freq_dft2)<-seq(1950,2010, by=10)
+# 
+# freq_dft3<-data.frame(freq_dft2)
+# freq_dft3$Total<-rowSums(freq_dft3)
+# 
+# plot(rownames(freq_dft3), freq_dft3$Settlement, type="l", ylim=c(60000,1500000))
+# lines(rownames(freq_dft3), freq_dft3$Cropland, type="l")
+# lines(rownames(freq_dft3), freq_dft3$Forest, type="l")
+# lines(rownames(freq_dft3), freq_dft3$Grassland, type="l")
+# lines(rownames(freq_dft3), freq_dft3$Other.Land, type="l")
+# lines(rownames(freq_dft3), freq_dft3$Water, type="l")
+# 
+# freq_dft3$Settlement_per<-freq_dft3$Settlement/freq_dft3$Total
+# freq_dft3$Cropland_per<-freq_dft3$Cropland/freq_dft3$Total
+# freq_dft3$Forest_per<-freq_dft3$Forest/freq_dft3$Total
+# freq_dft3$Grassland_per<-freq_dft3$Grassland/freq_dft3$Total
+# freq_dft3$Other.Land_per<-freq_dft3$Other.Land/freq_dft3$Total
+# freq_dft3$Water_per<-freq_dft3$Water/freq_dft3$Total
+# 
+# plot(rownames(freq_dft3), freq_dft3$Settlement_per, type="o", ylim=c(0,0.35), col="red")
+# lines(rownames(freq_dft3), freq_dft3$Cropland_per, type="o", col="#EEB99FFF")
+# lines(rownames(freq_dft3), freq_dft3$Forest_per, type="o", col="#00A600FF")
+# lines(rownames(freq_dft3), freq_dft3$Grassland_per, type="o", col="#63C600FF")
+# lines(rownames(freq_dft3), freq_dft3$Other.Land_per, type="o", col="#E6E600FF")
+# lines(rownames(freq_dft3), freq_dft3$Water_per, type="o", col="lightblue")
+# 
 
 # Year<-as.numeric(colnames(freq_df[2:8]))
 # Settlement<-as.matrix(freq_df[1,c(2:8)])
@@ -1296,7 +1296,7 @@ legend(5241419,3867409, legend = c("Settlement", "Cropland", "Forest", "Grasslan
 ####Land Use Change
 This section finds the land use rasters for every time series (the beginning and the end of the time series are rounded to the nearest decade)
 
-```{r, eval=FALSE, message=FALSE,warning=FALSE,}
+```{r Land Use Change, message=FALSE, warning=FALSE, Land Use Change, eval=FALSE}
 result <- data.frame() #empty result dataframe
 
 
@@ -1554,6 +1554,9 @@ LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")   #seems to be 10 fewer 
 
 LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
+sens<-read.csv("Sensitivity_Land_Use.csv")
+
+LPI_EDScores3<-merge(LPI_EDScores3, sens, by="ID")
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
@@ -1625,7 +1628,7 @@ dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
 
-parm_df<-sp_dups_df[,c("ID","mean_slope", "mean_slope_se", "change_rate")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","mean_slope", "mean_slope_se", "change_rate_9")]  ##ID, land use, and climate
 #parm_df<-sp_dups_df[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")]
 
 parm_bird<-sp_dups_bird[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
@@ -1635,7 +1638,7 @@ parm_mat<-as.matrix(parm_df)
 parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
-parm_scale<-scale(parm_mat[,c("mean_slope", "mean_slope_se", "change_rate")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("mean_slope", "mean_slope_se", "change_rate_9")])       #use the scaling factors at the bottom of these to scale the rasters
 #parm_scale<-scale(parm_mat[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")])
 
 parm_bird_scale<-scale(parm_bird_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
@@ -1713,7 +1716,7 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=10000
+R=1000
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1c= numeric(R)
@@ -1870,34 +1873,34 @@ for (i in 1:R) {
   marg_Rsq_m2f[i]<-modelsRsq[14,4]
 
   cond_Rsq_m1[i]<-modelsRsq[1,5]
-#   cond_Rsq_m1a[i]<-modelsRsq[2,5]
-#   cond_Rsq_m1b[i]<-modelsRsq[3,5]
+  cond_Rsq_m1a[i]<-modelsRsq[2,5]
+  cond_Rsq_m1b[i]<-modelsRsq[3,5]
   cond_Rsq_m1c[i]<-modelsRsq[2,5]   #should be 4 without all other models '#'d out
-#   cond_Rsq_m1d[i]<-modelsRsq[5,5]
-#   cond_Rsq_m1e[i]<-modelsRsq[6,5]
-#   cond_Rsq_m1f[i]<-modelsRsq[7,5]
-#   cond_Rsq_m2[i]<-modelsRsq[8,5]
-#   cond_Rsq_m2a[i]<-modelsRsq[9,5]
-#   cond_Rsq_m2b[i]<-modelsRsq[10,5]
-#   cond_Rsq_m2c[i]<-modelsRsq[11,5]
-#   cond_Rsq_m2d[i]<-modelsRsq[12,5]
-#   cond_Rsq_m2e[i]<-modelsRsq[13,5]
-#   cond_Rsq_m2f[i]<-modelsRsq[14,5]
+  cond_Rsq_m1d[i]<-modelsRsq[5,5]
+  cond_Rsq_m1e[i]<-modelsRsq[6,5]
+  cond_Rsq_m1f[i]<-modelsRsq[7,5]
+  cond_Rsq_m2[i]<-modelsRsq[8,5]
+  cond_Rsq_m2a[i]<-modelsRsq[9,5]
+  cond_Rsq_m2b[i]<-modelsRsq[10,5]
+  cond_Rsq_m2c[i]<-modelsRsq[11,5]
+  cond_Rsq_m2d[i]<-modelsRsq[12,5]
+  cond_Rsq_m2e[i]<-modelsRsq[13,5]
+  cond_Rsq_m2f[i]<-modelsRsq[14,5]
 
   AIC_m1[i]<-AIC(m1)
-#   AIC_m1a[i]<-AIC(m1a)
-#   AIC_m1b[i]<-AIC(m1b)
+  AIC_m1a[i]<-AIC(m1a)
+  AIC_m1b[i]<-AIC(m1b)
   AIC_m1c[i]<-AIC(m1c)
-#   AIC_m1d[i]<-AIC(m1d)
-#   AIC_m1e[i]<-AIC(m1e)
-#   AIC_m1f[i]<-AIC(m1f)
-#   AIC_m2[i]<-AIC(m2)
-#   AIC_m2a[i]<-AIC(m2a)
-#   AIC_m2b[i]<-AIC(m2b)
-#   AIC_m2c[i]<-AIC(m2c)
-#   AIC_m2d[i]<-AIC(m2d)
-#   AIC_m2e[i]<-AIC(m2e)
-#   AIC_m2f[i]<-AIC(m2f)
+  AIC_m1d[i]<-AIC(m1d)
+  AIC_m1e[i]<-AIC(m1e)
+  AIC_m1f[i]<-AIC(m1f)
+  AIC_m2[i]<-AIC(m2)
+  AIC_m2a[i]<-AIC(m2a)
+  AIC_m2b[i]<-AIC(m2b)
+  AIC_m2c[i]<-AIC(m2c)
+  AIC_m2d[i]<-AIC(m2d)
+  AIC_m2e[i]<-AIC(m2e)
+  AIC_m2f[i]<-AIC(m2f)
 
 
   # intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
@@ -2025,7 +2028,6 @@ mean(AIC_m2d)
 mean(AIC_m2e)
 mean(AIC_m2f)
 
-<<<<<<< HEAD
 mean(m1_w)
 mean(m1a_w)
 mean(m1b_w)
@@ -2068,9 +2070,9 @@ mean(MTC_MTV_i)
   
 mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av))
  
-lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250])
+lowCI_av<-c(sort(int_av)[3],sort(LUC_av)[3],sort(MTV_av)[3],sort(MTC_av)[3],sort(LUC_MTV_av)[3],sort(LUC_MTC_av)[3],sort(MTC_MTV_av)[3])
 
-highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750])
+highCI_av<-c(sort(int_av)[97],sort(LUC_av)[97],sort(MTV_av)[97],sort(MTC_av)[97],sort(LUC_MTV_av)[97],sort(LUC_MTC_av)[97],sort(MTC_MTV_av)[97])
 
 Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC")
 
@@ -2089,12 +2091,6 @@ axis(1, at=1:7, labels=colnames(conf_av), las=2)
 abline(h=0, col="red", lty =2)
 
 
-
-
-
-
-=======
->>>>>>> 9de8fbf4fa2fd979b7b31248a76a466d58b7972d
 coef_df<-cbind(intercept,change_rate,mean_se,mean_slope,change_mean_se,change_mean_slope,mean_se_mean_slope)
 
 Variable<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change", "Land Use Change*Mean Temp Var", "Land Use Change*Mean Temp Change", "Mean Temp Var*Mean Temp Change")
