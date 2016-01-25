@@ -52,7 +52,7 @@ library(ggmap)
 ###Population Trends
 The population time series data used in this study are from the Living Planet (LP) database, which has population abundance trends for >15,300 populations of 3,438 mammal, bird, reptile, amphibian and fish species (McRae, Freeman and Deinet, 2014). The data set covers the time period 1950-2012, with each data entry containing population estimates, for a species in a given area, for at least two of the years within this time period.
 
-(Note that the term ‘population’ is not used here in an ecological sense—it refers to a sub-group of a species for which repeated abundance measurements are available at a specified location.) - from Arctic report?
+(Note that the term population is not used here in an ecological sense, it refers to a sub-group of a species for which repeated abundance measurements are available at a specified location.) - from Arctic report?
 
 The LP data was subset so that only populations with specific known locations and those within the extent of the climatic and land use data were kept.
 
@@ -1559,7 +1559,6 @@ LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
 Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Range_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
-
 Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
@@ -1585,7 +1584,8 @@ for (i in 1:length(sp_dups$loc_id)){
   sub<-subset(sp_dups_df, loc_id==i)
   bird_loc<-sum(sub$Class == "Aves")
   mamm_loc<-sum(sub$Class == "Mammalia")
-  count_loc<-cbind(i,bird_loc, mamm_loc)
+  amph_loc<-sum(sub$Class == "Amphibia")
+  count_loc<-cbind(i,bird_loc, mamm_loc, amph_loc)
   print(count_loc)
   result<-rbind(count_loc,result)
 }
@@ -1596,9 +1596,7 @@ sp_dups_df2<-merge(sp_dups_df, result, by="loc_id")
 
 #unique_bm<-unique(sp_dups_df2[,c(1:4,252,253)])
 
-
 #write.csv(unique_bm, "bird_mamm_count.csv")
-
 
 #write.csv(sp_dups_df, "population_duplicate_count.csv")
 
@@ -1676,24 +1674,49 @@ sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
 #options(na.action = "na.fail")
 #dd <-dredge(d)
  
+
+
+# marg_Rsq_m1a = numeric(R)
+# cond_Rsq_m1a = numeric(R)
+# marg_Rsq_m1b = numeric(R)
+# cond_Rsq_m1b = numeric(R)
+# marg_Rsq_m1d = numeric(R)
+# cond_Rsq_m1d = numeric(R)
+# marg_Rsq_m1e = numeric(R)
+# cond_Rsq_m1e = numeric(R)
+# marg_Rsq_m1f = numeric(R)
+# cond_Rsq_m1f = numeric(R)
+# AIC_m1a= numeric(R)
+# AIC_m1b= numeric(R)
+# AIC_m1d= numeric(R)
+# AIC_m1e= numeric(R)
+# AIC_m1f= numeric(R)
+# AIC_m2= numeric(R)
+# AIC_m2a= numeric(R)
+# AIC_m2b= numeric(R)
+# AIC_m2c= numeric(R)
+# AIC_m2d= numeric(R)
+# AIC_m2e= numeric(R)
+# AIC_m2f= numeric(R)
+# marg_Rsq_m2a = numeric(R)
+# cond_Rsq_m2a = numeric(R)
+# marg_Rsq_m2b = numeric(R)
+# cond_Rsq_m2b = numeric(R)
+# marg_Rsq_m2d = numeric(R)
+# cond_Rsq_m2d = numeric(R)
+# marg_Rsq_m2e = numeric(R)
+# cond_Rsq_m2e = numeric(R)
+# marg_Rsq_m2f = numeric(R)
+# cond_Rsq_m2f = numeric(R)
+
+library(lme4)
+library(MuMIn)
 source("rsquaredglmm.R")
 
 R=10000
 PValue = numeric(R)
 AIC_m1= numeric(R)
-AIC_m1a= numeric(R)
-AIC_m1b= numeric(R)
 AIC_m1c= numeric(R)
-AIC_m1d= numeric(R)
-AIC_m1e= numeric(R)
-AIC_m1f= numeric(R)
-AIC_m2= numeric(R)
-AIC_m2a= numeric(R)
-AIC_m2b= numeric(R)
-AIC_m2c= numeric(R)
-AIC_m2d= numeric(R)
-AIC_m2e= numeric(R)
-AIC_m2f= numeric(R)
 intercept = numeric(R)
 change_rate = numeric(R)
 mean_se = numeric(R)
@@ -1701,14 +1724,24 @@ mean_slope = numeric(R)
 change_mean_se = numeric(R)
 change_mean_slope = numeric(R)
 mean_se_mean_slope = numeric(R)
+intercept2 = numeric(R)
+change_rate2 = numeric(R)
+mean_se2 = numeric(R)
+mean_slope2 = numeric(R)
+change_mean_se2 = numeric(R)
+mean_se_mean_slope2 = numeric(R)
+interceptw = numeric(R)
+change_ratew = numeric(R)
+mean_sew = numeric(R)
+mean_slopew = numeric(R)
+change_mean_sew = numeric(R)
+change_mean_slopew = numeric(R)
+mean_se_mean_slopew = numeric(R)
 marg_Rsq_m1 = numeric(R)
 cond_Rsq_m1 = numeric(R)
-marg_Rsq_m1a = numeric(R)
-cond_Rsq_m1a = numeric(R)
-marg_Rsq_m1b = numeric(R)
-cond_Rsq_m1b = numeric(R)
 marg_Rsq_m1c = numeric(R)
 cond_Rsq_m1c = numeric(R)
+
 marg_Rsq_m1d = numeric(R)
 cond_Rsq_m1d = numeric(R)
 marg_Rsq_m1e = numeric(R)
@@ -1716,20 +1749,19 @@ cond_Rsq_m1e = numeric(R)
 marg_Rsq_m1f = numeric(R)
 cond_Rsq_m1f = numeric(R)
 
+
 marg_Rsq_m2 = numeric(R)
 cond_Rsq_m2 = numeric(R)
-marg_Rsq_m2a = numeric(R)
-cond_Rsq_m2a = numeric(R)
-marg_Rsq_m2b = numeric(R)
-cond_Rsq_m2b = numeric(R)
 marg_Rsq_m2c = numeric(R)
 cond_Rsq_m2c = numeric(R)
+
 marg_Rsq_m2d = numeric(R)
 cond_Rsq_m2d = numeric(R)
 marg_Rsq_m2e = numeric(R)
 cond_Rsq_m2e = numeric(R)
 marg_Rsq_m2f = numeric(R)
 cond_Rsq_m2f = numeric(R)
+
 
 intercept2 = numeric(R)
 change_rate2 = numeric(R)
@@ -1769,8 +1801,6 @@ LUC_MTC_av = numeric(R)
   
 
 
-
-
 for (i in 1:R) {
   dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
   colnames(dt2)[2]<-"ID"
@@ -1784,7 +1814,7 @@ for (i in 1:R) {
     
     m1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
     n1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
-    
+
     m1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
     n1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
@@ -1817,10 +1847,10 @@ for (i in 1:R) {
     
     m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
     n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-    
-  models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
-  nodels_list<-list(n1,n1a,n1b,n1c,n1d,n1e,n1f,n2,n2a,n2b,n2c,n2d,n2e,n2f)
   
+      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
+  #models_list<-list(m1,m1c)
+
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
@@ -1840,34 +1870,34 @@ for (i in 1:R) {
   marg_Rsq_m2f[i]<-modelsRsq[14,4]
 
   cond_Rsq_m1[i]<-modelsRsq[1,5]
-  cond_Rsq_m1a[i]<-modelsRsq[2,5]
-  cond_Rsq_m1b[i]<-modelsRsq[3,5]
-  cond_Rsq_m1c[i]<-modelsRsq[4,5]
-  cond_Rsq_m1d[i]<-modelsRsq[5,5]
-  cond_Rsq_m1e[i]<-modelsRsq[6,5]
-  cond_Rsq_m1f[i]<-modelsRsq[7,5]
-  cond_Rsq_m2[i]<-modelsRsq[8,5]
-  cond_Rsq_m2a[i]<-modelsRsq[9,5]
-  cond_Rsq_m2b[i]<-modelsRsq[10,5]
-  cond_Rsq_m2c[i]<-modelsRsq[11,5]
-  cond_Rsq_m2d[i]<-modelsRsq[12,5]
-  cond_Rsq_m2e[i]<-modelsRsq[13,5]
-  cond_Rsq_m2f[i]<-modelsRsq[14,5]
+#   cond_Rsq_m1a[i]<-modelsRsq[2,5]
+#   cond_Rsq_m1b[i]<-modelsRsq[3,5]
+  cond_Rsq_m1c[i]<-modelsRsq[2,5]   #should be 4 without all other models '#'d out
+#   cond_Rsq_m1d[i]<-modelsRsq[5,5]
+#   cond_Rsq_m1e[i]<-modelsRsq[6,5]
+#   cond_Rsq_m1f[i]<-modelsRsq[7,5]
+#   cond_Rsq_m2[i]<-modelsRsq[8,5]
+#   cond_Rsq_m2a[i]<-modelsRsq[9,5]
+#   cond_Rsq_m2b[i]<-modelsRsq[10,5]
+#   cond_Rsq_m2c[i]<-modelsRsq[11,5]
+#   cond_Rsq_m2d[i]<-modelsRsq[12,5]
+#   cond_Rsq_m2e[i]<-modelsRsq[13,5]
+#   cond_Rsq_m2f[i]<-modelsRsq[14,5]
 
   AIC_m1[i]<-AIC(m1)
-  AIC_m1a[i]<-AIC(m1a)
-  AIC_m1b[i]<-AIC(m1b)
+#   AIC_m1a[i]<-AIC(m1a)
+#   AIC_m1b[i]<-AIC(m1b)
   AIC_m1c[i]<-AIC(m1c)
-  AIC_m1d[i]<-AIC(m1d)
-  AIC_m1e[i]<-AIC(m1e)
-  AIC_m1f[i]<-AIC(m1f)
-  AIC_m2[i]<-AIC(m2)
-  AIC_m2a[i]<-AIC(m2a)
-  AIC_m2b[i]<-AIC(m2b)
-  AIC_m2c[i]<-AIC(m2c)
-  AIC_m2d[i]<-AIC(m2d)
-  AIC_m2e[i]<-AIC(m2e)
-  AIC_m2f[i]<-AIC(m2f)
+#   AIC_m1d[i]<-AIC(m1d)
+#   AIC_m1e[i]<-AIC(m1e)
+#   AIC_m1f[i]<-AIC(m1f)
+#   AIC_m2[i]<-AIC(m2)
+#   AIC_m2a[i]<-AIC(m2a)
+#   AIC_m2b[i]<-AIC(m2b)
+#   AIC_m2c[i]<-AIC(m2c)
+#   AIC_m2d[i]<-AIC(m2d)
+#   AIC_m2e[i]<-AIC(m2e)
+#   AIC_m2f[i]<-AIC(m2f)
 
 
   # intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
@@ -1921,9 +1951,30 @@ for (i in 1:R) {
   LUC_MTV_av[i]<-var_imp$coefmat.subset["mean_slope_scale:mean_var_scale","Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
   
+  intercept2[i]<-coef(summary(m1c))[ 1, "Estimate"]
+  change_rate2[i]<-coef(summary(m1c))[ 2, "Estimate"]
+  mean_se2[i]<-coef(summary(m1c))[ 3, "Estimate"]
+  mean_slope2[i]<-coef(summary(m1c))[4, "Estimate"]
+  change_mean_se2[i]<-coef(summary(m1))[5, "Estimate"]
+  mean_se_mean_slope2[i]<-coef(summary(m1))[6, "Estimate"]
+
+  interceptw[i]<-wcoefs[1, "Estimate"]
+  change_ratew[i]<-wcoefs[2, "Estimate"]
+  mean_sew[i]<-wcoefs[3, "Estimate"]
+  mean_slopew[i]<-wcoefs[4, "Estimate"]
+  change_mean_sew[i]<-wcoefs[5, "Estimate"]
+  change_mean_slopew[i]<-wcoefs[6, "Estimate"]
+  mean_se_mean_slopew[i]<-wcoefs[6, "Estimate"]
+  
   print(i)
 }
 
+ #For plotting predicted values against real values
+
+ #pred<-predict(avg.top.models.AIC)
+ 
+ #dt3<-dt[dt$ID %in% dt2$ID]
+ #real<-dt3$TL
 ```
 
 
@@ -1974,6 +2025,7 @@ mean(AIC_m2d)
 mean(AIC_m2e)
 mean(AIC_m2f)
 
+<<<<<<< HEAD
 mean(m1_w)
 mean(m1a_w)
 mean(m1b_w)
@@ -2041,6 +2093,8 @@ abline(h=0, col="red", lty =2)
 
 
 
+=======
+>>>>>>> 9de8fbf4fa2fd979b7b31248a76a466d58b7972d
 coef_df<-cbind(intercept,change_rate,mean_se,mean_slope,change_mean_se,change_mean_slope,mean_se_mean_slope)
 
 Variable<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change", "Land Use Change*Mean Temp Var", "Land Use Change*Mean Temp Change", "Mean Temp Var*Mean Temp Change")
@@ -2058,16 +2112,34 @@ conf
 RSq_df<-cbind(marg_Rsq_m1,cond_Rsq_m1)
 Var_RSq<-c("Marginal R Squared","Conditional R Squared")
 Mean_RSq<-c(mean(marg_Rsq_m1),mean(cond_Rsq_m1))
-LowCI_RSq<-c(sort(marg_Rsq_m1)[25],sort(cond_Rsq_m1)[25])   #should be 250 for R=9999
-HighCI_RSq<-c(sort(marg_Rsq_m1)[975],sort(cond_Rsq_m1)[975]) #should be 9750 for R=9999
+LowCI_RSq<-c(sort(marg_Rsq_m1)[250],sort(cond_Rsq_m1)[250])   #should be 250 for R=9999
+HighCI_RSq<-c(sort(marg_Rsq_m1)[9750],sort(cond_Rsq_m1)[9750]) #should be 9750 for R=9999
 
 RSq_int<-rbind(LowCI_RSq,Mean_RSq,HighCI_RSq)
 colnames(RSq_int)<-Var_RSq
 RSq_int
 
-RSq_int<-rbind(LowCI_RSq, Mean_RSq, HighCI_RSq)
-colnames(RSq_int)<-Var_RSq
-RSq_int
+library(plotrix)
+
+par(cex.axis=0.8)
+par(mar=c(14,5,1,1))
+par(mgp=c(2, 1,0))
+plotCI(1:7, mean_conf, (highCI-mean_conf), (mean_conf-lowCI), ylab="Coefficient Values", xlab="" ,xaxt = "n")
+axis(1, at=1:7, labels=colnames(conf), las=2)
+abline(h=0, col="red", lty =2)
+#points(fixy, col="red", pch="x", cex=1.5)
+
+####average of two top models
+
+mean_conf<-c(mean(interceptw), mean(change_ratew), mean(mean_sew),mean(mean_slopew), mean(change_mean_sew), mean(change_mean_slopew), mean(mean_se_mean_slopew))
+
+lowCI<-c(sort(interceptw)[250],sort(change_ratew)[250],sort(mean_sew)[250],sort(mean_slopew)[250],sort(change_mean_sew)[250],sort(change_mean_slopew)[250],sort(mean_se_mean_slopew)[250])
+
+highCI<-c(sort(interceptw)[9750],sort(change_ratew)[9750],sort(mean_sew)[9750],sort(mean_slopew)[9750],sort(change_mean_sew)[9750],sort(change_mean_slopew)[9750], sort(mean_se_mean_slopew)[9750])
+
+conf<-data.frame(rbind( lowCI, mean_conf, highCI))
+colnames(conf)<-Variable
+conf
 
 
 library(plotrix)
@@ -2083,38 +2155,40 @@ abline(h=0, col="red", lty =2)
 hist(AIC_m1, breaks=100)
 mean(AIC_m1)
 ##
-coef_df2<-cbind(intercept2,change_rate2,mean_se2,mean_slope2)
+coef_df2<-cbind(intercept2,change_rate2,mean_se2,mean_slope2,change_mean_se2,mean_se_mean_slope2)
 
-Variable2<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change")
+####model 1c
 
-mean_conf2<-c(mean(intercept2), mean(change_rate2), mean(mean_se2),mean(mean_slope2))
+Variable2<-c( "Intercept", "Land Use Change", "Mean Temp Var", "Mean Temp Change","Land Use Change*Mean Temp Var", "Mean Temp Var*Mean Temp Change")
 
-lowCI2<-c(sort(intercept2)[250],sort(change_rate2)[250],sort(mean_se2)[250],sort(mean_slope2)[250])
+mean_conf2<-c(mean(intercept2), mean(change_rate2), mean(mean_se2),mean(mean_slope2), mean(change_mean_se2), mean(mean_se_mean_slope2))
 
-highCI2<-c(sort(intercept2)[9750],sort(change_rate2)[9750],sort(mean_se2)[9750],sort(mean_slope2)[9750])
+lowCI2<-c(sort(intercept2)[250],sort(change_rate2)[250],sort(mean_se2)[250],sort(mean_slope2)[250], sort(change_mean_se2)[250], sort(mean_se_mean_slope2)[250])
+
+highCI2<-c(sort(intercept2)[9750],sort(change_rate2)[9750],sort(mean_se2)[9750],sort(mean_slope2)[9750], sort(change_mean_se2)[9750], sort(mean_se_mean_slope2)[9750])
 
 conf2<-data.frame(rbind(lowCI2, mean_conf2, highCI2))
 colnames(conf2)<-Variable2
 conf2
 
-RSq_df2<-cbind(marg_Rsq_m2,cond_Rsq_m2)
+RSq_df1c<-cbind(marg_Rsq_m1c,cond_Rsq_m1c)
 Var_RSq<-c("Marginal R Squared","Conditional R Squared")
-Mean_RSq2<-c(mean(marg_Rsq_m2),mean(cond_Rsq_m2))
-LowCI_RSq2<-c(sort(marg_Rsq_m2)[250],sort(cond_Rsq_m2)[250])
-HighCI_RSq2<-c(sort(marg_Rsq_m2)[9750],sort(cond_Rsq_m2)[9750])
+Mean_RSq1c<-c(mean(marg_Rsq_m1c),mean(cond_Rsq_m1c))
+LowCI_RSq1c<-c(sort(marg_Rsq_m1c)[250],sort(cond_Rsq_m1c)[250])
+HighCI_RSq1c<-c(sort(marg_Rsq_m1c)[9750],sort(cond_Rsq_m1c)[9750])
 
 
-RSq_add<-rbind(LowCI_RSq2, Mean_RSq2, HighCI_RSq2)
-colnames(RSq_add)<-Var_RSq
-RSq_add
+RSq_1c<-rbind(LowCI_RSq1c, Mean_RSq1c, HighCI_RSq1c)
+colnames(RSq_1c)<-Var_RSq
+RSq_1c
 
 
-plotCI(1:4, mean_conf2, (highCI2-mean_conf2), (mean_conf2-lowCI2), ylab="Coefficient Values", xlab="" ,xaxt = "n")
-axis(1, at=1:4, labels=colnames(conf2), las=2)
+plotCI(1:6, mean_conf2, (highCI2-mean_conf2), (mean_conf2-lowCI2), ylab="Coefficient Values", xlab="" ,xaxt = "n")
+axis(1, at=1:6, labels=colnames(conf2), las=2)
 abline(h=0, col="red", lty =2)
 
-hist(AIC_m2, breaks=100)
-mean(AIC_m2)
+hist(AIC_m1c, breaks=100)
+mean(AIC_m1c)
 
 #######
 
