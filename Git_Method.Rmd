@@ -1585,7 +1585,8 @@ for (i in 1:length(sp_dups$loc_id)){
   sub<-subset(sp_dups_df, loc_id==i)
   bird_loc<-sum(sub$Class == "Aves")
   mamm_loc<-sum(sub$Class == "Mammalia")
-  count_loc<-cbind(i,bird_loc, mamm_loc)
+  amph_loc<-sum(sub$Class == "Amphibia")
+  count_loc<-cbind(i,bird_loc, mamm_loc,amph_loc)
   print(count_loc)
   result<-rbind(count_loc,result)
 }
@@ -1594,7 +1595,7 @@ colnames(result)[1]<-"loc_id"
 
 sp_dups_df2<-merge(sp_dups_df, result, by="loc_id")
 
-#unique_bm<-unique(sp_dups_df2[,c(1:4,252,253)])
+unique_bm<-unique(sp_dups_df2[,c(1:4,256,257,258)])
 
 
 #write.csv(unique_bm, "bird_mamm_count.csv")
@@ -1799,6 +1800,28 @@ for (i in 1:R) {
 
   wcoefs<-coefTable(avg.top.models.AIC, full = FALSE, adjust.se = TRUE)
 
+  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
+  msAICc$model<-rownames(msAICc)
+  msAICc<-data.frame(msAICc)
+  m1_w[i]<-subset(msAICc, model=="m1")$weight
+  m1a_w[i]<-subset(msAICc, model=="m1a")$weight
+  m1b_w[i]<-subset(msAICc, model=="m1b")$weight
+  m1c_w[i]<-subset(msAICc, model=="m1c")$weight
+  m1d_w[i]<-subset(msAICc, model=="m1d")$weight
+  m1e_w[i]<-subset(msAICc, model=="m1e")$weight
+  m1f_w[i]<-subset(msAICc, model=="m1f")$weight
+  
+  m2_w[i]<-subset(msAICc, model=="m2")$weight
+  m2a_w[i]<-subset(msAICc, model=="m2a")$weight
+  m2b_w[i]<-subset(msAICc, model=="m2b")$weight
+  m2c_w[i]<-subset(msAICc, model=="m2c")$weight
+  m2d_w[i]<-subset(msAICc, model=="m2d")$weight
+  m2e_w[i]<-subset(msAICc, model=="m2e")$weight
+  m2f_w[i]<-subset(msAICc, model=="m2f")$weight
+  
+  
+  
+  
   marg_Rsq_m1[i]<-modelsRsq[1,4]
 #   marg_Rsq_m1a[i]<-modelsRsq[2,4]
 #   marg_Rsq_m1b[i]<-modelsRsq[3,4]
@@ -1901,6 +1924,8 @@ mean(marg_Rsq_m2c)
 mean(marg_Rsq_m2d)
 mean(marg_Rsq_m2e)
 mean(marg_Rsq_m2f)
+
+
 
 mean(AIC_m1)
 mean(AIC_m1a)
