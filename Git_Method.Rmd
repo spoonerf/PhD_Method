@@ -1568,7 +1568,7 @@ Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)
 
 Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
-Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(SE)&!is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(SE25k)&!is.na(Estimate25k)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 nrow(Inc5MammalsTemp)
 
@@ -1632,7 +1632,7 @@ dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "SE", "change_rate_9")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","mean_slope", "mean_slope_se", "change_rate_9")]  ##ID, land use, and climate
 #parm_df<-sp_dups_df[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")]
 
 parm_bird<-sp_dups_bird[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
@@ -1642,7 +1642,7 @@ parm_mat<-as.matrix(parm_df)
 parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
-parm_scale<-scale(parm_mat[,c("Estimate", "SE", "change_rate_9")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("mean_slope", "mean_slope_se", "change_rate_9")])       #use the scaling factors at the bottom of these to scale the rasters
 #parm_scale<-scale(parm_mat[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")])
 
 parm_bird_scale<-scale(parm_bird_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
@@ -1682,73 +1682,40 @@ sp_mamm_scale<-merge(sp_dups_mamm, parm_mammdf_scale, by="ID")
 #dd <-dredge(d)
  
 
-
-# marg_Rsq_m1a = numeric(R)
-# cond_Rsq_m1a = numeric(R)
-# marg_Rsq_m1b = numeric(R)
-# cond_Rsq_m1b = numeric(R)
-# marg_Rsq_m1d = numeric(R)
-# cond_Rsq_m1d = numeric(R)
-# marg_Rsq_m1e = numeric(R)
-# cond_Rsq_m1e = numeric(R)
-# marg_Rsq_m1f = numeric(R)
-# cond_Rsq_m1f = numeric(R)
-# AIC_m1a= numeric(R)
-# AIC_m1b= numeric(R)
-# AIC_m1d= numeric(R)
-# AIC_m1e= numeric(R)
-# AIC_m1f= numeric(R)
-# AIC_m2= numeric(R)
-# AIC_m2a= numeric(R)
-# AIC_m2b= numeric(R)
-# AIC_m2c= numeric(R)
-# AIC_m2d= numeric(R)
-# AIC_m2e= numeric(R)
-# AIC_m2f= numeric(R)
-# marg_Rsq_m2a = numeric(R)
-# cond_Rsq_m2a = numeric(R)
-# marg_Rsq_m2b = numeric(R)
-# cond_Rsq_m2b = numeric(R)
-# marg_Rsq_m2d = numeric(R)
-# cond_Rsq_m2d = numeric(R)
-# marg_Rsq_m2e = numeric(R)
-# cond_Rsq_m2e = numeric(R)
-# marg_Rsq_m2f = numeric(R)
-# cond_Rsq_m2f = numeric(R)
-
 library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=100
+R=500
 PValue = numeric(R)
 AIC_m1= numeric(R)
+AIC_m1a= numeric(R)
+AIC_m1b= numeric(R)
 AIC_m1c= numeric(R)
-intercept = numeric(R)
-change_rate = numeric(R)
-mean_se = numeric(R)
-mean_slope = numeric(R)
-change_mean_se = numeric(R)
-change_mean_slope = numeric(R)
-mean_se_mean_slope = numeric(R)
-intercept2 = numeric(R)
-change_rate2 = numeric(R)
-mean_se2 = numeric(R)
-mean_slope2 = numeric(R)
-change_mean_se2 = numeric(R)
-mean_se_mean_slope2 = numeric(R)
-interceptw = numeric(R)
-change_ratew = numeric(R)
-mean_sew = numeric(R)
-mean_slopew = numeric(R)
-change_mean_sew = numeric(R)
-change_mean_slopew = numeric(R)
-mean_se_mean_slopew = numeric(R)
+AIC_m1d= numeric(R)
+AIC_m1e= numeric(R)
+AIC_m1f= numeric(R)
+
+AIC_m2= numeric(R)
+AIC_m2a= numeric(R)
+AIC_m2b= numeric(R)
+AIC_m2c= numeric(R)
+AIC_m2d= numeric(R)
+AIC_m2e= numeric(R)
+AIC_m2f= numeric(R)
+
+AIC_m3 = numeric(R)
+AIC_m4 = numeric(R)
+AIC_mnull = numeric(R)
+
 marg_Rsq_m1 = numeric(R)
 cond_Rsq_m1 = numeric(R)
+marg_Rsq_m1a = numeric(R)
+cond_Rsq_m1a = numeric(R)
+marg_Rsq_m1b = numeric(R)
+cond_Rsq_m1b = numeric(R)
 marg_Rsq_m1c = numeric(R)
 cond_Rsq_m1c = numeric(R)
-
 marg_Rsq_m1d = numeric(R)
 cond_Rsq_m1d = numeric(R)
 marg_Rsq_m1e = numeric(R)
@@ -1756,12 +1723,14 @@ cond_Rsq_m1e = numeric(R)
 marg_Rsq_m1f = numeric(R)
 cond_Rsq_m1f = numeric(R)
 
-
 marg_Rsq_m2 = numeric(R)
 cond_Rsq_m2 = numeric(R)
+marg_Rsq_m2a = numeric(R)
+cond_Rsq_m2a = numeric(R)
+marg_Rsq_m2b = numeric(R)
+cond_Rsq_m2b = numeric(R)
 marg_Rsq_m2c = numeric(R)
 cond_Rsq_m2c = numeric(R)
-
 marg_Rsq_m2d = numeric(R)
 cond_Rsq_m2d = numeric(R)
 marg_Rsq_m2e = numeric(R)
@@ -1769,6 +1738,12 @@ cond_Rsq_m2e = numeric(R)
 marg_Rsq_m2f = numeric(R)
 cond_Rsq_m2f = numeric(R)
 
+marg_Rsq_m3 = numeric(R)
+cond_Rsq_m3 = numeric(R)
+marg_Rsq_m4 = numeric(R)
+cond_Rsq_m4 = numeric(R)
+marg_Rsq_mnull = numeric(R)
+cond_Rsq_mnull = numeric(R)
 
 intercept2 = numeric(R)
 change_rate2 = numeric(R)
@@ -1791,13 +1766,18 @@ m2d_w = numeric(R)
 m2e_w = numeric(R)
 m2f_w = numeric(R)
 
+m3_w = numeric(R)
+m4_w = numeric(R)
+mnull_w = numeric(R)
+
 MTC_i= numeric(R)
 LUC_i= numeric(R)
 MTV_i= numeric(R)
 MTC_MTV_i= numeric(R)
 LUC_MTV_i= numeric(R)
 LUC_MTC_i= numeric(R)
-  
+BM_i = numeric(R)  
+
 int_av = numeric(R)
 MTC_av = numeric(R)
 LUC_av = numeric(R)
@@ -1805,7 +1785,7 @@ MTV_av = numeric(R)
 MTC_MTV_av = numeric(R)
 LUC_MTV_av = numeric(R)
 LUC_MTC_av = numeric(R)
-  
+BM_av = numeric (R)
 
 
 for (i in 1:R) {
@@ -1814,54 +1794,60 @@ for (i in 1:R) {
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
     m1<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n1<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+  #n1<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m1a<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n1a<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+  # n1a<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   # n1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+   #n1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
 
     m1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+   #n1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
- #   n1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+  # n1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
   
     m1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-#   n1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+  # n1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
- #   n1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+  # n1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-#    n2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+  #n2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m2a<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
   #  n2a<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+ #  n2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-#    n2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+  # n2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2)
+ #  n2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   # n2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+  #  n2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
     
     m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+  #  n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F
+    
+    m3<-lmer(TL ~ Bodymass + (1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m4<- lmer(TL ~ Bodymass + change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
   
-      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
+    mnull<-lmer(TL ~ (1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,m4,mnull)
   #models_list<-list(m1,m1c)
 
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
-  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
+  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,m4,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   m1_w[i]<-subset(msAICc, model=="m1")$weight
@@ -1879,6 +1865,10 @@ for (i in 1:R) {
   m2d_w[i]<-subset(msAICc, model=="m2d")$weight
   m2e_w[i]<-subset(msAICc, model=="m2e")$weight
   m2f_w[i]<-subset(msAICc, model=="m2f")$weight
+  
+  m3_w[i]<-subset(msAICc, model=="m3")$weight
+  m4_w[i]<-subset(msAICc, model=="m4")$weight
+  mnull_w[i]<-subset(msAICc, model=="mnull")$weight
 
   marg_Rsq_m1[i]<-modelsRsq[1,4]
   marg_Rsq_m1a[i]<-modelsRsq[2,4]
@@ -1887,6 +1877,7 @@ for (i in 1:R) {
   marg_Rsq_m1d[i]<-modelsRsq[5,4]
   marg_Rsq_m1e[i]<-modelsRsq[6,4]
   marg_Rsq_m1f[i]<-modelsRsq[7,4]
+  
   marg_Rsq_m2[i]<-modelsRsq[8,4]
   marg_Rsq_m2a[i]<-modelsRsq[9,4]
   marg_Rsq_m2b[i]<-modelsRsq[10,4]
@@ -1894,7 +1885,11 @@ for (i in 1:R) {
   marg_Rsq_m2d[i]<-modelsRsq[12,4]
   marg_Rsq_m2e[i]<-modelsRsq[13,4]
   marg_Rsq_m2f[i]<-modelsRsq[14,4]
-
+ 
+  marg_Rsq_m3[i]<-modelsRsq[15,4]
+  marg_Rsq_m4[i]<-modelsRsq[16,4]
+  marg_Rsq_mnull[i]<-modelsRsq[17,4]
+  
   cond_Rsq_m1[i]<-modelsRsq[1,5]
   cond_Rsq_m1a[i]<-modelsRsq[2,5]
   cond_Rsq_m1b[i]<-modelsRsq[3,5]
@@ -1902,6 +1897,7 @@ for (i in 1:R) {
   cond_Rsq_m1d[i]<-modelsRsq[5,5]
   cond_Rsq_m1e[i]<-modelsRsq[6,5]
   cond_Rsq_m1f[i]<-modelsRsq[7,5]
+  
   cond_Rsq_m2[i]<-modelsRsq[8,5]
   cond_Rsq_m2a[i]<-modelsRsq[9,5]
   cond_Rsq_m2b[i]<-modelsRsq[10,5]
@@ -1910,6 +1906,10 @@ for (i in 1:R) {
   cond_Rsq_m2e[i]<-modelsRsq[13,5]
   cond_Rsq_m2f[i]<-modelsRsq[14,5]
 
+  cond_Rsq_m3[i]<-modelsRsq[15,5]
+  cond_Rsq_m4[i]<-modelsRsq[16,5]
+  cond_Rsq_mnull[i]<-modelsRsq[17,5]
+  
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
   AIC_m1b[i]<-AIC(m1b)
@@ -1917,6 +1917,7 @@ for (i in 1:R) {
   AIC_m1d[i]<-AIC(m1d)
   AIC_m1e[i]<-AIC(m1e)
   AIC_m1f[i]<-AIC(m1f)
+  
   AIC_m2[i]<-AIC(m2)
   AIC_m2a[i]<-AIC(m2a)
   AIC_m2b[i]<-AIC(m2b)
@@ -1925,41 +1926,12 @@ for (i in 1:R) {
   AIC_m2e[i]<-AIC(m2e)
   AIC_m2f[i]<-AIC(m2f)
 
-
-  # intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
-  # change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
-  # mean_se[i]<-coef(summary(m1))[ 3, "Estimate"]
-  # mean_slope[i]<-coef(summary(m1))[4, "Estimate"]
-  # change_mean_se[i]<-coef(summary(m1))[5, "Estimate"]
-  # change_mean_slope[i]<-coef(summary(m1))[6, "Estimate"]
-  # mean_se_mean_slope[i]<-coef(summary(m1))[ 7, "Estimate"]
-  # 
-  # intercept2[i]<-coef(summary(m2))[ 1, "Estimate"]
-  # change_rate2[i]<-coef(summary(m2))[ 2, "Estimate"]
-  # mean_se2[i]<-coef(summary(m2))[ 3, "Estimate"]
-  # mean_slope2[i]<-coef(summary(m2))[4, "Estimate"]
+  AIC_m3[i]<-AIC(m3)
+  AIC_m4[i]<-AIC(m4)
+  AIC_mnull[i]<-AIC(mnull)
   
- # msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
-    
-  # msAICc$model<-rownames(msAICc)
-  # msAICc<-data.frame(msAICc)
-  # m1_w[i]<-subset(msAICc, model=="m1")$weight
-  # m1a_w[i]<-subset(msAICc, model=="m1a")$weight
-  # m1b_w[i]<-subset(msAICc, model=="m1b")$weight
-  # m1c_w[i]<-subset(msAICc, model=="m1c")$weight
-  # m1d_w[i]<-subset(msAICc, model=="m1d")$weight
-  # m1e_w[i]<-subset(msAICc, model=="m1e")$weight
-  # m1f_w[i]<-subset(msAICc, model=="m1f")$weight
-  # 
-  # m2_w[i]<-subset(msAICc, model=="m2")$weight
-  # m2a_w[i]<-subset(msAICc, model=="m2a")$weight
-  # m2b_w[i]<-subset(msAICc, model=="m2b")$weight
-  # m2c_w[i]<-subset(msAICc, model=="m2c")$weight
-  # m2d_w[i]<-subset(msAICc, model=="m2d")$weight
-  # m2e_w[i]<-subset(msAICc, model=="m2e")$weight
-  # m2f_w[i]<-subset(msAICc, model=="m2f")$weight
-  # 
   var_imp<-summary(model.avg(models_list, subset = delta < 2))
+  #x<-model.avg(models_list, subset = delta < 7)
   #var_imp<-summary(model.avg(models_list))
   
   MTC_i[i]<-var_imp$importance["mean_slope_scale"]
@@ -1968,6 +1940,7 @@ for (i in 1:R) {
   MTC_MTV_i[i]<-var_imp$importance["mean_slope_scale:mean_var_scale"]
   LUC_MTV_i[i]<-var_imp$importance["change_rate_scale:mean_var_scale"]
   LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+  BM_i[i]<-var_imp$importance["Bodymass"]
   
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
@@ -1976,6 +1949,7 @@ for (i in 1:R) {
   MTC_MTV_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_var_scale","Estimate"]
   LUC_MTV_av[i]<-var_imp$coefmat.subset["mean_slope_scale:mean_var_scale","Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
+  BM_av[i]<-var_imp$coefmat.subset["Bodymass"]
   
   # intercept2[i]<-coef(summary(m1c))[ 1, "Estimate"]
   # change_rate2[i]<-coef(summary(m1c))[ 2, "Estimate"]
@@ -2093,9 +2067,9 @@ mean(MTC_MTV_i)
   
 mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av))
  
-lowCI_av<-c(sort(int_av)[25],sort(LUC_av)[2],sort(MTV_av)[2],sort(MTC_av)[2],sort(LUC_MTV_av)[2],sort(LUC_MTC_av)[2],sort(MTC_MTV_av)[2])
+lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250])
 
-highCI_av<-c(sort(int_av)[97],sort(LUC_av)[97],sort(MTV_av)[97],sort(MTC_av)[97],sort(LUC_MTV_av)[97],sort(LUC_MTC_av)[97],sort(MTC_MTV_av)[97])
+highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750])
 
 Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC")
 
