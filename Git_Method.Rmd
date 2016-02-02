@@ -1686,7 +1686,7 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=500
+R=9999
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
@@ -1706,6 +1706,7 @@ AIC_m2f= numeric(R)
 
 AIC_m3 = numeric(R)
 AIC_m4 = numeric(R)
+AIC_m5 = numeric(R)
 AIC_mnull = numeric(R)
 
 marg_Rsq_m1 = numeric(R)
@@ -1742,13 +1743,11 @@ marg_Rsq_m3 = numeric(R)
 cond_Rsq_m3 = numeric(R)
 marg_Rsq_m4 = numeric(R)
 cond_Rsq_m4 = numeric(R)
+marg_Rsq_m5 = numeric(R)
+cond_Rsq_m5 = numeric(R)
 marg_Rsq_mnull = numeric(R)
 cond_Rsq_mnull = numeric(R)
 
-intercept2 = numeric(R)
-change_rate2 = numeric(R)
-mean_se2 = numeric(R)
-mean_slope2 = numeric(R)
 
 m1_w = numeric(R)
 m1a_w = numeric(R)
@@ -1768,6 +1767,7 @@ m2f_w = numeric(R)
 
 m3_w = numeric(R)
 m4_w = numeric(R)
+m5_w = numeric(R)
 mnull_w = numeric(R)
 
 MTC_i= numeric(R)
@@ -1838,16 +1838,18 @@ for (i in 1:R) {
     m3<-lmer(TL ~ Bodymass + (1|Binomial_old),data=sp_dups_df2, REML=F)
     
     m4<- lmer(TL ~ Bodymass + change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+    m5<-lmer(TL ~ Bodymass + change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
   
     mnull<-lmer(TL ~ (1|Binomial_old),data=sp_dups_df2, REML=F)
     
-      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,m4,mnull)
+      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,m4,m5,mnull)
   #models_list<-list(m1,m1c)
 
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
-  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,m4,mnull)
+  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,m4,m5,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   m1_w[i]<-subset(msAICc, model=="m1")$weight
@@ -1868,6 +1870,7 @@ for (i in 1:R) {
   
   m3_w[i]<-subset(msAICc, model=="m3")$weight
   m4_w[i]<-subset(msAICc, model=="m4")$weight
+  m5_w[i]<-subset(msAICc, model=="m5")$weight
   mnull_w[i]<-subset(msAICc, model=="mnull")$weight
 
   marg_Rsq_m1[i]<-modelsRsq[1,4]
@@ -1888,7 +1891,8 @@ for (i in 1:R) {
  
   marg_Rsq_m3[i]<-modelsRsq[15,4]
   marg_Rsq_m4[i]<-modelsRsq[16,4]
-  marg_Rsq_mnull[i]<-modelsRsq[17,4]
+   marg_Rsq_m5[i]<-modelsRsq[17,4]
+  marg_Rsq_mnull[i]<-modelsRsq[18,4]
   
   cond_Rsq_m1[i]<-modelsRsq[1,5]
   cond_Rsq_m1a[i]<-modelsRsq[2,5]
@@ -1908,7 +1912,8 @@ for (i in 1:R) {
 
   cond_Rsq_m3[i]<-modelsRsq[15,5]
   cond_Rsq_m4[i]<-modelsRsq[16,5]
-  cond_Rsq_mnull[i]<-modelsRsq[17,5]
+  cond_Rsq_m5[i]<-modelsRsq[17,5]
+  cond_Rsq_mnull[i]<-modelsRsq[18,5]
   
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
@@ -1928,6 +1933,7 @@ for (i in 1:R) {
 
   AIC_m3[i]<-AIC(m3)
   AIC_m4[i]<-AIC(m4)
+  AIC_m5[i]<-AIC(m5)
   AIC_mnull[i]<-AIC(mnull)
   
   var_imp<-summary(model.avg(models_list, subset = delta < 2))
@@ -1949,23 +1955,8 @@ for (i in 1:R) {
   MTC_MTV_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_var_scale","Estimate"]
   LUC_MTV_av[i]<-var_imp$coefmat.subset["mean_slope_scale:mean_var_scale","Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
-  BM_av[i]<-var_imp$coefmat.subset["Bodymass"]
+  BM_av[i]<-var_imp$coefmat.subset["Bodymass", "Estimate"]
   
-  # intercept2[i]<-coef(summary(m1c))[ 1, "Estimate"]
-  # change_rate2[i]<-coef(summary(m1c))[ 2, "Estimate"]
-  # mean_se2[i]<-coef(summary(m1c))[ 3, "Estimate"]
-  # mean_slope2[i]<-coef(summary(m1c))[4, "Estimate"]
-  # change_mean_se2[i]<-coef(summary(m1))[5, "Estimate"]
-  # mean_se_mean_slope2[i]<-coef(summary(m1))[6, "Estimate"]
-  # 
-  # interceptw[i]<-wcoefs[1, "Estimate"]
-  # change_ratew[i]<-wcoefs[2, "Estimate"]
-  # mean_sew[i]<-wcoefs[3, "Estimate"]
-  # mean_slopew[i]<-wcoefs[4, "Estimate"]
-  # change_mean_sew[i]<-wcoefs[5, "Estimate"]
-  # change_mean_slopew[i]<-wcoefs[6, "Estimate"]
-  # mean_se_mean_slopew[i]<-wcoefs[6, "Estimate"]
-  # 
   print(i)
 }
 
@@ -1995,6 +1986,11 @@ mean(marg_Rsq_m2d)
 mean(marg_Rsq_m2e)
 mean(marg_Rsq_m2f)
 
+mean(marg_Rsq_m3)
+mean(marg_Rsq_m4)
+mean(marg_Rsq_m5)
+mean(marg_Rsq_mnull)
+
 mean(cond_Rsq_m1)
 mean(cond_Rsq_m1a)
 mean(cond_Rsq_m1b)
@@ -2010,6 +2006,11 @@ mean(cond_Rsq_m2d)
 mean(cond_Rsq_m2e)
 mean(cond_Rsq_m2f)
 
+mean(cond_Rsq_m3)
+mean(cond_Rsq_m4)
+mean(cond_Rsq_m5)
+mean(cond_Rsq_mnull)
+
 mean(AIC_m1)
 mean(AIC_m1a)
 mean(AIC_m1b)
@@ -2024,6 +2025,11 @@ mean(AIC_m2c)
 mean(AIC_m2d)
 mean(AIC_m2e)
 mean(AIC_m2f)
+
+mean(AIC_m3)
+mean(AIC_m4)
+mean(AIC_m5)
+mean(AIC_mnull)
 
 mean(m1_w)
 mean(m1a_w)
@@ -2041,19 +2047,12 @@ mean(m2d_w)
 mean(m2e_w)
 mean(m2f_w)
 
-#hist(RSq, breaks=100)
-hist(intercept, breaks=100)
-hist(change_rate, breaks=100)
-hist(mean_se, breaks=100)
-hist(mean_slope, breaks=100)
-hist(change_mean_se, breaks=100)
-hist(change_mean_slope, breaks=100)
-hist(mean_se_mean_slope, breaks=100)
+mean(m3_w)
+mean(m4_w)
+mean(m5_w)
+mean(mnull_w)
 
-hist(intercept2, breaks=100)
-hist(change_rate2, breaks=100)
-hist(mean_se2, breaks=100)
-hist(mean_slope2, breaks=100)
+#hist(RSq, breaks=100)
 
 mean(LUC_i)
 mean(MTC_i)
@@ -2061,17 +2060,19 @@ mean(MTV_i)
 mean(LUC_MTC_i)
 mean(LUC_MTV_i)
 mean(MTC_MTV_i)
+mean(BM_i)
+
 
 #For averaged model - conditional estimates
  
   
-mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av))
+mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av), mean(BM_av))
  
-lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250])
+lowCI_av<-c(sort(int_av)[3],sort(LUC_av)[3],sort(MTV_av)[3],sort(MTC_av)[3],sort(LUC_MTV_av)[3],sort(LUC_MTC_av)[3],sort(MTC_MTV_av)[3], sort(BM_av)[3])
 
-highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750])
+highCI_av<-c(sort(int_av)[97],sort(LUC_av)[97],sort(MTV_av)[97],sort(MTC_av)[97],sort(LUC_MTV_av)[97],sort(LUC_MTC_av)[97],sort(MTC_MTV_av)[97],sort(BM_av)[97])
 
-Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC")
+Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC", "BM")
 
 conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
 colnames(conf_av)<-Variable
@@ -2083,8 +2084,8 @@ library(plotrix)
 # par(cex.axis=0.8)
 # par(mar=c(14,5,1,1))
 # par(mgp=c(2, 1,0))
-plotCI(1:7, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient Values", xlab="" ,xaxt = "n", main="Model Averaged Coefficients", lwd=1)
-axis(1, at=1:7, labels=colnames(conf_av), las=2)
+plotCI(1:8, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient Values", xlab="" ,xaxt = "n", main="Model Averaged Coefficients", lwd=1)
+axis(1, at=1:8, labels=colnames(conf_av), las=2)
 abline(h=0, col="red", lty =2)
 
 
