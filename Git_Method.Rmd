@@ -2068,9 +2068,9 @@ mean(BM_i)
   
 mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av), mean(BM_av))
  
-lowCI_av<-c(sort(int_av)[3],sort(LUC_av)[3],sort(MTV_av)[3],sort(MTC_av)[3],sort(LUC_MTV_av)[3],sort(LUC_MTC_av)[3],sort(MTC_MTV_av)[3], sort(BM_av)[3])
+lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250], sort(BM_av)[250])
 
-highCI_av<-c(sort(int_av)[97],sort(LUC_av)[97],sort(MTV_av)[97],sort(MTC_av)[97],sort(LUC_MTV_av)[97],sort(LUC_MTC_av)[97],sort(MTC_MTV_av)[97],sort(BM_av)[97])
+highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750],sort(BM_av)[9750])
 
 Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC", "BM")
 
