@@ -1558,10 +1558,12 @@ LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
 sens<-read.csv("Sensitivity_Land_Use.csv")
 clim_sens<-read.csv("Climate_Sensitivity.csv")
 hot<-read.csv("hot_days_pop.csv")
+cold<-read.csv("cold_days_pop.csv")
 
 LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, hot_df, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
 
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
@@ -1618,10 +1620,10 @@ plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts"
 
 library(data.table)
 dt = as.data.table(sp_dups_df)
-parm_df<-sp_dups_df[,c("ID","Estimate", "hot_avg", "change_rate_25")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","Estimate50k", "cold_avg", "change_rate_49")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "hot_avg", "change_rate_25")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate50k", "cold_avg", "change_rate_49")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
@@ -1812,7 +1814,7 @@ for (i in 1:R) {
   m2d_w[i]<-subset(msAICc, model=="m2d")$weight
   m2e_w[i]<-subset(msAICc, model=="m2e")$weight
   m2f_w[i]<-subset(msAICc, model=="m2f")$weight
-  mnull_w[i]<-subset(msAICc, model=="mnull")$weight
+  #mnull_w[i]<-subset(msAICc, model=="mnull")$weight
   # m3_w[i]<-subset(msAICc, model=="m3")$weight
   # m4_w[i]<-subset(msAICc, model=="m4")$weight
   # m5_w[i]<-subset(msAICc, model=="m5")$weight
@@ -1971,11 +1973,11 @@ mean(AIC_m2c)
 mean(AIC_m2d)
 mean(AIC_m2e)
 mean(AIC_m2f)
+mean(AIC_mnull)
 
 mean(AIC_m3)
 mean(AIC_m4)
 mean(AIC_m5)
-mean(AIC_mnull)
 
 mean(m1_w)
 mean(m1a_w)
@@ -2012,13 +2014,13 @@ mean(BM_i)
 #For averaged model - conditional estimates
  
   
-mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av), mean(BM_av))
+mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av))
  
-lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250], sort(BM_av)[250])
+lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250])
 
-highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750],sort(BM_av)[9750])
+highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750])
 
-Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC", "BM")
+Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC")
 
 conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
 colnames(conf_av)<-Variable
