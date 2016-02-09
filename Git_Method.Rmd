@@ -1555,9 +1555,11 @@ LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
 sens<-read.csv("Sensitivity_Land_Use.csv")
 clim_sens<-read.csv("Climate_Sensitivity.csv")
+hot<-read.csv("hot_days_pop.csv")
 
 LPI_EDScores3<-merge(LPI_EDScores3, sens, by="ID")
 LPI_EDScores3<-merge(LPI_EDScores3, clim_sens, by="ID")
+LPI_EDScores3<-merge(LPI_EDScores3, hot_df, by="ID")
 
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
@@ -1632,7 +1634,7 @@ dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "SE", "change_rate_9")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","Estimate", "hot_avg", "change_rate_25")]  ##ID, land use, and climate
 #parm_df<-sp_dups_df[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")]
 
 parm_bird<-sp_dups_bird[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
@@ -1642,7 +1644,7 @@ parm_mat<-as.matrix(parm_df)
 parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
-parm_scale<-scale(parm_mat[,c("Estimate", "SE", "change_rate_9")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "hot_avg", "change_rate_25")])       #use the scaling factors at the bottom of these to scale the rasters
 #parm_scale<-scale(parm_mat[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")])
 
 parm_bird_scale<-scale(parm_bird_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
@@ -1768,6 +1770,8 @@ marg_Rsq_m2e = numeric(R)
 cond_Rsq_m2e = numeric(R)
 marg_Rsq_m2f = numeric(R)
 cond_Rsq_m2f = numeric(R)
+marg_Rsq_mnull = numeric(R)
+cond_Rsq_mnull = numeric(R)
 
 
 intercept2 = numeric(R)
@@ -1854,31 +1858,33 @@ for (i in 1:R) {
     
     m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
    # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  
-      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
+   
+    mnull<-lmer(TL ~(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
+      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
   #models_list<-list(m1,m1c)
 
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
-  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
-  msAICc$model<-rownames(msAICc)
-  msAICc<-data.frame(msAICc)
-  m1_w[i]<-subset(msAICc, model=="m1")$weight
-  m1a_w[i]<-subset(msAICc, model=="m1a")$weight
-  m1b_w[i]<-subset(msAICc, model=="m1b")$weight
-  m1c_w[i]<-subset(msAICc, model=="m1c")$weight
-  m1d_w[i]<-subset(msAICc, model=="m1d")$weight
-  m1e_w[i]<-subset(msAICc, model=="m1e")$weight
-  m1f_w[i]<-subset(msAICc, model=="m1f")$weight
-  
-  m2_w[i]<-subset(msAICc, model=="m2")$weight
-  m2a_w[i]<-subset(msAICc, model=="m2a")$weight
-  m2b_w[i]<-subset(msAICc, model=="m2b")$weight
-  m2c_w[i]<-subset(msAICc, model=="m2c")$weight
-  m2d_w[i]<-subset(msAICc, model=="m2d")$weight
-  m2e_w[i]<-subset(msAICc, model=="m2e")$weight
-  m2f_w[i]<-subset(msAICc, model=="m2f")$weight
+#   msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
+#   msAICc$model<-rownames(msAICc)
+#   msAICc<-data.frame(msAICc)
+#   m1_w[i]<-subset(msAICc, model=="m1")$weight
+#   m1a_w[i]<-subset(msAICc, model=="m1a")$weight
+#   m1b_w[i]<-subset(msAICc, model=="m1b")$weight
+#   m1c_w[i]<-subset(msAICc, model=="m1c")$weight
+#   m1d_w[i]<-subset(msAICc, model=="m1d")$weight
+#   m1e_w[i]<-subset(msAICc, model=="m1e")$weight
+#   m1f_w[i]<-subset(msAICc, model=="m1f")$weight
+#   
+#   m2_w[i]<-subset(msAICc, model=="m2")$weight
+#   m2a_w[i]<-subset(msAICc, model=="m2a")$weight
+#   m2b_w[i]<-subset(msAICc, model=="m2b")$weight
+#   m2c_w[i]<-subset(msAICc, model=="m2c")$weight
+#   m2d_w[i]<-subset(msAICc, model=="m2d")$weight
+#   m2e_w[i]<-subset(msAICc, model=="m2e")$weight
+#   m2f_w[i]<-subset(msAICc, model=="m2f")$weight
 
   marg_Rsq_m1[i]<-modelsRsq[1,4]
   marg_Rsq_m1a[i]<-modelsRsq[2,4]
@@ -1894,7 +1900,8 @@ for (i in 1:R) {
   marg_Rsq_m2d[i]<-modelsRsq[12,4]
   marg_Rsq_m2e[i]<-modelsRsq[13,4]
   marg_Rsq_m2f[i]<-modelsRsq[14,4]
-
+  marg_Rsq_mnull[i]<-modelsRsq[15,4]
+  
   cond_Rsq_m1[i]<-modelsRsq[1,5]
   cond_Rsq_m1a[i]<-modelsRsq[2,5]
   cond_Rsq_m1b[i]<-modelsRsq[3,5]
@@ -1909,7 +1916,8 @@ for (i in 1:R) {
   cond_Rsq_m2d[i]<-modelsRsq[12,5]
   cond_Rsq_m2e[i]<-modelsRsq[13,5]
   cond_Rsq_m2f[i]<-modelsRsq[14,5]
-
+  cond_Rsq_mnull[i]<-modelsRsq[15,5]
+  
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
   AIC_m1b[i]<-AIC(m1b)
@@ -1924,7 +1932,7 @@ for (i in 1:R) {
   AIC_m2d[i]<-AIC(m2d)
   AIC_m2e[i]<-AIC(m2e)
   AIC_m2f[i]<-AIC(m2f)
-
+  AIC_mnull[i]<-AIC(mnull)
 
   # intercept[i]<-coef(summary(m1))[ 1, "Estimate"]
   # change_rate[i]<-coef(summary(m1))[ 2, "Estimate"]
@@ -1959,24 +1967,24 @@ for (i in 1:R) {
   # m2e_w[i]<-subset(msAICc, model=="m2e")$weight
   # m2f_w[i]<-subset(msAICc, model=="m2f")$weight
   # 
-  var_imp<-summary(model.avg(models_list, subset = delta < 2))
-  #var_imp<-summary(model.avg(models_list))
-  
-  MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  LUC_i[i]<-var_imp$importance["change_rate_scale"]
-  MTV_i[i]<-var_imp$importance["mean_var_scale"]
-  MTC_MTV_i[i]<-var_imp$importance["mean_slope_scale:mean_var_scale"]
-  LUC_MTV_i[i]<-var_imp$importance["change_rate_scale:mean_var_scale"]
-  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  
-  int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
-  MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
-  LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
-  MTV_av[i]<-var_imp$coefmat.subset["mean_var_scale","Estimate"]
-  MTC_MTV_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_var_scale","Estimate"]
-  LUC_MTV_av[i]<-var_imp$coefmat.subset["mean_slope_scale:mean_var_scale","Estimate"]
-  LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
-  
+#   var_imp<-summary(model.avg(models_list, subset = delta < 2))
+#   #var_imp<-summary(model.avg(models_list))
+#   
+#   MTC_i[i]<-var_imp$importance["mean_slope_scale"]
+#   LUC_i[i]<-var_imp$importance["change_rate_scale"]
+#   MTV_i[i]<-var_imp$importance["mean_var_scale"]
+#   MTC_MTV_i[i]<-var_imp$importance["mean_slope_scale:mean_var_scale"]
+#   LUC_MTV_i[i]<-var_imp$importance["change_rate_scale:mean_var_scale"]
+#   LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+#   
+#   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
+#   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
+#   LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
+#   MTV_av[i]<-var_imp$coefmat.subset["mean_var_scale","Estimate"]
+#   MTC_MTV_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_var_scale","Estimate"]
+#   LUC_MTV_av[i]<-var_imp$coefmat.subset["mean_slope_scale:mean_var_scale","Estimate"]
+#   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
+#   
   # intercept2[i]<-coef(summary(m1c))[ 1, "Estimate"]
   # change_rate2[i]<-coef(summary(m1c))[ 2, "Estimate"]
   # mean_se2[i]<-coef(summary(m1c))[ 3, "Estimate"]
