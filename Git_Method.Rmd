@@ -1556,19 +1556,19 @@ LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 sens<-read.csv("Sensitivity_Land_Use.csv")
 clim_sens<-read.csv("Climate_Sensitivity.csv")
 
-LPI_EDScores3<-merge(LPI_EDScores3, sens, by="ID")
+LPI_EDScores3<-merge(LPI_EDScores3, sens, by="ID")    #check this
 LPI_EDScores3<-merge(LPI_EDScores3, clim_sens, by="ID")
 
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Range_change_pop_yr)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(change_rate_25)&!is.na(mean_slope) &System != "Marine"&Include10 == "Yes")
 
 Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
-Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(SE25k)&!is.na(Estimate25k)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+#Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(SE25k)&!is.na(Estimate25k)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 nrow(Inc5MammalsTemp)
 
@@ -1632,7 +1632,7 @@ dt_bird= as.data.table(sp_dups_bird)
 dt_mamm= as.data.table(sp_dups_mamm)
 
 
-parm_df<-sp_dups_df[,c("ID","mean_slope", "mean_slope_se", "change_rate_25")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","mean_slope", "SD_change_pop_yr", "change_rate_25")]  ##ID, land use, and climate
 #parm_df<-sp_dups_df[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")]
 
 parm_bird<-sp_dups_bird[,c("ID","mean_slope", "Range_change_pop_yr", "change_rate")]
@@ -1642,7 +1642,7 @@ parm_mat<-as.matrix(parm_df)
 parm_bird_mat<-as.matrix(parm_bird)
 parm_mamm_mat<-as.matrix(parm_mamm)
 
-parm_scale<-scale(parm_mat[,c("mean_slope", "mean_slope_se", "change_rate_25")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("mean_slope", "SD_change_pop_yr", "change_rate_25")])       #use the scaling factors at the bottom of these to scale the rasters
 #parm_scale<-scale(parm_mat[,c("ID","SD_change_all_yr","Range_change_all_yr","SD_change_pop_yr","Range_change_pop_yr", "max_slope","max_slope_se","max_mon_var","max_year_var","min_slope","min_slope_se","min_mon_var","min_year_var","pcp_slope","pcp_slope_se","pcp_mon_var","pcp_year_var","mean_slope","mean_slope_se","mean_mon_var","mean_year_var","change_rate")])
 
 parm_bird_scale<-scale(parm_bird_mat[,c("mean_slope", "Range_change_pop_yr", "change_rate")])
@@ -1686,7 +1686,7 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=9999
+R=99
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
@@ -1987,11 +1987,11 @@ mean(marg_Rsq_m2c)
 mean(marg_Rsq_m2d)
 mean(marg_Rsq_m2e)
 mean(marg_Rsq_m2f)
+mean(marg_Rsq_mnull)
 
 mean(marg_Rsq_m3)
 mean(marg_Rsq_m4)
 mean(marg_Rsq_m5)
-mean(marg_Rsq_mnull)
 
 mean(cond_Rsq_m1)
 mean(cond_Rsq_m1a)
@@ -2007,11 +2007,12 @@ mean(cond_Rsq_m2c)
 mean(cond_Rsq_m2d)
 mean(cond_Rsq_m2e)
 mean(cond_Rsq_m2f)
+mean(cond_Rsq_mnull)
 
 mean(cond_Rsq_m3)
 mean(cond_Rsq_m4)
 mean(cond_Rsq_m5)
-mean(cond_Rsq_mnull)
+
 
 mean(AIC_m1)
 mean(AIC_m1a)
@@ -2027,11 +2028,12 @@ mean(AIC_m2c)
 mean(AIC_m2d)
 mean(AIC_m2e)
 mean(AIC_m2f)
+mean(AIC_mnull)
 
 mean(AIC_m3)
 mean(AIC_m4)
 mean(AIC_m5)
-mean(AIC_mnull)
+
 
 mean(m1_w)
 mean(m1a_w)
@@ -2048,33 +2050,44 @@ mean(m2c_w)
 mean(m2d_w)
 mean(m2e_w)
 mean(m2f_w)
+mean(mnull_w)
 
 mean(m3_w)
 mean(m4_w)
 mean(m5_w)
-mean(mnull_w)
+
 
 #hist(RSq, breaks=100)
+#variable importance
 
-mean(LUC_i)
-mean(MTC_i)
-mean(MTV_i)
-mean(LUC_MTC_i)
-mean(LUC_MTV_i)
-mean(MTC_MTV_i)
-mean(BM_i)
+mean_i<- c(mean(LUC_i),mean(MTC_i),mean(MTV_i),mean(LUC_MTV_i),mean(LUC_MTC_i),mean(MTC_MTV_i))
+lowCI_i<-c(sort(LUC_i)[250], sort(MTC_i)[250], sort(MTV_i)[250], sort(LUC_MTV_i)[250], sort(LUC_MTC_i)[250], sort(MTC_MTV_i)[250])
+highCI_i<-c(sort(LUC_i)[9750], sort(MTC_i)[9750], sort(MTV_i)[9750], sort(LUC_MTV_i)[9750], sort(LUC_MTC_i)[9750], sort(MTC_MTV_i)[9750])
+
+Variable<-c("LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC")
+
+conf_i<-data.frame(rbind( lowCI_i, mean_i, highCI_i))
+colnames(conf_i)<-Variable
+conf_i
+
+library(plotrix)
+
+plotCI(1:6, mean_i, (highCI_i-mean_i), (mean_i-lowCI_i), ylab="Variable Importance", xlab="" ,xaxt = "n", 
+main="Variable Importance", lwd=1)
+axis(1, at=1:6, labels=colnames(conf_i), las=2)
+abline(h=0, col="red", lty =2)
 
 
-#For averaged model - conditional estimates
+##For averaged model - conditional estimates
  
   
-mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av), mean(BM_av))
+mean_av<-c(mean(int_av), mean(LUC_av), mean(MTV_av),mean(MTC_av), mean(LUC_MTV_av), mean(LUC_MTC_av), mean(MTC_MTV_av))
  
-lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250], sort(BM_av)[250])
+lowCI_av<-c(sort(int_av)[250],sort(LUC_av)[250],sort(MTV_av)[250],sort(MTC_av)[250],sort(LUC_MTV_av)[250],sort(LUC_MTC_av)[250],sort(MTC_MTV_av)[250])
 
-highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750],sort(BM_av)[9750])
+highCI_av<-c(sort(int_av)[9750],sort(LUC_av)[9750],sort(MTV_av)[9750],sort(MTC_av)[9750],sort(LUC_MTV_av)[9750],sort(LUC_MTC_av)[9750],sort(MTC_MTV_av)[9750])
 
-Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC", "BM")
+Variable<-c( "Intercept", "LUC", "MTV", "MTC", "LUC*MTV", "LUC*MTC", "MTV*MTC")
 
 conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
 colnames(conf_av)<-Variable
@@ -2086,8 +2099,8 @@ library(plotrix)
 # par(cex.axis=0.8)
 # par(mar=c(14,5,1,1))
 # par(mgp=c(2, 1,0))
-plotCI(1:8, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient Values", xlab="" ,xaxt = "n", main="Model Averaged Coefficients", lwd=1)
-axis(1, at=1:8, labels=colnames(conf_av), las=2)
+plotCI(1:7, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient Values", xlab="" ,xaxt = "n", main="Model Averaged Coefficients", lwd=1)
+axis(1, at=1:7, labels=colnames(conf_av), las=2)
 abline(h=0, col="red", lty =2)
 
 
