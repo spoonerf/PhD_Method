@@ -1559,15 +1559,17 @@ sens<-read.csv("Sensitivity_Land_Use.csv")
 clim_sens<-read.csv("Climate_Sensitivity.csv")
 hot<-read.csv("hot_days_pop.csv")
 cold<-read.csv("cold_days_pop.csv")
+res_mx<-read.csv("max_temp_residuals.csv")
 
 LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores2, res_mx, by="ID")
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
-Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(change_rate_25)&!is.na(mean_slope) &System != "Marine"&Include10 == "Yes")
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(change_rate_25)&!is.na(mean_slope) &System != "Marine"&length_time >= 10)
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
@@ -1619,10 +1621,10 @@ plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts"
 
 library(data.table)
 dt = as.data.table(sp_dups_df)
-parm_df<-sp_dups_df[,c("ID","Estimate50k", "cold_avg", "change_rate_49")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","Estimate50k", "range_var", "change_rate_49")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate50k", "cold_avg", "change_rate_49")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate50k", "range_var", "change_rate_49")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
@@ -1637,7 +1639,10 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=99
+#sp_df_scale<-subset(sp_df_scale, Class=="Mammalia")
+#sp_df_scale<-subset(sp_df_scale, Class=="Aves")
+
+R=999
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
@@ -1787,15 +1792,17 @@ for (i in 1:R) {
     
     m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
 
+    
+    m3<-lmer(TL ~mean_slope_scale+Bodymass+(1|Binomial_old),data=sp_dups_df2, REML=F)
    # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
    
     mnull<-lmer(TL ~1+(1|Binomial_old),data=sp_dups_df2, REML=F)
 
-      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
+      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
-  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f)
+  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   m1_w[i]<-subset(msAICc, model=="m1")$weight
@@ -1814,7 +1821,7 @@ for (i in 1:R) {
   m2e_w[i]<-subset(msAICc, model=="m2e")$weight
   m2f_w[i]<-subset(msAICc, model=="m2f")$weight
   #mnull_w[i]<-subset(msAICc, model=="mnull")$weight
-  # m3_w[i]<-subset(msAICc, model=="m3")$weight
+  m3_w[i]<-subset(msAICc, model=="m3")$weight
   # m4_w[i]<-subset(msAICc, model=="m4")$weight
   # m5_w[i]<-subset(msAICc, model=="m5")$weight
   
@@ -1834,9 +1841,11 @@ for (i in 1:R) {
   marg_Rsq_m2d[i]<-modelsRsq[12,4]
   marg_Rsq_m2e[i]<-modelsRsq[13,4]
   marg_Rsq_m2f[i]<-modelsRsq[14,4]
-  marg_Rsq_mnull[i]<-modelsRsq[15,4]
+ 
+  marg_Rsq_m3[i]<-modelsRsq[15,4]
+   marg_Rsq_mnull[i]<-modelsRsq[16,4]
   
-  # marg_Rsq_m3[i]<-modelsRsq[15,4]
+   
   # marg_Rsq_m4[i]<-modelsRsq[16,4]
   # marg_Rsq_m5[i]<-modelsRsq[17,4]
 
@@ -1856,9 +1865,10 @@ for (i in 1:R) {
   cond_Rsq_m2d[i]<-modelsRsq[12,5]
   cond_Rsq_m2e[i]<-modelsRsq[13,5]
   cond_Rsq_m2f[i]<-modelsRsq[14,5]
-  cond_Rsq_mnull[i]<-modelsRsq[15,5]
+  cond_Rsq_m3[i]<-modelsRsq[15,5]
+  cond_Rsq_mnull[i]<-modelsRsq[16,5]
 
-  # cond_Rsq_m3[i]<-modelsRsq[15,5]
+   
   # cond_Rsq_m4[i]<-modelsRsq[16,5]
   # cond_Rsq_m5[i]<-modelsRsq[17,5]
   
@@ -1879,7 +1889,7 @@ for (i in 1:R) {
   AIC_m2e[i]<-AIC(m2e)
   AIC_m2f[i]<-AIC(m2f)
   AIC_mnull[i]<-AIC(mnull)
-#   AIC_m3[i]<-AIC(m3)
+ AIC_m3[i]<-AIC(m3)
 #   AIC_m4[i]<-AIC(m4)
 #   AIC_m5[i]<-AIC(m5)
 
@@ -1959,25 +1969,13 @@ mean(cond_Rsq_m4)
 mean(cond_Rsq_m5)
 
 
-mean(AIC_m1)
-mean(AIC_m1a)
-mean(AIC_m1b)
-mean(AIC_m1c)
-mean(AIC_m1d)
-mean(AIC_m1e)
-mean(AIC_m1f)
-mean(AIC_m2)
-mean(AIC_m2a)
-mean(AIC_m2b)
-mean(AIC_m2c)
-mean(AIC_m2d)
-mean(AIC_m2e)
-mean(AIC_m2f)
-mean(AIC_mnull)
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f, AIC_m3, AIC_mnull))
 
-mean(AIC_m3)
-mean(AIC_m4)
-mean(AIC_m5)
+
+AIC_del<-AIC_df[,c(1:15)] - AIC_df$AIC_mnull
+
+colMeans(AIC_del)
+
 
 mean(m1_w)
 mean(m1a_w)
