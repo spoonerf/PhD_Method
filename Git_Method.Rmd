@@ -1789,7 +1789,7 @@ for (i in 1:R) {
 
    # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
    
-    mnull<-lmer(TL ~(1|Binomial_old),data=sp_dups_df2, REML=F)
+    mnull<-lmer(TL ~1+(1|Binomial_old),data=sp_dups_df2, REML=F)
 
       models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
