@@ -69,7 +69,8 @@ LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 Clim2<-merge(Clim, LPI[c(1,2)], by="ID")
 
-LU<-read.csv("all_EU_Land_Use_Change_26_08_15.csv")
+#LU<-read.csv("all_EU_Land_Use_Change_26_08_15.csv")
+LU<-read.csv("Sensitivity_Land_Use_morepop.csv")
 Traits<-read.csv("LPI_pops_20150529_EDRank2.csv")
 Pop_all<-read.csv("Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
 mess_all <- merge(merge(Clim2, LU, by="ID"), merge(Pop_all, Traits, by="ID"), by="ID")
@@ -1386,6 +1387,8 @@ Clim<-read.csv("Mean_Temp_Slope_and_var_12_01_08_50kmbuffnarm.csv")
 #LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_Land_Use_Change_26_08_15.csv")
 #LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_121_18_09_2015.csv")
 LU<-read.csv("LPI_LandUse_121_18_09_2015.csv")
+sens<-read.csv("Sensitivity_Land_Use.csv")
+
 
 #Pop<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Use_This/Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv") #POpulations with model Rsq >0.5
 Traits<-read.csv("LPI_pops_20150529_EDRank2.csv")
@@ -1557,25 +1560,25 @@ LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
 
 sens<-read.csv("Sensitivity_Land_Use.csv")
 clim_sens<-read.csv("Climate_Sensitivity.csv")
-hot<-read.csv("hot_days_pop.csv")
-cold<-read.csv("cold_days_pop.csv")
+#hot<-read.csv("hot_days_pop.csv")
+#cold<-read.csv("cold_days_pop.csv")
 res_mx<-read.csv("max_temp_residuals.csv")
 
 LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
+#LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
+#LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, res_mx, by="ID")
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(change_rate_25)&!is.na(mean_slope) &System != "Marine"&length_time >= 10)
+#Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(change_rate_25)&!is.na(mean_slope) &System != "Marine"&length_time >= 5)
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 #Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(hot_avg)&!is.na(Estimate25k)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 10 & System != "Marine")
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 5 & System != "Marine")
 
 nrow(Inc5MammalsTemp)
 
@@ -1796,7 +1799,7 @@ for (i in 1:R) {
     m3<-lmer(TL ~mean_slope_scale+Bodymass+(1|Binomial_old),data=sp_dups_df2, REML=F)
    # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
    
-    mnull<-lmer(TL ~1+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    mnull<-lmer(TL ~(1|Binomial_old),data=sp_dups_df2, REML=F)
 
       models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
