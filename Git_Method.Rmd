@@ -1640,7 +1640,7 @@ library(MuMIn)
 source("rsquaredglmm.R")
 
 #sp_df_scale<-subset(sp_df_scale, Class=="Mammalia")
-#sp_df_scale<-subset(sp_df_scale, Class=="Aves")
+sp_df_scale<-subset(sp_df_scale, Class=="Aves")
 
 R=999
 PValue = numeric(R)
