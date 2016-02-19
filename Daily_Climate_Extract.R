@@ -54,10 +54,7 @@ for (i in 1:nlayers(rmax)){
 write.csv(all_EU_max_data, "all_EU_daily_max_temp.csv")
 
 
-id<-Inc5MammalsTemp$ID
-xy<-cbind(Inc5MammalsTemp$Longitude,Inc5MammalsTemp$Latitude)
 
-binomial<-Inc5MammalsTemp$Binomial
 
 
 
