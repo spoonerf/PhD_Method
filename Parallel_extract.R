@@ -3,7 +3,7 @@ library(doParallel)
 ##adding in large raster brick - about 4GB
 rmax<-brick("D:/Fiona/Git_Method/Git_Method/tx_0.25deg_reg_v11.0.nc", varname = "tx")
 
-##adding in dataframe we want to extract from 
+##adding in dataframe we want to extract from and subsetting it so that only relevant locations are left
 LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
 LPI_EU<-subset(LPI, ClassX != "Fishes"& Specific_location =="1")
 ID<-LPI_EU$ID
