@@ -2,6 +2,7 @@ library(doParallel)
 
 ##adding in large raster brick - about 4GB
 rmax<-brick("D:/Fiona/Git_Method/Git_Method/tx_0.25deg_reg_v11.0.nc", varname = "tx")
+rmin<-brick("D:/Fiona/Git_Method/Git_Method/tn_0.25deg_reg_v11.0.nc", varname = "tn")
 
 ##adding in dataframe we want to extract from and subsetting it so that only relevant locations are left
 LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
@@ -23,6 +24,9 @@ df2<-subset(df, !is.na(test))
 LPI_EU5<-LPI_EU4[LPI_EU4$ID %in% df2$id,]
 
 xy<-cbind(LPI_EU5$Longitude,LPI_EU5$Latitude)
+loc<-data.frame(LPI_EU5$ID, LPI_EU5$Longitude, LPI_EU5$Latitude)
+colnames(loc)<-c("ID", "Longitude", "Latitude")
+
 xy<-unique(xy)     #identifying unique locations to extract climate data from 
 
 ###parallellise
