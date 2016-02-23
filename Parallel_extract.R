@@ -3,6 +3,9 @@ library(doParallel)
 ##adding in large raster brick - about 4GB
 rmax<-brick("D:/Fiona/Git_Method/Git_Method/tx_0.25deg_reg_v11.0.nc", varname = "tx")
 rmin<-brick("D:/Fiona/Git_Method/Git_Method/tn_0.25deg_reg_v11.0.nc", varname = "tn")
+rmean<-brick("D:/Fiona/Git_Method/Git_Method/tg_0.25deg_reg_v11.0.nc", varname = "tg")
+rpcp<-brick("D:/Fiona/Git_Method/Git_Method/rr_0.25deg_reg_v11.0.nc", varname = "rr")
+
 
 ##adding in dataframe we want to extract from and subsetting it so that only relevant locations are left
 LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv", stringsAsFactors=FALSE)
@@ -31,7 +34,7 @@ xy<-unique(xy)     #identifying unique locations to extract climate data from
 
 ###parallellise
 
-n<-6  #number of cores to use - not sure how many I can go up to
+n<-12  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 
@@ -40,12 +43,17 @@ step<-floor(days/n)
 
 ptime <- system.time({   
   df<- foreach(lyr=seq(1,days,step)[1:6], .combine=cbind) %dopar%{
-    rasterex <- raster:::extract(rmax[[lyr:(lyr+step-1)]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+    rasterex <- raster:::extract(rmean[[lyr:(lyr+step-1)]], xy, buffer=50000, fun=mean, na.rm=TRUE)
   }
 }) 
 ptime  
 
 stopCluster(cl)
 
+df2<-data.frame(xy, df)
+colnames(df2)[1:2]<-c("Longitude", "Latitude")
 
+df3<-merge(loc, df2, by=c("Longitude", "Latitude"))
+
+write.csv(df3, "Daily_Mean_Temp_All_EU.csv")
 
