@@ -34,11 +34,11 @@ xy<-unique(xy)     #identifying unique locations to extract climate data from
 
 ###parallellise
 
-n<-12  #number of cores to use - not sure how many I can go up to
+n<-6  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 
-days<-nlayers(rmax)    #splitting the data evenly between the cores
+days<-nlayers(rmean)    #splitting the data evenly between the cores
 step<-floor(days/n)
 
 ptime <- system.time({   
