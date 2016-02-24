@@ -38,12 +38,12 @@ n<-6  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 
-days<-nlayers(rmean)    #splitting the data evenly between the cores
+days<-nlayers(rpcp)    #splitting the data evenly between the cores
 step<-floor(days/n)
 
 ptime <- system.time({   
   df<- foreach(lyr=seq(1,days,step)[1:6], .combine=cbind) %dopar%{
-    rasterex <- raster:::extract(rmean[[lyr:(lyr+step-1)]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+    rasterex <- raster:::extract(rpcp[[lyr:(lyr+step-1)]], xy, buffer=50000, fun=mean, na.rm=TRUE)
   }
 }) 
 ptime  
@@ -55,5 +55,5 @@ colnames(df2)[1:2]<-c("Longitude", "Latitude")
 
 df3<-merge(loc, df2, by=c("Longitude", "Latitude"))
 
-write.csv(df3, "Daily_Mean_Temp_All_EU.csv")
+write.csv(df3, "Daily_Prec_All_EU.csv")
 
