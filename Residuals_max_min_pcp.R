@@ -4,41 +4,41 @@ library(plyr)
 library(taRifx)
 library(broom)
 
-LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
-
-LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
-
-sens<-read.csv("Sensitivity_Land_Use.csv")
-clim_sens<-read.csv("Climate_Sensitivity.csv")
-hot<-read.csv("hot_days_pop.csv")
-cold<-read.csv("cold_days_pop.csv")
-
-LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
-
-LPI<- subset(LPI_EDScores3, !is.na(change_rate_25)&!is.na(mean_slope) &System != "Marine"&Include10 == "Yes")
-
-
-nrow(LPI)
-
-max<-read.csv("all_EU_daily_max_temp.csv")
-min<-read.csv("all_EU_daily_min_temp.csv")
-pcp<-read.csv("all_EU_daily_pcp_temp.csv")
-
-pcp$binomial<-as.character(pcp$binomial)
-
-pcp$id<-data.frame(matrix(unlist(strsplit(pcp$binomial, split='_', fixed=TRUE)), ncol=3, byrow=T))[,1]
-
-colnames(max)[4:8]<-c("Lon", "Lat", "Year", "Month", "Day")
-colnames(min)[4:8]<-c("Lon", "Lat", "Year", "Month", "Day")
-colnames(pcp)[4:8]<-c("Lon", "Lat", "Year", "Month", "Day")
-
-max$date <- as.Date( paste(max$Year,max$Month,max$Day , sep = "." )  , format = "%Y.%m.%d" )
-min$date <- as.Date( paste(min$Year,min$Month,min$Day , sep = "." )  , format = "%Y.%m.%d" )
-pcp$date <- as.Date( paste(pcp$Year,pcp$Month,pcp$Day , sep = "." )  , format = "%Y.%m.%d" )
-
+# LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
+# 
+# LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
+# # 
+# sens<-read.csv("Sensitivity_Land_Use.csv")
+# clim_sens<-read.csv("Climate_Sensitivity.csv")
+# hot<-read.csv("hot_days_pop.csv")
+# cold<-read.csv("cold_days_pop.csv")
+# 
+# LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
+# LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
+# LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
+# LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
+# 
+# LPI<- subset(LPI_EDScores3, !is.na(change_rate_25)&!is.na(mean_slope) &System != "Marine"&Include10 == "Yes")
+# 
+# 
+# nrow(LPI)
+# 
+# max<-read.csv("all_EU_daily_max_temp.csv")
+# min<-read.csv("all_EU_daily_min_temp.csv")
+# pcp<-read.csv("all_EU_daily_pcp_temp.csv")
+# 
+# pcp$binomial<-as.character(pcp$binomial)
+# 
+# pcp$id<-data.frame(matrix(unlist(strsplit(pcp$binomial, split='_', fixed=TRUE)), ncol=3, byrow=T))[,1]
+# 
+# colnames(max)[4:8]<-c("Lon", "Lat", "Year", "Month", "Day")
+# colnames(min)[4:8]<-c("Lon", "Lat", "Year", "Month", "Day")
+# colnames(pcp)[4:8]<-c("Lon", "Lat", "Year", "Month", "Day")
+# 
+# max$date <- as.Date( paste(max$Year,max$Month,max$Day , sep = "." )  , format = "%Y.%m.%d" )
+# min$date <- as.Date( paste(min$Year,min$Month,min$Day , sep = "." )  , format = "%Y.%m.%d" )
+# pcp$date <- as.Date( paste(pcp$Year,pcp$Month,pcp$Day , sep = "." )  , format = "%Y.%m.%d" )
+# 
 
 
 
@@ -114,6 +114,6 @@ min_df2$mean_an_mean<-as.numeric(as.character(min_df2$mean_an_mean))
 min_df2$mean_an_range<-as.numeric(as.character(min_df2$mean_an_range))
 
 
-write.csv(min_df2, "max_temp_residuals_all_EU.csv")
+write.csv(min_df2, "mean_temp_residuals_all_EU.csv")
 
 
