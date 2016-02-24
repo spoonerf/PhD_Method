@@ -20,7 +20,8 @@ LPI_EU3<-subset(LPI_EU2, points_per_pop1950_2012 >=2)    #disregarding any popul
 LPI_EU4<-subset(LPI_EU3, Latitude >= 25.5 & Latitude <= 75.5 & Longitude >= -40.5 & Longitude <= 75.5) 
 
 xy<-cbind(LPI_EU4$Longitude,LPI_EU4$Latitude)     #removing points which are in the sea/don't have any data on the most recent day
-test<-extract(rmax[[23741]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+id<-LPI_EU4$ID
+test<-extract(rmin[[23741]], xy, buffer=50000, fun=mean, na.rm=TRUE)
 df<-data.frame(id, test)
 df2<-subset(df, !is.na(test))
 
@@ -38,12 +39,12 @@ n<-6  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 
-days<-nlayers(rpcp)    #splitting the data evenly between the cores
+days<-nlayers(rmin)    #splitting the data evenly between the cores
 step<-floor(days/n)
 
 ptime <- system.time({   
   df<- foreach(lyr=seq(1,days,step)[1:6], .combine=cbind) %dopar%{
-    rasterex <- raster:::extract(rpcp[[lyr:(lyr+step-1)]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+    rasterex <- raster:::extract(rmin[[lyr:(lyr+step-1)]], xy, buffer=50000, fun=mean, na.rm=TRUE)
   }
 }) 
 ptime  
@@ -55,5 +56,33 @@ colnames(df2)[1:2]<-c("Longitude", "Latitude")
 
 df3<-merge(loc, df2, by=c("Longitude", "Latitude"))
 
-write.csv(df3, "Daily_Prec_All_EU.csv")
+write.csv(df3, "Daily_Min_Temp_All_EU.csv")
+
+#########################
+###formatting the data###
+#########################
+df3<-read.csv("Daily_Min_Temp_All_EU.csv")
+
+pcps<-stack(df3)
+
+long<-pcps[c(1048:2094),1]
+lat<-pcps[c(2095:3141),1]
+id<-pcps[c(3142:4188),1]
+
+vals<-pcps[c(4189:24855780),]
+
+#23736 days
+
+longr<-rep(long, 23736)
+latr<-rep(lat, 23736)
+idr<-rep(id, 23736)
+
+pcp_df<-data.frame(idr,latr,longr,vals)
+pcp_df$ind<-as.Date(pcp_df$ind, "X%Y.%m.%d")
+
+write.csv(pcp_df, "Daily_Min_Temp_All_EU_form.csv")
+
+
+
+
 
