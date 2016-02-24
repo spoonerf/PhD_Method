@@ -1,3 +1,5 @@
+setwd("D:/Fiona/Git_Method/Git_Method")
+getwd()
 library(plyr)
 library(taRifx)
 library(broom)
@@ -38,15 +40,28 @@ min$date <- as.Date( paste(min$Year,min$Month,min$Day , sep = "." )  , format = 
 pcp$date <- as.Date( paste(pcp$Year,pcp$Month,pcp$Day , sep = "." )  , format = "%Y.%m.%d" )
 
 
+
+
+
+LPI_EDScores<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+max<-read.csv("Daily_Mean_Temp_All_EU_form.csv")
+
+max$Date<-as.Date(max$ind, "%Y-%m-%d")
+max$Year<-format(max$Date, "%Y")
+colnames(max)[2]<-"id"
+
+LPI<-LPI_EDScores[LPI_EDScores$ID %in% max$id,] 
+
+
 doMax = function(sp_name) {
   spid2 = subset(LPI, ID == sp_name)   #subsetting the population data by each population
-  spid = spid2[,101:163]                     #subsetting only the dates
+  spid = spid2[,63:125]                     #subsetting only the dates
   colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
-  climid=subset(min, id == sp_name)  #subsetting the climate data by each population
+  climid=subset(max, id == sp_name)  #subsetting the climate data by each population
 
   name<-spid2$Binomial
   id<-spid2$ID
-  points<-spid2$points_per_pop1950_2012
   name_id<-paste(name, id, sep="_") #creating id for naming files of plots
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
@@ -54,9 +69,9 @@ doMax = function(sp_name) {
   Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   
-  Max_ch<-na.omit(climid[climid$Year %in% Year,c(9,10) ])
-  Max_val<-Max_ch[,1]  
-  Max_date<-Max_ch[,2]  
+  Max_ch<-na.omit(climid[climid$Year %in% Year, ])
+  Max_val<-Max_ch[,5]  
+  Max_date<-Max_ch[,7]  
   
    if (sum(is.nan(Max_val))!=length(Max_val)){     #checking that there are values extracted for this population - i.e. that it is on land
     
@@ -95,7 +110,10 @@ colnames(min_df2) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "var_re
 min_df2$mean_an_range<-as.numeric(as.character(min_df2$mean_an_range))
 min_df2$var_res<-as.numeric(as.character(min_df2$var_res))
 min_df2$range_var<-as.numeric(as.character(min_df2$range_var))
+min_df2$mean_an_mean<-as.numeric(as.character(min_df2$mean_an_mean))
+min_df2$mean_an_range<-as.numeric(as.character(min_df2$mean_an_range))
 
-write.csv(min_df2, "min_temp_residuals.csv")
+
+write.csv(min_df2, "max_temp_residuals_all_EU.csv")
 
 
