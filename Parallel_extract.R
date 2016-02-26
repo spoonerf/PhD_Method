@@ -33,30 +33,37 @@ colnames(loc)<-c("ID", "Longitude", "Latitude")
 
 xy<-unique(xy)     #identifying unique locations to extract climate data from 
 
+xy_df<-data.frame(xy)
+colnames(xy_df)<-c("lon", "lat")
+coordinates(xy_df) <- c("lon", "lat")
+
+length(xy_df)
 ###parallellise
 
 n<-6  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 
-days<-nlayers(rmin)    #splitting the data evenly between the cores
+days<-nlayers(rpcp)    #splitting the data evenly between the cores
 step<-floor(days/n)
 
 ptime <- system.time({   
   df<- foreach(lyr=seq(1,days,step)[1:6], .combine=cbind) %dopar%{
-    rasterex <- raster:::extract(rmin[[lyr:(lyr+step-1)]], xy, buffer=50000, fun=mean, na.rm=TRUE)
+    rasterex <- raster:::extract(rpcp[[lyr:(lyr+step-1)]], xy_df, buffer=50000, fun=mean, na.rm=TRUE)
   }
 }) 
 ptime  
 
 stopCluster(cl)
 
-df2<-data.frame(xy, df)
+df2<-data.frame(xy_df, df)
 colnames(df2)[1:2]<-c("Longitude", "Latitude")
 
 df3<-merge(loc, df2, by=c("Longitude", "Latitude"))
 
-write.csv(df3, "Daily_Min_Temp_All_EU.csv")
+crex<-subset(df3, ID=327)
+
+write.csv(df3, "Daily_Mean_Temp_All_EU.csv")
 
 #########################
 ###formatting the data###
@@ -80,9 +87,7 @@ idr<-rep(id, 23736)
 pcp_df<-data.frame(idr,latr,longr,vals)
 pcp_df$ind<-as.Date(pcp_df$ind, "X%Y.%m.%d")
 
-write.csv(pcp_df, "Daily_Min_Temp_All_EU_form.csv")
-
-
+write.csv(pcp_df, "Daily_Mean_Temp_All_EU_form.csv")
 
 
 

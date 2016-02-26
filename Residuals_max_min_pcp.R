@@ -117,3 +117,5 @@ min_df2$mean_an_range<-as.numeric(as.character(min_df2$mean_an_range))
 write.csv(min_df2, "mean_temp_residuals_all_EU.csv")
 
 
+crex<-subset(max, id==327)
+
