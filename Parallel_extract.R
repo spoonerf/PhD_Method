@@ -63,20 +63,22 @@ df3<-merge(loc, df2, by=c("Longitude", "Latitude"))
 
 crex<-subset(df3, ID=327)
 
-write.csv(df3, "Daily_Mean_Temp_All_EU.csv")
+write.csv(df3, "Daily_Prec_All_EU.csv")
 
 #########################
 ###formatting the data###
 #########################
-df3<-read.csv("Daily_Min_Temp_All_EU.csv")
+df3<-read.csv("Daily_Mean_Temp_All_EU.csv")
 
 pcps<-stack(df3)
 
-long<-pcps[c(1048:2094),1]
-lat<-pcps[c(2095:3141),1]
-id<-pcps[c(3142:4188),1]
 
-vals<-pcps[c(4189:24855780),]
+long<-pcps[c(1:1047),1]
+lat<-pcps[c(1048:2094),1]
+id<-pcps[c(2095:3141),1]
+   #check theseeee
+
+vals<-pcps[c(3142:24854733),]
 
 #23736 days
 
@@ -87,7 +89,14 @@ idr<-rep(id, 23736)
 pcp_df<-data.frame(idr,latr,longr,vals)
 pcp_df$ind<-as.Date(pcp_df$ind, "X%Y.%m.%d")
 
-write.csv(pcp_df, "Daily_Mean_Temp_All_EU_form.csv")
+head(pcp_df)
+
+write.csv(pcp_df, "Daily_Prec_All_EU_form.csv")
+
+
+
+
+df3<-read.csv("Daily_Mean_Temp_All_EU_form.csv")
 
 
 
