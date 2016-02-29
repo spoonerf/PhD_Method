@@ -1562,13 +1562,23 @@ sens<-read.csv("Sensitivity_Land_Use.csv")
 clim_sens<-read.csv("Climate_Sensitivity.csv")
 #hot<-read.csv("hot_days_pop.csv")
 #cold<-read.csv("cold_days_pop.csv")
-res_mx<-read.csv("max_temp_residuals.csv")
+#res_mx<-read.csv("max_temp_residuals.csv")
+res_mean<-read.csv("mean_temp_residuals_all_EU.csv")
+res_prec<-read.csv("prec_residuals_all_EU.csv")
 
-LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
-#LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
-#LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, res_mx, by="ID")
+res_mean<-res_mean[,c(2,8,9)]
+res_prec<-res_prec[,c(2,8,9)]
+
+colnames(res_mean)<-c("ID","mean_var_res", "mean_range_var")
+colnames(res_prec)<-c("ID","prec_var_res", "prec_range_var")
+
+#LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
+#LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
+####LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
+#####LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores, res_mean, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores2, res_prec, by="ID")
+
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
@@ -1579,6 +1589,9 @@ LPI_EDScores2<-merge(LPI_EDScores2, res_mx, by="ID")
 #Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 5 & System != "Marine")
+
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate)&length_time >= 5  & System != "Marine")
+
 
 nrow(Inc5MammalsTemp)
 
@@ -1624,16 +1637,16 @@ plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts"
 
 library(data.table)
 dt = as.data.table(sp_dups_df)
-parm_df<-sp_dups_df[,c("ID","Estimate50k", "range_var", "change_rate_49")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","mean_slope", "mean_range_var", "prec_range_var", "change_rate")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate50k", "range_var", "change_rate_49")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("mean_slope", "mean_range_var","prec_range_var", "change_rate")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale)
 
-colnames(parm_df_scale)<-c("ID", "mean_slope_scale", "mean_var_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID","mean_slope_scale", "mean_var_scale","prec_var_scale", "change_rate_scale")
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
@@ -1643,9 +1656,9 @@ library(MuMIn)
 source("rsquaredglmm.R")
 
 #sp_df_scale<-subset(sp_df_scale, Class=="Mammalia")
-sp_df_scale<-subset(sp_df_scale, Class=="Aves")
+#sp_df_scale<-subset(sp_df_scale, Class=="Aves")
 
-R=999
+R=299
 PValue = numeric(R)
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
@@ -1654,6 +1667,7 @@ AIC_m1c= numeric(R)
 AIC_m1d= numeric(R)
 AIC_m1e= numeric(R)
 AIC_m1f= numeric(R)
+AIC_m1g= numeric(R)
 
 AIC_m2= numeric(R)
 AIC_m2a= numeric(R)
@@ -1662,6 +1676,7 @@ AIC_m2c= numeric(R)
 AIC_m2d= numeric(R)
 AIC_m2e= numeric(R)
 AIC_m2f= numeric(R)
+AIC_m2g= numeric(R)
 
 AIC_m3 = numeric(R)
 AIC_m4 = numeric(R)
@@ -1775,6 +1790,8 @@ for (i in 1:R) {
     m1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
   # n1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
+    m1g<-lmer(TL ~ change_rate_scale*prec_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    
     m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
   #n2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
     
@@ -1795,17 +1812,18 @@ for (i in 1:R) {
     
     m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
 
+    m2g<-lmer(TL ~ prec_var_scale+ (1|Binomial_old), data=sp_dups_df2, REML=F)
     
     m3<-lmer(TL ~mean_slope_scale+Bodymass+(1|Binomial_old),data=sp_dups_df2, REML=F)
    # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
    
     mnull<-lmer(TL ~(1|Binomial_old),data=sp_dups_df2, REML=F)
 
-      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3,mnull)
+      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m1g,m2,m2a,m2b,m2c,m2d,m2e,m2f,m2g,m3,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
-  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,m3)
+  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m1g,m2,m2a,m2b,m2c,m2d,m2e,m2f,m2g,m3)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   m1_w[i]<-subset(msAICc, model=="m1")$weight
@@ -1883,6 +1901,7 @@ for (i in 1:R) {
   AIC_m1d[i]<-AIC(m1d)
   AIC_m1e[i]<-AIC(m1e)
   AIC_m1f[i]<-AIC(m1f)
+  AIC_m1g[i]<-AIC(m1g)
   
   AIC_m2[i]<-AIC(m2)
   AIC_m2a[i]<-AIC(m2a)
@@ -1891,6 +1910,7 @@ for (i in 1:R) {
   AIC_m2d[i]<-AIC(m2d)
   AIC_m2e[i]<-AIC(m2e)
   AIC_m2f[i]<-AIC(m2f)
+  AIC_m2g[i]<-AIC(m2g)
   AIC_mnull[i]<-AIC(mnull)
  AIC_m3[i]<-AIC(m3)
 #   AIC_m4[i]<-AIC(m4)
@@ -1972,10 +1992,10 @@ mean(cond_Rsq_m4)
 mean(cond_Rsq_m5)
 
 
-AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f, AIC_m3, AIC_mnull))
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f,AIC_m1g, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_m2g, AIC_m3, AIC_mnull))
 
 
-AIC_del<-AIC_df[,c(1:15)] - AIC_df$AIC_mnull
+AIC_del<-AIC_df[,c(1:17)] - AIC_df$AIC_mnull
 
 colMeans(AIC_del)
 
