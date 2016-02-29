@@ -1558,7 +1558,9 @@ LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 
 LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
 
-sens<-read.csv("Sensitivity_Land_Use.csv")
+#LU_sens<-read.csv("Sensitivity_Land_Use.csv")
+LU_sens<-read.csv("Sensitivity_Land_Use_morepop.csv")
+
 clim_sens<-read.csv("Climate_Sensitivity.csv")
 #hot<-read.csv("hot_days_pop.csv")
 #cold<-read.csv("cold_days_pop.csv")
@@ -1572,11 +1574,11 @@ res_prec<-res_prec[,c(2,8,9)]
 colnames(res_mean)<-c("ID","mean_var_res", "mean_range_var")
 colnames(res_prec)<-c("ID","prec_var_res", "prec_range_var")
 
-#LPI_EDScores2<-merge(LPI_EDScores, sens, by="ID")
-#LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores, LU_sens, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
 ####LPI_EDScores2<-merge(LPI_EDScores2, hot, by="ID")
 #####LPI_EDScores2<-merge(LPI_EDScores2, cold, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores, res_mean, by="ID")
+LPI_EDScores2<-merge(LPI_EDScores2, res_mean, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, res_prec, by="ID")
 
 
@@ -1590,7 +1592,7 @@ LPI_EDScores2<-merge(LPI_EDScores2, res_prec, by="ID")
 
 Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 5 & System != "Marine")
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate)&length_time >= 5  & System != "Marine")
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate_49)&length_time >= 5  & System != "Marine")
 
 
 nrow(Inc5MammalsTemp)
