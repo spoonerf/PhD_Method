@@ -4,6 +4,7 @@ library(broom)
 library(taRifx)
 library(zoo)
 
+#hiya world
 
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI_EU<-subset(LPI, ClassX != "Fishes"& Specific_location =="1")
