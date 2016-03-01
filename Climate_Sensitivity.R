@@ -51,6 +51,10 @@ write.csv(all_EU_mean_data, "Sensitivity_Climate.csv")
 
 head(all_EU_mean_data)
 
+
+
+
+
 ######
 
 doMean = function(sp_name) {
