@@ -22,19 +22,15 @@ xy<-cbind(LPI_EU4$Longitude,LPI_EU4$Latitude)
 
 xy<-unique(xy)
 
-xmean<- brick("Europe_mean_mon.grd")
+xmean<- brick("Annual_Meant.tif")
+names(xmean)<-seq(1950,2014,1)
+xmean<-xmean[[1:64]]
 
-y<-xmean[10001]
-x<-1:length(y)
-plot(x,y, type="l")
-
-all_EU_mean_data<-data.frame(lon=numeric(0), lat=character(0), Year=numeric(0), Month=character(0),ex=numeric(0),ex1k=numeric(0),ex10k=numeric(0),ex25k=numeric(0),ex50k=numeric(0),ex75k=numeric(0),ex100k=numeric(0))
-
+all_EU_mean_data<-data.frame(lon=numeric(0), lat=character(0), Year=numeric(0), ex=numeric(0),ex10k=numeric(0),ex25k=numeric(0),ex50k=numeric(0),ex75k=numeric(0),ex100k=numeric(0))
 
 for (i in 1:nlayers(xmean)) {
   
   ex<- extract(xmean[[i]], xy)
-  ex1k<- extract(xmean[[i]], xy, buffer=1000, fun=mean, na.rm=TRUE)
   ex10k<- extract(xmean[[i]], xy, buffer=10000, fun=mean, na.rm=TRUE)
   ex25k<- extract(xmean[[i]], xy, buffer=25000, fun=mean, na.rm=TRUE)
   ex50k<- extract(xmean[[i]], xy, buffer=50000, fun=mean, na.rm=TRUE)
@@ -42,15 +38,14 @@ for (i in 1:nlayers(xmean)) {
   ex100k<- extract(xmean[[i]], xy, buffer=100000, fun=mean, na.rm=TRUE)
   
   date<-names(xmean[[i]])
-  date2 <- as.yearmon(date, "%b.%Y")
-  dataex<-data.frame(lon = xy[,1], lat = xy[,2], Year= format(date2, "%Y"),Month=format(date2, "%b"), ex,ex1k,ex10k,ex25k,ex50k,ex75k,ex100k)   
+  date2 <- as.numeric(format(as.Date(date, "X%Y"), "%Y"))
+  dataex<-data.frame(lon = xy[,1], lat = xy[,2], Year= date2,ex,ex10k,ex25k,ex50k,ex75k,ex100k)   
   print(date2)
   all_EU_mean_data = rbind(all_EU_mean_data, dataex)
-  
 }
 
 
-colnames(all_EU_mean_data)[c(1:11)]<-c("ID","Binomial", "Year", "Month", "Mean_Temp","Mean_Temp1k","Mean_Temp10k","Mean_Temp25k","Mean_Temp50k","Mean_Temp75k","Mean_Temp100k")
+colnames(all_EU_mean_data)[c(1:11)]<-c("Longitude","Latitude", "Year", "Month", "Mean_Temp","Mean_Temp1k","Mean_Temp10k","Mean_Temp25k","Mean_Temp50k","Mean_Temp75k","Mean_Temp100k")
 
 write.csv(all_EU_mean_data, "Sensitivity_Climate.csv")
 
