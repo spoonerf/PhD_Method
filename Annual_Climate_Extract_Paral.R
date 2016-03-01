@@ -36,10 +36,11 @@ rmn<-zApply(s, tmy, fun=mean, name='year')
 n<-8 #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
+getDoParWorkers()
 
 buff<- function (year,b)  {
   
-  rasterex<-raster:::extract(rmn[[year-1949]], xy[c(6:13),], buff=b, fun=mean, na.rm=TRUE)
+  rasterex<-raster:::extract(rmn[[year-1949]], xy, buff=b, fun=mean, na.rm=TRUE)
   return(rasterex)
   
 }
