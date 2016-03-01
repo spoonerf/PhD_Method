@@ -1,4 +1,5 @@
 library(doParallel)
+library(beepr)
 
 ##adding in large raster brick - about 4GB
 rmax<-brick("D:/Fiona/Git_Method/Git_Method/tx_0.25deg_reg_v11.0.nc", varname = "tx")
@@ -52,7 +53,8 @@ ptime <- system.time({
     rasterex <- raster:::extract(rpcp[[lyr:(lyr+step-1)]], xy_df, buffer=50000, fun=mean, na.rm=TRUE)
   }
 }) 
-ptime  
+ptime 
+beep(3)
 
 stopCluster(cl)
 
@@ -69,6 +71,8 @@ write.csv(df3, "Daily_Prec_All_EU.csv")
 ###formatting the data###
 #########################
 df3<-read.csv("Daily_Mean_Temp_All_EU.csv")
+
+
 
 pcps<-stack(df3)
 
