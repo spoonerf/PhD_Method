@@ -73,12 +73,14 @@ df3<-read.csv("Daily_Mean_Temp_All_EU.csv")
 pcps<-stack(df3)
 
 
-long<-pcps[c(1:1047),1]
-lat<-pcps[c(1048:2094),1]
-id<-pcps[c(2095:3141),1]
+long<-pcps[c(1048:2094),1]
+lat<-pcps[c(2095:3141),1]
+id<-pcps[c(3142:4188),1]
+
+
    #check theseeee
 
-vals<-pcps[c(3142:24854733),]
+vals<-pcps[c(4189:24855780),]
 
 #23736 days
 
@@ -91,7 +93,7 @@ pcp_df$ind<-as.Date(pcp_df$ind, "X%Y.%m.%d")
 
 head(pcp_df)
 
-write.csv(pcp_df, "Daily_Prec_All_EU_form.csv")
+write.csv(pcp_df, "Daily_Mean_Temp_All_EU_form.csv")
 
 
 
