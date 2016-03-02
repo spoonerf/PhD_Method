@@ -88,7 +88,7 @@ srm4<-merge(ID_xy, srm3, by=c("Longitude", "Latitude"))
 
 
 write.csv(srm4, "Annual_Meant_Buff.csv")
-
+#########
 all_EU_mean_data<-read.csv("Annual_Meant_Buff.csv")
 
 
