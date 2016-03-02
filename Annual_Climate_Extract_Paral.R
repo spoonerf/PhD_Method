@@ -58,8 +58,22 @@ stime
 
 stopCluster(cl)
 
+colnames(sr)<-yr
 
+srm<-melt(sr)
 
+lon<-rep(xy_df[,1])
+lat<-rep(xy_df[,2])
+
+db<-rep(diam, each=479)
+
+srm2<-cbind(lon,lat,db, srm)
+
+srm3<-srm2[,c(1,2,3,5,6)]
+
+colnames(srm3)<-c("Longitude", "Latitude", "Buffer", "Year", "Mean_T")
+
+write.csv(srm3, "Annual_Meant_Buff.csv")
 
 
 
