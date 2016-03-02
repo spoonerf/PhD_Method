@@ -74,13 +74,14 @@ srm3<-srm2[,c(1,2,3,5,6)]
 colnames(srm3)<-c("Longitude", "Latitude", "Buffer", "Year", "Mean_T")
 
 
-meant_LPI<-merge(LPI_EU4, srm3, by=c("Longitude", "Latitude"))
+ID_xy<-data.frame(LPI_EU4$ID, LPI_EU4$Longitude, LPI_EU4$Latitude)
+
+colnames(ID_xy)<-c("ID","Longitude", "Latitude")
+
+srm4<-merge(ID_xy, srm3, by=c("Longitude", "Latitude"))
 
 
-ggplot(data = crex, aes(x=Year, y=Mean_T)) + geom_line(aes(colour=Buffer))
-
-
-write.csv(meant_LPI, "Annual_Meant_Buff.csv")
+write.csv(srm4, "Annual_Meant_Buff.csv")
 
 
 
