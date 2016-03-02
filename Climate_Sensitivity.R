@@ -52,40 +52,25 @@ write.csv(all_EU_mean_data, "Sensitivity_Climate.csv")
 head(all_EU_mean_data)
 
 
-
+all_EU_mean_data<-read.csv("Annual_Meant_Buff.csv")
 
 
 ######
 
 doMean = function(sp_name) {
-  spid2 = subset(LPI_clim, ID == sp_name)   #subsetting the population data by each population
-  spid = spid2[,101:163]                     #subsetting only the dates
+  spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,64:126]                     #subsetting only the dates
   colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
-  climid=subset(all_EU_mean_data, ID == sp_name)  #subsetting the climate data by each population
-  
-  year_temp <- ddply(climid, "Year", summarise,mean_mean = mean(na.omit(Mean_Temp100k)))          
-  #calculating the annual mean for max temp, min temp and precipitation
-                     
-  
-  lt_avg <- ddply(climid, "ID", summarise,lt_avg_mean = mean(na.omit(Mean_Temp100k)))
-  #calculating the long term mean (1950-2014) of the max temp, min temp and precipitation - for each population
-                  
-  year_temp$anom_mean = year_temp$mean_mean - lt_avg$lt_avg_mean     #calculating anomalies 1950-2014
-  
+  climid=subset(all_EU_mean_data, ID == sp_name & Buffer == 0)  #subsetting the climate data by each population
   
   name<-spid2$Binomial
   id<-spid2$ID
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
+  Mean_yr<-climid[climid$Year %in% Year, ]
+  Mean<-Mean_yr$Mean_T
+  Year<-Mean_yr$Year
   
-  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  
-  Mean_mon<-climid[climid$Year %in% Year, ]$Mean_Temp100k
-
-  Mean_anom<-year_temp$anom_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Mean<-year_temp$mean_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-
   if (sum(is.nan(Mean))!=length(Mean)){
     
     lm_mean<-lm(Mean~Year)
