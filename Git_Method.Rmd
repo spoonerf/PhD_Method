@@ -118,7 +118,7 @@ doFit = function(sp_name) {
     pv <- predict(mg,df,type="response",se=TRUE) 
     R_sq<-summary(mg)$r.sq
     model<-1
-    pv$fit[pv$fit <= 0] <- NA
+    #pv$fit[pv$fit <= 0] <- NA
     lambda<-diff(pv$fit)
     lambda_sum<-sum(lambda, na.rm=TRUE)
     lambda_mean<-mean(lambda, na.rm=TRUE)
@@ -130,7 +130,7 @@ doFit = function(sp_name) {
     R_sq<-summary(ml)$r.sq
     model<-0
     Pop_interp<-na.approx(PopN)
-    Pop_interp[Pop_interp<=0] <- NA
+    #Pop_interp[Pop_interp<=0] <- NA
     lambda<-diff(Pop_interp)
     lambda_sum<-sum(lambda, na.rm=TRUE)
     lambda_mean<-mean(lambda, na.rm=TRUE)
@@ -1492,13 +1492,18 @@ mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 #LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")   #seems to be 10 fewer populations in this one? 
 Pop_tr<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_02.csv")
-# 
-# chck<-Pop_tr[Pop_tr$ID %in% LPI_EDScores$ID,]
-# 
-# chckm<-merge(chck, LPI_EDScores, by="ID")
-# 
-# 
-# chckm$ldiff<-chckm$lambda_sum - chckm$TL
+
+chck<-Pop_tr[Pop_tr$ID %in% LPI_EDScores$ID,]
+
+chckm<-merge(chck, LPI_EDScores, by="ID")
+
+
+chckm$ldiff<-chckm$lambda_sum - chckm$TL
+
+subset(chckm, ldiff >1.5 & r_sq >0.5| ldiff < -1.5 & r_sq >0.5)
+
+
+
 
 #LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
