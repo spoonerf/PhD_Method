@@ -88,8 +88,8 @@ The $R^{2}$ value for each of the fitted population models were recorded so that
 ```{r Fitting GAMs and calculating lambdas,message=FALSE, warning=FALSE}
 
 doFit = function(sp_name) {
-  spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
-  spid = spid2[,4:66]                     #subsetting only the dates
+  spid2 = subset(LPI_EU4, ID == sp_name)   #subsetting the population data by each population 
+  spid = spid2[,64:126]                     #subsetting only the dates
   colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
   
   name<-spid2$Binomial
@@ -103,11 +103,10 @@ doFit = function(sp_name) {
   
   Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01    #replacing zeros with 1% of the mean population as you cannot log0
   
   df<-data.frame(Year,Population)
     
-  
   if (points >=6) {           ###should I be trying GAMs for populations with less than six points and if that doesn't fit then use a linear model - here I am automatically fitting a linear model if there are less than six points
     PopN = log10(Population)
     if (length(na.omit(PopN)) >=6) {
@@ -115,55 +114,39 @@ doFit = function(sp_name) {
     } else{
       SmoothParm=3
     }
-#     mg1<-mgcv:::gam(Population ~ s(Year))
-#     mg2<-mgcv:::gam(PopN ~ s(Year))
-    mg1<-mgcv:::gam(Population ~ s(Year, k=SmoothParm), fx=TRUE)
-    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
-    pv1 <- predict(mg1,df,type="response",se=TRUE) 
-    pv2 <- predict(mg2,df,type="response",se=TRUE) 
-    R_sq1<-summary(mg1)$r.sq
-    R_sq2<-summary(mg2)$r.sq
+    mg<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv <- predict(mg,df,type="response",se=TRUE) 
+    R_sq<-summary(mg)$r.sq
     model<-1
-    pv1$fit[pv1$fit <= 0] <- NA
-    pv2$fit[pv2$fit <= 0] <- NA
-    lambda1<-diff(log10(pv1$fit))
-    lambda2<-diff(pv2$fit)
-    lambda_sum1<-sum(lambda1, na.rm=TRUE)
-    lambda_sum2<-sum(lambda2, na.rm=TRUE)
-    lambda_mean1<-mean(lambda1, na.rm=TRUE)
-    lambda_mean2<-mean(lambda2, na.rm=TRUE)
+    pv$fit[pv$fit <= 0] <- NA
+    lambda<-diff(pv$fit)
+    lambda_sum<-sum(lambda, na.rm=TRUE)
+    lambda_mean<-mean(lambda, na.rm=TRUE)
  
   } else {
     SmoothParm<-NA
     PopN = log10(Population)
-    ml1<-lm(df$Population~df$Year)
-    ml2<-lm(PopN~df$Year)
-    R_sq1<-summary(ml1)$r.sq
-    R_sq2<-summary(ml2)$r.sq
+    ml<-lm(PopN~df$Year)
+    R_sq<-summary(ml)$r.sq
     model<-0
-    Pop_interp1<-na.approx(Population)
-    Pop_interp2<-na.approx(PopN)
-    Pop_interp1[Pop_interp1<=0] <- NA
-    Pop_interp2[Pop_interp2<=0] <- NA
-    lambda1<-diff(log10(Pop_interp1))
-    lambda2<-diff(Pop_interp2)
-    lambda_sum1<-sum(lambda1, na.rm=TRUE)
-    lambda_sum2<-sum(lambda2, na.rm=TRUE)
-    lambda_mean1<-mean(lambda1, na.rm=TRUE)
-    lambda_mean2<-mean(lambda2, na.rm=TRUE)
+    Pop_interp<-na.approx(PopN)
+    Pop_interp[Pop_interp<=0] <- NA
+    lambda<-diff(Pop_interp)
+    lambda_sum<-sum(lambda, na.rm=TRUE)
+    lambda_mean<-mean(lambda, na.rm=TRUE)
   }
   
-  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq1=R_sq1, r_sq2=R_sq2, model=model,lambda_sum1=lambda_sum1,lambda_sum2=lambda_sum2,lambda_mean1=lambda_mean1,lambda_mean2=lambda_mean2,time=time, missing=missing)
+  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq, model=model,lambda_sum=lambda_sum,lambda_mean=lambda_mean,time=time, missing=missing)
   
   print(res_df)
   return(res_df)
 }
 
-all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
+all_df_list <- lapply(unique(LPI_EU4$ID), doFit)
 
-all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=12, byrow=TRUE)
+all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
-colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq1","r_sq2", "model", "lambda_sum1","lambda_sum2","lambda_mean1","lambda_mean2", "length_time", "missing_years")
+colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
 
 hist(all_df$points, breaks=100, xlab="Number of Population Estimates within the Time Series", main="")
 
@@ -174,7 +157,8 @@ sum(all_df$missing_years)/sum(all_df$length_time)
 #write.csv(all_df, "All_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
-write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+#write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_16_03_02.csv")
 
 #all_df_fit<-subset(all_df, r_sq>0.5)
 
