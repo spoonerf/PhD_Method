@@ -224,17 +224,6 @@ sum(lambda)
     
 ```
 
-Histogram showing the distribution of the total lambdas for the populations.
-The mean value is just slightly over zero and there is a fairly normal distribution of the values around this. Large peak just below zero - lots of populations slightly declining but a small number of populations doing very well.
-
-
-```{r Histogram of Lambdas}
-all_df<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
-hist(all_df$lambda_sum2, xlab="Total Lambda", main="Histogram of Total Lambda", breaks=70)
-mean(all_df$lambda_sum2)
-sd(all_df$lambda_sum2)
-
-```
 
 Histogram showing the $R^{2}$ values for the fitted population time series - large number of extremely well fit, perhaps due to a large number of populations with only 2 data points?
 Does seem to be the case that all of the 'perfectly fit' models are made up of only two points.
@@ -1502,6 +1491,14 @@ mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 
 LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 #LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")   #seems to be 10 fewer populations in this one? 
+Pop_tr<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_02.csv")
+# 
+# chck<-Pop_tr[Pop_tr$ID %in% LPI_EDScores$ID,]
+# 
+# chckm<-merge(chck, LPI_EDScores, by="ID")
+# 
+# 
+# chckm$ldiff<-chckm$lambda_sum - chckm$TL
 
 #LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
