@@ -105,38 +105,54 @@ doFit = function(sp_name) {
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01    #replacing zeros with 1% of the mean population as you cannot log0
   
-  df<-data.frame(Year,Population)
+  #df<-data.frame(Year,Population)
     
   if (points >=6) {           ###should I be trying GAMs for populations with less than six points and if that doesn't fit then use a linear model - here I am automatically fitting a linear model if there are less than six points
-    PopN = log10(Population)
+    PopN = log10(Population)   #log and log10
     if (length(na.omit(PopN)) >=6) {
       SmoothParm = round(length(na.omit(PopN))/2)    ####added na.omit in as was getting " A term has fewer unique covariate combinations than specified maximum degrees of freedom" error
     } else{
       SmoothParm=3
     }
+    df<-data.frame(Year,PopN)
     mg<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
     pv <- predict(mg,df,type="response",se=TRUE) 
     R_sq<-summary(mg)$r.sq
+    mg2<-mgcv:::gam(Population ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv2<- predict(mg2,df,type="response",se=TRUE) 
+    R_sq2<-summary(mg)$r.sq
     model<-1
     #pv$fit[pv$fit <= 0] <- NA
+    
     lambda<-diff(pv$fit)
     lambda_sum<-sum(lambda, na.rm=TRUE)
     lambda_mean<-mean(lambda, na.rm=TRUE)
- 
+    #N<-pv2$fit
+    # lambda2<-log10(N[-1]/N[-length(N)]) 
+    # lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    # lambda_mean2<-mean(lambda2, na.rm=TRUE)
+    # 
   } else {
     SmoothParm<-NA
     PopN = log10(Population)
-    ml<-lm(PopN~df$Year)
+    df<-data.frame(Year,PopN)
+    ml<-lm(PopN~Year)
     R_sq<-summary(ml)$r.sq
+    ml2<-lm(Population~Year)
+    R_sq2<-summary(ml2)$r.sq
     model<-0
     Pop_interp<-na.approx(PopN)
+   # N<-na.approx(Population)
     #Pop_interp[Pop_interp<=0] <- NA
     lambda<-diff(Pop_interp)
     lambda_sum<-sum(lambda, na.rm=TRUE)
     lambda_mean<-mean(lambda, na.rm=TRUE)
+    # lambda2<-log10(N[-1]/N[-length(N)]) 
+    # lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    # lambda_mean2<-mean(lambda2, na.rm=TRUE)
   }
   
-  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq, model=model,lambda_sum=lambda_sum,lambda_mean=lambda_mean,time=time, missing=missing)
+  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq, model=model,lambda_sum=lambda_sum,lambda_mean=lambda_mean, time=time, missing=missing)
   
   print(res_df)
   return(res_df)
@@ -144,9 +160,9 @@ doFit = function(sp_name) {
 
 all_df_list <- lapply(unique(LPI_EU4$ID), doFit)
 
-all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
+ all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
-colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
+colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean","length_time", "missing_years")
 
 hist(all_df$points, breaks=100, xlab="Number of Population Estimates within the Time Series", main="")
 
@@ -158,8 +174,8 @@ sum(all_df$missing_years)/sum(all_df$length_time)
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
-write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_16_03_02.csv")
-
+write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_16_03_03.csv")
+write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_16_03_03a.csv")
 #all_df_fit<-subset(all_df, r_sq>0.5)
 
 #write.csv(all_df_fit, "Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv")
@@ -1492,23 +1508,35 @@ mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 #LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")   #seems to be 10 fewer populations in this one? 
 Pop_tr<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_02.csv")
+Pop_tr<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_03.csv")
+#pop2<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_03.csv")
 
 chck<-Pop_tr[Pop_tr$ID %in% LPI_EDScores$ID,]
 
 chckm<-merge(chck, LPI_EDScores, by="ID")
 
+chckm$lambda_sum<-round(chckm$lambda_sum, digits=3)
+chckm$TL<-round(chckm$TL, digits=3)
 
 chckm$ldiff<-chckm$lambda_sum - chckm$TL
 
+# chckm$lambda_sum2.x<-round(chckm$lambda_sum2.x, digits=3)
+# chckm$TL<-round(chckm$TL, digits=3)
+# 
+# chckm$ldiff2<-chckm$lambda_sum2.x - chckm$TL
+# 
+
 subset(chckm, ldiff >1.5 & r_sq >0.5| ldiff < -1.5 & r_sq >0.5)
 
-
+subset(chckm, ldiff == 0)$model.x
 
 
 #LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
-LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
+#LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
 
+
+Pop_tr<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_03.csv")
 #LU_sens<-read.csv("Sensitivity_Land_Use.csv")
 LU_sens<-read.csv("Sensitivity_Land_Use_morepop.csv")
 
@@ -1533,6 +1561,16 @@ LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID", all=T)
 LPI_EDScores2<-merge(LPI_EDScores2, res_mean, by="ID", all=T)
 LPI_EDScores2<-merge(LPI_EDScores2, res_prec, by="ID", all=T)
 
+#########
+df<-merge(merge(Pop_tr, LU_sens,by="ID", all=T), merge(clim_sens, res_mean, by="ID", all=T), by="ID", all=T)
+
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+LPI2<-merge(df, LPI[,c(1,2,13,20,26,29,30,33)])
+
+Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 30 & System != "Marine")
+
+nrow(Inc5MammalsTemp)
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
@@ -1541,14 +1579,16 @@ LPI_EDScores2<-merge(LPI_EDScores2, res_prec, by="ID", all=T)
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 #Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
+# 
+# Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 5 & System != "Marine")
+# 
+# Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate_49)&length_time >= 5  & System != "Marine")
+# 
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 5 & System != "Marine")
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate_49)&length_time >= 5  & System != "Marine")
-
+Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 5 & System != "Marine")
 
 nrow(Inc5MammalsTemp)
-
 
 library(plyr)
 #counting duplicates at each location
@@ -1575,32 +1615,21 @@ colnames(result)[1]<-"loc_id"
 
 sp_dups_df2<-merge(sp_dups_df, result, by="loc_id")
 
-#unique_bm<-unique(sp_dups_df2[,c(1:4,256,257,258)])
-
-#write.csv(unique_bm, "bird_mamm_count.csv")
-
-#write.csv(sp_dups_df, "population_duplicate_count.csv")
-
-#looking at temporal distribution of pop counts
-pop_count<-LPI_EDScores[,c(2,97:161)]
-Year_data<-colSums(!is.na(pop_count[,c(2:66)]))
-Years<-1950:2014
-plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts", main="Number of population estimates over time")
 
 ###bootstrapping
 
 library(data.table)
 dt = as.data.table(sp_dups_df)
-parm_df<-sp_dups_df[,c("ID","mean_slope", "mean_range_var", "prec_range_var", "change_rate")]  ##ID, land use, and climate
+parm_df<-sp_dups_df[,c("ID","MnSlope50k", "mean_range_var",  "change_rate_49")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("mean_slope", "mean_range_var","prec_range_var", "change_rate")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("MnSlope50k", "mean_range_var", "change_rate_49")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale)
 
-colnames(parm_df_scale)<-c("ID","mean_slope_scale", "mean_var_scale","prec_var_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID","mean_slope_scale", "mean_var_scale", "change_rate_scale")
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
@@ -1610,7 +1639,7 @@ library(MuMIn)
 source("rsquaredglmm.R")
 
 #sp_df_scale<-subset(sp_df_scale, Class=="Mammalia")
-#sp_df_scale<-subset(sp_df_scale, Class=="Aves")
+sp_df_scale<-subset(sp_df_scale, Class=="Aves")
 
 R=299
 PValue = numeric(R)
@@ -1723,61 +1752,61 @@ for (i in 1:R) {
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
-    m1<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #n1<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #n1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1a<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1a<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   #n1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1b<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+   #n1b<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
 
-    m1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   #n1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1c<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+   #n1c<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1d<-lmer(lambda_sum ~ change_rate_scale*mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1d<-lmer(lambda_sum ~ change_rate_scale*mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-    m1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1e<-lmer(lambda_sum ~ change_rate_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1e<-lmer(lambda_sum ~ change_rate_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1f<-lmer(lambda_sum ~ mean_slope_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1f<-lmer(lambda_sum ~ mean_slope_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1g<-lmer(TL ~ change_rate_scale*prec_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+   # m1g<-lmer(lambda_sum ~ change_rate_scale*prec_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
     
-    m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #n2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2<-lmer(lambda_sum ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #n2<-lmer(lambda_sum ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2a<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n2a<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2a<-lmer(lambda_sum ~change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #  n2a<-lmer(lambda_sum ~change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
- #  n2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2b<-lmer(lambda_sum ~change_rate_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+ #  n2b<-lmer(lambda_sum ~change_rate_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2c<-lmer(lambda_sum ~mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n2c<-lmer(lambda_sum ~mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
- #  n2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2d<-lmer(lambda_sum ~change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+ #  n2d<-lmer(lambda_sum ~change_rate_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2e<-lmer(lambda_sum ~mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #  n2e<-lmer(lambda_sum ~mean_slope_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    m2f<-lmer(lambda_sum ~mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
-    m2g<-lmer(TL ~ prec_var_scale+ (1|Binomial_old), data=sp_dups_df2, REML=F)
+    #m2g<-lmer(lambda_sum ~ prec_var_scale+ (1|Binomial), data=sp_dups_df2, REML=F)
     
-    m3<-lmer(TL ~mean_slope_scale+Bodymass+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+  #  m3<-lmer(lambda_sum ~mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+   # n2f<-lmer(lambda_sum ~mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
    
-    mnull<-lmer(TL ~(1|Binomial_old),data=sp_dups_df2, REML=F)
+    mnull<-lmer(lambda_sum ~(1|Binomial),data=sp_dups_df2, REML=F)
 
-      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m1g,m2,m2a,m2b,m2c,m2d,m2e,m2f,m2g,m3,mnull)
+      models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
-  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m1g,m2,m2a,m2b,m2c,m2d,m2e,m2f,m2g,m3)
+  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   m1_w[i]<-subset(msAICc, model=="m1")$weight
@@ -1796,7 +1825,7 @@ for (i in 1:R) {
   m2e_w[i]<-subset(msAICc, model=="m2e")$weight
   m2f_w[i]<-subset(msAICc, model=="m2f")$weight
   #mnull_w[i]<-subset(msAICc, model=="mnull")$weight
-  m3_w[i]<-subset(msAICc, model=="m3")$weight
+#  m3_w[i]<-subset(msAICc, model=="m3")$weight
   # m4_w[i]<-subset(msAICc, model=="m4")$weight
   # m5_w[i]<-subset(msAICc, model=="m5")$weight
   
@@ -1817,8 +1846,8 @@ for (i in 1:R) {
   marg_Rsq_m2e[i]<-modelsRsq[13,4]
   marg_Rsq_m2f[i]<-modelsRsq[14,4]
  
-  marg_Rsq_m3[i]<-modelsRsq[15,4]
-   marg_Rsq_mnull[i]<-modelsRsq[16,4]
+#  marg_Rsq_m3[i]<-modelsRsq[15,4]
+   marg_Rsq_mnull[i]<-modelsRsq[15,4]
   
    
   # marg_Rsq_m4[i]<-modelsRsq[16,4]
@@ -1840,8 +1869,8 @@ for (i in 1:R) {
   cond_Rsq_m2d[i]<-modelsRsq[12,5]
   cond_Rsq_m2e[i]<-modelsRsq[13,5]
   cond_Rsq_m2f[i]<-modelsRsq[14,5]
-  cond_Rsq_m3[i]<-modelsRsq[15,5]
-  cond_Rsq_mnull[i]<-modelsRsq[16,5]
+  #cond_Rsq_m3[i]<-modelsRsq[15,5]
+  cond_Rsq_mnull[i]<-modelsRsq[15,5]
 
    
   # cond_Rsq_m4[i]<-modelsRsq[16,5]
@@ -1855,7 +1884,7 @@ for (i in 1:R) {
   AIC_m1d[i]<-AIC(m1d)
   AIC_m1e[i]<-AIC(m1e)
   AIC_m1f[i]<-AIC(m1f)
-  AIC_m1g[i]<-AIC(m1g)
+ # AIC_m1g[i]<-AIC(m1g)
   
   AIC_m2[i]<-AIC(m2)
   AIC_m2a[i]<-AIC(m2a)
@@ -1864,9 +1893,9 @@ for (i in 1:R) {
   AIC_m2d[i]<-AIC(m2d)
   AIC_m2e[i]<-AIC(m2e)
   AIC_m2f[i]<-AIC(m2f)
-  AIC_m2g[i]<-AIC(m2g)
+#  AIC_m2g[i]<-AIC(m2g)
   AIC_mnull[i]<-AIC(mnull)
- AIC_m3[i]<-AIC(m3)
+# AIC_m3[i]<-AIC(m3)
 #   AIC_m4[i]<-AIC(m4)
 #   AIC_m5[i]<-AIC(m5)
 
@@ -1946,10 +1975,10 @@ mean(cond_Rsq_m4)
 mean(cond_Rsq_m5)
 
 
-AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f,AIC_m1g, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_m2g, AIC_m3, AIC_mnull))
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_mnull))
 
 
-AIC_del<-AIC_df[,c(1:17)] - AIC_df$AIC_mnull
+AIC_del<-AIC_df[,c(1:14)] - AIC_df$AIC_mnull
 
 colMeans(AIC_del)
 
