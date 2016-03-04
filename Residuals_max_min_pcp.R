@@ -81,19 +81,21 @@ doMax = function(sp_name) {
     Year_df<-format(Max_date,'%Y')
     res_df<-data.frame(res_max, Year_df)
 
-    year_res<-ddply(res_df, "Year_df", summarise, var_res=var(res_max), mean_res= mean(res_max), range_res=range(res_max)[2] - range(res_max)[1])
+    res_q <-as.numeric(diff(quantile(res_df$res_max, c(.05, .95))))
+    
+    year_res<-ddply(res_df, "Year_df", summarise,var_res=var(res_max), mean_res= mean(res_max), range_res=range(res_max)[2] - range(res_max)[1])
     var_res<-mean(year_res$var_res)
     range_var<-range(year_res$var_res)[2] - range(year_res$var_res)[1]
     mean_an_mean<-mean(year_res$mean_res)
     mean_an_range<-mean(year_res$range_res)
     
     
-    max_df<-cbind(id,lm_max_df, var_res, range_var, mean_an_mean, mean_an_range)
+    max_df<-cbind(id,lm_max_df, res_q, var_res, range_var, mean_an_mean, mean_an_range)
     
   } else{
     
     max_df<-matrix(c(id,NA,NA,NA,NA,NA,NA,NA), nrow=1, ncol=10)
-    colnames(max_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value", "range_var","var_res", "mean_an_mean", "mean_an_range")
+    colnames(max_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value","res_q","var_res", "range_var", "mean_an_mean", "mean_an_range")
     max_df<-data.frame(max_df)
   }
 

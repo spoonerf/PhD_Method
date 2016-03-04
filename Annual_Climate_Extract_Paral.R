@@ -36,10 +36,11 @@ rmn<-zApply(s, tmy, fun=mean, name='year')
 n<-8 #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
+getDoParWorkers()
 
 buff<- function (year,b)  {
   
-  rasterex<-raster:::extract(rmn[[year-1949]], xy[c(6:13),], buff=b, fun=mean, na.rm=TRUE)
+  rasterex<-raster:::extract(rmn[[year-1949]], xy, buff=b, fun=mean, na.rm=TRUE)
   return(rasterex)
   
 }
@@ -57,8 +58,30 @@ stime
 
 stopCluster(cl)
 
+colnames(sr)<-yr
+
+srm<-melt(sr)
+
+lon<-rep(xy_df[,1])
+lat<-rep(xy_df[,2])
+
+db<-rep(diam, each=479)
+
+srm2<-cbind(lon,lat,db, srm)
+
+srm3<-srm2[,c(1,2,3,5,6)]
+
+colnames(srm3)<-c("Longitude", "Latitude", "Buffer", "Year", "Mean_T")
 
 
+ID_xy<-data.frame(LPI_EU4$ID, LPI_EU4$Longitude, LPI_EU4$Latitude)
+
+colnames(ID_xy)<-c("ID","Longitude", "Latitude")
+
+srm4<-merge(ID_xy, srm3, by=c("Longitude", "Latitude"))
+
+
+write.csv(srm4, "Annual_Meant_Buff.csv")
 
 
 
