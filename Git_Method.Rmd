@@ -1779,55 +1779,55 @@ for (i in 1:R) {
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
-    m1<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #n1<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #n1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1a<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1a<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+change_rate_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   #n1b<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1b<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+   #n1b<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_slope_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
 
-    m1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   #n1c<-lmer(TL ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1c<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+   #n1c<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+mean_var_scale+change_rate_scale:mean_var_scale+mean_slope_scale:mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1d<-lmer(TL ~ change_rate_scale*mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1d<-lmer(lambda_mean ~ change_rate_scale*mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1d<-lmer(lambda_mean ~ change_rate_scale*mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-    m1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1e<-lmer(TL ~ change_rate_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1e<-lmer(lambda_mean ~ change_rate_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1e<-lmer(lambda_mean ~ change_rate_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n1f<-lmer(TL ~ mean_slope_scale*mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m1f<-lmer(lambda_mean ~ mean_slope_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n1f<-lmer(lambda_mean ~ mean_slope_scale*mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m1g<-lmer(TL ~ change_rate_scale*prec_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    m1g<-lmer(lambda_mean ~ change_rate_scale*prec_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
     
-    m2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #n2<-lmer(TL ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2<-lmer(lambda_mean ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #n2<-lmer(lambda_mean ~change_rate_scale+mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2a<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n2a<-lmer(TL ~change_rate_scale+mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2a<-lmer(lambda_mean ~change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #  n2a<-lmer(lambda_mean ~change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
- #  n2b<-lmer(TL ~change_rate_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2b<-lmer(lambda_mean ~change_rate_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+ #  n2b<-lmer(lambda_mean ~change_rate_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  # n2c<-lmer(TL ~mean_slope_scale+mean_var_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2c<-lmer(lambda_mean ~mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  # n2c<-lmer(lambda_mean ~mean_slope_scale+mean_var_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
- #  n2d<-lmer(TL ~change_rate_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2d<-lmer(lambda_mean ~change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+ #  n2d<-lmer(lambda_mean ~change_rate_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
-  #  n2e<-lmer(TL ~mean_slope_scale+(1|Binomial_old),data=sp_dups_df2)
+    m2e<-lmer(lambda_mean ~mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  #  n2e<-lmer(lambda_mean ~mean_slope_scale+(1|Binomial),data=sp_dups_df2)
     
-    m2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    m2f<-lmer(lambda_mean ~mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
-    m2g<-lmer(TL ~ prec_var_scale+ (1|Binomial_old), data=sp_dups_df2, REML=F)
+    m2g<-lmer(lambda_mean ~ prec_var_scale+ (1|Binomial), data=sp_dups_df2, REML=F)
     
-    m3<-lmer(TL ~mean_slope_scale+Bodymass+(1|Binomial_old),data=sp_dups_df2, REML=F)
-   # n2f<-lmer(TL ~mean_var_scale+(1|Binomial_old),data=sp_dups_df2, REML=F)
+    m3<-lmer(lambda_mean ~mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+   # n2f<-lmer(lambda_mean ~mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
    
-    mnull<-lmer(TL ~(1|Binomial_old),data=sp_dups_df2, REML=F)
+    mnull<-lmer(lambda_mean ~(1|Binomial),data=sp_dups_df2, REML=F)
 
       models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m1g,m2,m2a,m2b,m2c,m2d,m2e,m2f,m2g,m3,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
