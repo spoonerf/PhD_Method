@@ -3,7 +3,7 @@ getwd()
 library(plyr)
 library(taRifx)
 library(broom)
-#hi
+
 # LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 # 
 # LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
@@ -43,7 +43,7 @@ library(broom)
 
 
 
-LPI_EDScores<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI_EDScores<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 max<-read.csv("Daily_Mean_Temp_All_EU_form.csv")
 
