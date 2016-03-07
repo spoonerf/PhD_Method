@@ -3,7 +3,7 @@ getwd()
 library(plyr)
 library(taRifx)
 library(broom)
-
+#hi
 # LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 # 
 # LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
@@ -85,7 +85,7 @@ doMax = function(sp_name) {
     
     year_res<-ddply(res_df, "Year_df", summarise,var_res=var(res_max), mean_res= mean(res_max), range_res=range(res_max)[2] - range(res_max)[1])
     var_res<-mean(year_res$var_res)
-    range_var<-range(year_res$var_res)[2] - range(year_res$var_res)[1]    #range of the annual variance - calculated from daily measurements
+    range_var<-range(year_res$var_res)[2] - range(year_res$var_res)[1]
     mean_an_mean<-mean(year_res$mean_res)
     mean_an_range<-mean(year_res$range_res)
     
@@ -119,5 +119,5 @@ min_df2$mean_an_range<-as.numeric(as.character(min_df2$mean_an_range))
 write.csv(min_df2, "mean_temp_residuals_all_EU.csv")
 
 
-crex<-subset(min_df2, ID==327)
+crex<-subset(max, id==327)
 
