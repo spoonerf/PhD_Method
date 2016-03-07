@@ -1587,7 +1587,7 @@ nrow(Inc5MammalsTemp)
 ```
 
 ```{r}
-Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=30 & System != "Marine")
+Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=5 & System != "Marine"& Class=="Aves")
 
 nrow(Inc5MammalsTemp)
 
