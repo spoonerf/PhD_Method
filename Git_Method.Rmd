@@ -1611,7 +1611,7 @@ nrow(Inc5MammalsTemp)
 
 
 ```{r}
-Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=5 & System != "Marine"& Class=="Aves")
+Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=5 & System != "Marine"& Class=="Mammalia")
 
 nrow(Inc5MammalsTemp)
 
@@ -1641,18 +1641,6 @@ colnames(result)[1]<-"loc_id"
 
 sp_dups_df2<-merge(sp_dups_df, result, by="loc_id")
 
-#unique_bm<-unique(sp_dups_df2[,c(1:4,256,257,258)])
-
-#write.csv(unique_bm, "bird_mamm_count.csv")
-
-#write.csv(sp_dups_df, "population_duplicate_count.csv")
-
-#looking at temporal distribution of pop counts
-pop_count<-LPI_EDScores[,c(2,97:161)]
-Year_data<-colSums(!is.na(pop_count[,c(2:66)]))
-Years<-1950:2014
-plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts", main="Number of population estimates over time")
-
 ###bootstrapping
 
 library(data.table)
@@ -1667,7 +1655,7 @@ parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale)
 
-colnames(parm_df_scale)<-c("ID","mean_slope_scale", "mean_var_scale","prec_var_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID","mean_slope_scale", "mean_var_scale", "change_rate_scale")
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
