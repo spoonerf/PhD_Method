@@ -1568,11 +1568,11 @@ clim_sens<-read.csv("Climate_Sensitivity.csv")
 res_mean<-read.csv("mean_temp_residuals_all_EU.csv")
 res_prec<-read.csv("prec_residuals_all_EU.csv")
 
-res_mean<-res_mean[,c(2,8,9)]
-res_prec<-res_prec[,c(2,8,9)]
+res_mean<-res_mean[,c(2,7)]
+#res_prec<-res_prec[,c(2,8,9)]
 
-colnames(res_mean)<-c("ID","mean_var_res", "mean_range_var")
-colnames(res_prec)<-c("ID","prec_var_res", "prec_range_var")
+colnames(res_mean)<-c("ID","mean_res_quart")
+#colnames(res_prec)<-c("ID","prec_var_res", "prec_range_var")
 
 LPI_EDScores2<-merge(LPI_EDScores, LU_sens, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
@@ -1594,6 +1594,8 @@ Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na
 
 Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate_49)&length_time >= 5  & System != "Marine")
 
+
+Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 5 & System != "Marine")
 
 nrow(Inc5MammalsTemp)
 
