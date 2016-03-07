@@ -45,7 +45,7 @@ library(broom)
 
 LPI_EDScores<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
-max<-read.csv("Daily_Prec_All_EU_form.csv")
+max<-read.csv("Daily_Mean_Temp_All_EU_form.csv")
 
 max$Date<-as.Date(max$ind, "%Y-%m-%d")
 max$Year<-format(max$Date, "%Y")
@@ -94,7 +94,7 @@ doMax = function(sp_name) {
     
   } else{
     
-    max_df<-matrix(c(id,NA,NA,NA,NA,NA,NA,NA), nrow=1, ncol=10)
+    max_df<-matrix(c(id,NA,NA,NA,NA,NA,NA,NA), nrow=1, ncol=11)
     colnames(max_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value","res_q","var_res", "range_var", "mean_an_mean", "mean_an_range")
     max_df<-data.frame(max_df)
   }
@@ -105,18 +105,18 @@ doMax = function(sp_name) {
 
 all_df_list <- lapply(unique(LPI$ID), doMax)
 
-all_matrix <- matrix(unlist(all_df_list), ncol=10, byrow=TRUE)
+all_matrix <- matrix(unlist(all_df_list), ncol=11, byrow=TRUE)
 min_df2 <- data.frame(all_matrix)
-colnames(min_df2) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "var_res","range_var", "mean_an_mean", "mean_an_range")
+colnames(min_df2) <- c("ID", "Term","Estimate","SE","Statistic","p.val","res_q", "var_res","range_var", "mean_an_mean", "mean_an_range")
 
-min_df2$mean_an_range<-as.numeric(as.character(min_df2$mean_an_range))
+min_df2$res_q<-as.numeric(as.character(min_df2$res_q))
 min_df2$var_res<-as.numeric(as.character(min_df2$var_res))
 min_df2$range_var<-as.numeric(as.character(min_df2$range_var))
 min_df2$mean_an_mean<-as.numeric(as.character(min_df2$mean_an_mean))
 min_df2$mean_an_range<-as.numeric(as.character(min_df2$mean_an_range))
 
 
-write.csv(min_df2, "prec_residuals_all_EU.csv")
+write.csv(min_df2, "mean_temp_residuals_all_EU.csv")
 
 
 crex<-subset(min_df2, ID==327)
