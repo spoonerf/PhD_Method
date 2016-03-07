@@ -1822,72 +1822,72 @@ for (i in 1:R) {
 
     mnull<-lmer(lambda_mean ~(1|Binomial),data=sp_dups_df2, REML=F)
 
-  models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
-  modelsR<-lapply(models_list,rsquared.glmm)
-  modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-
-  msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2)
-  msAICc$model<-rownames(msAICc)
-  msAICc<-data.frame(msAICc)
-  m1_w[i]<-subset(msAICc, model=="m1")$weight
-  m1a_w[i]<-subset(msAICc, model=="m1a")$weight
-  m1b_w[i]<-subset(msAICc, model=="m1b")$weight
-  m1c_w[i]<-subset(msAICc, model=="m1c")$weight
-  m1d_w[i]<-subset(msAICc, model=="m1d")$weight
-  m1e_w[i]<-subset(msAICc, model=="m1e")$weight
-  m1f_w[i]<-subset(msAICc, model=="m1f")$weight
-  
-  m2_w[i]<-subset(msAICc, model=="m2")$weight
-  m2a_w[i]<-subset(msAICc, model=="m2a")$weight
-  m2b_w[i]<-subset(msAICc, model=="m2b")$weight
-  m2c_w[i]<-subset(msAICc, model=="m2c")$weight
-  m2d_w[i]<-subset(msAICc, model=="m2d")$weight
-  m2e_w[i]<-subset(msAICc, model=="m2e")$weight
-  m2f_w[i]<-subset(msAICc, model=="m2f")$weight
-  #mnull_w[i]<-subset(msAICc, model=="mnull")$weight
-  m3_w[i]<-subset(msAICc, model=="m3")$weight
-  # m4_w[i]<-subset(msAICc, model=="m4")$weight
-  # m5_w[i]<-subset(msAICc, model=="m5")$weight
-  
-
-  marg_Rsq_m1[i]<-modelsRsq[1,4]
-  marg_Rsq_m1a[i]<-modelsRsq[2,4]
-  marg_Rsq_m1b[i]<-modelsRsq[3,4]
-  marg_Rsq_m1c[i]<-modelsRsq[4,4]
-  marg_Rsq_m1d[i]<-modelsRsq[5,4]
-  marg_Rsq_m1e[i]<-modelsRsq[6,4]
-  marg_Rsq_m1f[i]<-modelsRsq[7,4]
-  
-  marg_Rsq_m2[i]<-modelsRsq[8,4]
-  marg_Rsq_m2a[i]<-modelsRsq[9,4]
-  marg_Rsq_m2b[i]<-modelsRsq[10,4]
-  marg_Rsq_m2c[i]<-modelsRsq[11,4]
-  marg_Rsq_m2d[i]<-modelsRsq[12,4]
-  marg_Rsq_m2e[i]<-modelsRsq[13,4]
-  marg_Rsq_m2f[i]<-modelsRsq[14,4]
- 
-  marg_Rsq_mnull[i]<-modelsRsq[16,4]
-
-    # marg_Rsq_m4[i]<-modelsRsq[16,4]
-  # marg_Rsq_m5[i]<-modelsRsq[17,4]
-
-  cond_Rsq_m1[i]<-modelsRsq[1,5]
-  cond_Rsq_m1a[i]<-modelsRsq[2,5]
-  cond_Rsq_m1b[i]<-modelsRsq[3,5]
-  cond_Rsq_m1c[i]<-modelsRsq[4,5]   #should be 4 without all other models '#'d out
-  cond_Rsq_m1d[i]<-modelsRsq[5,5]
-  cond_Rsq_m1e[i]<-modelsRsq[6,5]
-  cond_Rsq_m1f[i]<-modelsRsq[7,5]
-  
-  cond_Rsq_m2[i]<-modelsRsq[8,5]
-  cond_Rsq_m2a[i]<-modelsRsq[9,5]
-  cond_Rsq_m2b[i]<-modelsRsq[10,5]
-  cond_Rsq_m2c[i]<-modelsRsq[11,5]
-  cond_Rsq_m2d[i]<-modelsRsq[12,5]
-  cond_Rsq_m2e[i]<-modelsRsq[13,5]
-  cond_Rsq_m2f[i]<-modelsRsq[14,5]
-  cond_Rsq_m3[i]<-modelsRsq[15,5]
-  cond_Rsq_mnull[i]<-modelsRsq[16,5]
+  # models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
+  # modelsR<-lapply(models_list,rsquared.glmm)
+  # modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+  # 
+  # msAICc <- model.sel(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2)
+  # msAICc$model<-rownames(msAICc)
+  # msAICc<-data.frame(msAICc)
+  # m1_w[i]<-subset(msAICc, model=="m1")$weight
+  # m1a_w[i]<-subset(msAICc, model=="m1a")$weight
+  # m1b_w[i]<-subset(msAICc, model=="m1b")$weight
+  # m1c_w[i]<-subset(msAICc, model=="m1c")$weight
+  # m1d_w[i]<-subset(msAICc, model=="m1d")$weight
+  # m1e_w[i]<-subset(msAICc, model=="m1e")$weight
+  # m1f_w[i]<-subset(msAICc, model=="m1f")$weight
+  # 
+  # m2_w[i]<-subset(msAICc, model=="m2")$weight
+  # m2a_w[i]<-subset(msAICc, model=="m2a")$weight
+  # m2b_w[i]<-subset(msAICc, model=="m2b")$weight
+  # m2c_w[i]<-subset(msAICc, model=="m2c")$weight
+  # m2d_w[i]<-subset(msAICc, model=="m2d")$weight
+  # m2e_w[i]<-subset(msAICc, model=="m2e")$weight
+  # m2f_w[i]<-subset(msAICc, model=="m2f")$weight
+  # #mnull_w[i]<-subset(msAICc, model=="mnull")$weight
+  # m3_w[i]<-subset(msAICc, model=="m3")$weight
+  # # m4_w[i]<-subset(msAICc, model=="m4")$weight
+  # # m5_w[i]<-subset(msAICc, model=="m5")$weight
+  # 
+  # 
+  # marg_Rsq_m1[i]<-modelsRsq[1,4]
+  # marg_Rsq_m1a[i]<-modelsRsq[2,4]
+  # marg_Rsq_m1b[i]<-modelsRsq[3,4]
+  # marg_Rsq_m1c[i]<-modelsRsq[4,4]
+  # marg_Rsq_m1d[i]<-modelsRsq[5,4]
+  # marg_Rsq_m1e[i]<-modelsRsq[6,4]
+  # marg_Rsq_m1f[i]<-modelsRsq[7,4]
+  # 
+  # marg_Rsq_m2[i]<-modelsRsq[8,4]
+  # marg_Rsq_m2a[i]<-modelsRsq[9,4]
+  # marg_Rsq_m2b[i]<-modelsRsq[10,4]
+  # marg_Rsq_m2c[i]<-modelsRsq[11,4]
+  # marg_Rsq_m2d[i]<-modelsRsq[12,4]
+  # marg_Rsq_m2e[i]<-modelsRsq[13,4]
+  # marg_Rsq_m2f[i]<-modelsRsq[14,4]
+  # 
+  # marg_Rsq_mnull[i]<-modelsRsq[16,4]
+  # 
+  #   # marg_Rsq_m4[i]<-modelsRsq[16,4]
+  # # marg_Rsq_m5[i]<-modelsRsq[17,4]
+  # 
+  # cond_Rsq_m1[i]<-modelsRsq[1,5]
+  # cond_Rsq_m1a[i]<-modelsRsq[2,5]
+  # cond_Rsq_m1b[i]<-modelsRsq[3,5]
+  # cond_Rsq_m1c[i]<-modelsRsq[4,5]   #should be 4 without all other models '#'d out
+  # cond_Rsq_m1d[i]<-modelsRsq[5,5]
+  # cond_Rsq_m1e[i]<-modelsRsq[6,5]
+  # cond_Rsq_m1f[i]<-modelsRsq[7,5]
+  # 
+  # cond_Rsq_m2[i]<-modelsRsq[8,5]
+  # cond_Rsq_m2a[i]<-modelsRsq[9,5]
+  # cond_Rsq_m2b[i]<-modelsRsq[10,5]
+  # cond_Rsq_m2c[i]<-modelsRsq[11,5]
+  # cond_Rsq_m2d[i]<-modelsRsq[12,5]
+  # cond_Rsq_m2e[i]<-modelsRsq[13,5]
+  # cond_Rsq_m2f[i]<-modelsRsq[14,5]
+  # cond_Rsq_m3[i]<-modelsRsq[15,5]
+  # cond_Rsq_mnull[i]<-modelsRsq[16,5]
 
    
   # cond_Rsq_m4[i]<-modelsRsq[16,5]
@@ -1913,27 +1913,27 @@ for (i in 1:R) {
 #   AIC_m4[i]<-AIC(m4)
 #   AIC_m5[i]<-AIC(m5)
 
-  var_imp<-summary(model.avg(models_list, subset = delta < 2))
-  #x<-model.avg(models_list, subset = delta < 7)
-  #var_imp<-summary(model.avg(models_list))
-  
-  MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  LUC_i[i]<-var_imp$importance["change_rate_scale"]
-  MTV_i[i]<-var_imp$importance["mean_var_scale"]
-  MTC_MTV_i[i]<-var_imp$importance["mean_slope_scale:mean_var_scale"]
-  LUC_MTV_i[i]<-var_imp$importance["change_rate_scale:mean_var_scale"]
-  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  #BM_i[i]<-var_imp$importance["Bodymass"]
-  
-  int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
-  MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
-  LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
-  MTV_av[i]<-var_imp$coefmat.subset["mean_var_scale","Estimate"]
-  MTC_MTV_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_var_scale","Estimate"]
-  LUC_MTV_av[i]<-var_imp$coefmat.subset["mean_slope_scale:mean_var_scale","Estimate"]
-  LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
-  #BM_av[i]<-var_imp$coefmat.subset["Bodymass", "Estimate"]
-  
+  # var_imp<-summary(model.avg(models_list, subset = delta < 2))
+  # #x<-model.avg(models_list, subset = delta < 7)
+  # #var_imp<-summary(model.avg(models_list))
+  # 
+  # MTC_i[i]<-var_imp$importance["mean_slope_scale"]
+  # LUC_i[i]<-var_imp$importance["change_rate_scale"]
+  # MTV_i[i]<-var_imp$importance["mean_var_scale"]
+  # MTC_MTV_i[i]<-var_imp$importance["mean_slope_scale:mean_var_scale"]
+  # LUC_MTV_i[i]<-var_imp$importance["change_rate_scale:mean_var_scale"]
+  # LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+  # #BM_i[i]<-var_imp$importance["Bodymass"]
+  # 
+  # int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
+  # MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
+  # LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
+  # MTV_av[i]<-var_imp$coefmat.subset["mean_var_scale","Estimate"]
+  # MTC_MTV_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_var_scale","Estimate"]
+  # LUC_MTV_av[i]<-var_imp$coefmat.subset["mean_slope_scale:mean_var_scale","Estimate"]
+  # LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
+  # #BM_av[i]<-var_imp$coefmat.subset["Bodymass", "Estimate"]
+  # 
   print(i)
 }
 
