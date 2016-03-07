@@ -1581,8 +1581,7 @@ LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, res_mean, by="ID")
 LPI_EDScores2<-merge(LPI_EDScores2, res_prec, by="ID")
 
-<<<<<<< HEAD
-=======
+
 #########
 df<-merge(merge(Pop_tr, LU_sens,by="ID", all=T), merge(clim_sens, res_mean, by="ID", all=T), by="ID", all=T)
 
@@ -1593,7 +1592,7 @@ LPI2<-merge(df, LPI[,c(1,2,13,20,26,29,30,33)])
 Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 10 & System != "Marine")
 
 nrow(Inc5MammalsTemp)
->>>>>>> a368abea36ae07c9575731c3db3cdb2a681c70f5
+
 
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" &length_time >=10 &System == "Terrestrial")
 
@@ -1602,19 +1601,14 @@ nrow(Inc5MammalsTemp)
 #Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
 
 #Inc5MammalsTemp <- subset(LPI_EDScores3, !is.na(mean_slope_se)&!is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate) &Include10 == "Yes" & System != "Marine")
-<<<<<<< HEAD
 
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 5 & System != "Marine")
-
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate_49)&length_time >= 5  & System != "Marine")
-=======
 # 
 # Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(Estimate)&r_sq2 >= 0.5  & !is.na(change_rate_25) &length_time >= 5 & System != "Marine")
 # 
 # Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(mean_slope)&r_sq2 >= 0.5  & !is.na(change_rate_49)&length_time >= 5  & System != "Marine")
 # 
 ```
->>>>>>> a368abea36ae07c9575731c3db3cdb2a681c70f5
+
 
 ```{r}
 Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=30 & System != "Marine")
@@ -1663,17 +1657,11 @@ plot(Years,Year_data, type="l", xlab= "Year", ylab="Number of population counts"
 
 library(data.table)
 dt = as.data.table(sp_dups_df)
-<<<<<<< HEAD
-parm_df<-sp_dups_df[,c("ID","mean_slope", "mean_range_var", "prec_range_var", "change_rate")]  ##ID, land use, and climate
 
-parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("mean_slope", "mean_range_var","prec_range_var", "change_rate")])       #use the scaling factors at the bottom of these to scale the rasters
-=======
 parm_df<-sp_dups_df[,c("ID","MnSlope50k", "mean_res_quart",  "change_rate_49")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("MnSlope50k", "mean_res_quart", "change_rate_49")])       #use the scaling factors at the bottom of these to scale the rasters
->>>>>>> a368abea36ae07c9575731c3db3cdb2a681c70f5
 
 parm_id<-parm_mat[,"ID"]
 
@@ -1689,13 +1677,9 @@ library(MuMIn)
 source("rsquaredglmm.R")
 ```
 
-<<<<<<< HEAD
-#sp_df_scale<-subset(sp_df_scale, Class=="Mammalia")
-#sp_df_scale<-subset(sp_df_scale, Class=="Aves")
 
-=======
 ```{r}
->>>>>>> a368abea36ae07c9575731c3db3cdb2a681c70f5
+
 R=299
 PValue = numeric(R)
 AIC_m1= numeric(R)
@@ -2036,15 +2020,12 @@ mean(cond_Rsq_m4)
 mean(cond_Rsq_m5)
 
 
-<<<<<<< HEAD
 AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f,AIC_m1g, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_m2g, AIC_m3, AIC_mnull))
 
 
 AIC_del<-AIC_df[,c(1:17)] - AIC_df$AIC_mnull
 
 colMeans(AIC_del)
-=======
->>>>>>> a368abea36ae07c9575731c3db3cdb2a681c70f5
 
 
 mean(m1_w)
