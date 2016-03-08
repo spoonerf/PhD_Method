@@ -1423,6 +1423,48 @@ write.csv(all_merge, "Birdlife_Bodymass.csv")
 
 ```
 
+```{r, mammal traits}
+mm<-read.csv("Mammals_matchup.csv")
+pan<-read.csv("Pantheria_update_8.6.05.csv")
+mm<-mm[,c(1,5)]
+pan<-pan[,c(3,10)]
+
+head(mm)
+head(pan)
+
+#pan2<-pan[pan$MSW93_Binomial%in% mm$PanTHERIA,]   #three not in pan
+
+mm2<-merge(mm, pan, by.x="PanTHERIA", by.y="MSW93_Binomial", all=T)
+
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI_mamm<-subset(LPI, Class=="Mammalia")
+mamm_id<-LPI_mamm[,c(1,2,20)]
+
+mm3<-merge(mm2, mamm_id, by.x="LPI_binomial", by.y="Binomial")
+
+
+mm3$LPI_binomial<-as.character(mm3$LPI_binomial)
+mm3$PanTHERIA<-as.character(mm3$PanTHERIA)
+mm3$LPI_binomial == mm3$PanTHERIA
+
+mm3$Bodymass<-log10(mm3$AdultBodyMass_g)
+
+mm3<-mm3[,c(1,4,3,6)]
+
+write.csv(mm3, "PanTHERIA_bodymass.csv")
+
+```
+
+```{r, bird and mammal traits}
+colnames(all_merge)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
+colnames(mm3)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
+
+bmt<-rbind(all_merge, mm3)
+
+write.csv(bmt, "bird_and_mammal_traits.csv")
+
+```
+
 
 ####Joining all of the data together
 ```{r,eval=FALSE}
