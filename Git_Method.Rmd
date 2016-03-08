@@ -1372,7 +1372,7 @@ write.csv(LPI_LUC_selm, "LPI_LandUse_121_18_09_2015.csv" )
 
 Traits
 
-```{r}
+```{r, Bird traits}
 
 bird<-read.csv("2014 BirdLife list with parameters for LPI analysis no head.csv")
 
@@ -1396,11 +1396,30 @@ bird_com_match<-bird_nomatch[bird_nomatch$Common_name %in% bird_bm$Common.name, 
 
 match_merge2<-merge(bird_com_match, bird_bm, by.x="Binomial", by.y="Scientific_name")
 
-match_merge3<-rbind(match_merge, match_merge2)
-
 bird_com_nomatch<-bird_nomatch[!(bird_nomatch$Common_name %in% bird_bm$Common.name), ]
 
-unique(bird_com_nomatch$Binomial)
+bird_2match<-bird_com_nomatch[bird_com_nomatch$Binomial %in% Inc5MammalsTemp$Binomial,]   #checking which ones I actually need - using Inc5MammalsTemp from later chunk
+
+bird_2match$Binomial<-as.character(bird_2match$Binomial)
+#manually correcting errors
+bird_2match$Binomial[bird_2match$Binomial == "Aquila_fasciatus"] <- "Aquila_fasciata"
+bird_2match$Binomial[bird_2match$Binomial == "Anas_clypeata"] <- "Spatula_clypeata"
+bird_2match$Binomial[bird_2match$Binomial == "Sterna_nilotica"]<-"Gelochelidon_nilotica"
+bird_2match$Binomial[bird_2match$Binomial == "Sterna_albifrons"]<-"Sternula_albifrons"
+bird_2match$Binomial[bird_2match$Binomial == "Casmerodius_albus"]<-"Ardea_alba"
+bird_2match$Binomial[bird_2match$Binomial ==  "Porzana_parva"] <-"Zapornia_parva"
+
+
+match_merge3<-merge(bird_2match, bird_bm, by.x="Binomial", by.y="Scientific_name")
+
+all_merge<-bind(match_merge, match_merge2, match_merge3)
+
+all_merge<-all_merge[,c(1,2,5)]
+colnames(all_merge)<-c("Binomial_BL", "ID", "Bodymass_g")
+
+all_merge$Bodymass<-log10(all_merge$Bodymass_g)
+
+write.csv(all_merge, "Birdlife_Bodymass.csv")
 
 ```
 
@@ -1624,7 +1643,7 @@ LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 LPI2<-merge(df, LPI[,c(1,2,13,20,26,29,30,33)])
 
-Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 10 & System != "Marine")
+Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 5 & System != "Marine")
 
 nrow(Inc5MammalsTemp)
 
