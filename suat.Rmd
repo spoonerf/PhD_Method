@@ -57,7 +57,7 @@ loc<-data.frame(Longitude,Latitude,V1,loc_id)
 ```
 
 
-My data is just for Europe so I am going to reproject to Europe, so that the output map isn't warped by the global projection which the original data is in. The original projection here is WGS 84. 
+My data is just for Europe so I am going to reproject to a European projection, so that the output map isn't warped by the global projection which the original data is in. The original projection here is WGS 84. 
 
 I am going to use the LAEA projection which is specifically for Europe, you'll need to find a projection that suites your area. Look at http://spatialreference.org/ to see the range of projections available.
 
@@ -122,23 +122,25 @@ xmin<-min(loc_laea_df$Longitude)
 xmax<-max(loc_laea_df$Longitude)
 ymin<-min(loc_laea_df$Latitude)
 ymax<-max(loc_laea_df$Latitude)
-buff<-350000   #buffer around points so they all fit in but aren't squashed in 
+buff<-350000   #buffer around points so they all fit in but aren't squashed in, here in metres 
 
 ```
 
 
 Here is the main body of the ggplot commands which will actually output a map...
 
-geom_polygon is used for adding a polygon layer, geom_path for adding lines (here the country outlines) and geom_point for adding point data, here the location points. Within geom_point I have used the size argument to link the count data to the size of the points.
+geom_polygon is used for adding a polygon layer, geom_path for adding lines (here the country outlines) and geom_point for adding point data, here the location points. Within geom_point I have used the size argument to link the count data to the size of the points and the alpha argument to control the transparency of the points.
 
 
 
 ```{r,fig.width=10, fig.height=10}
 ggplot() + 
   geom_polygon(data=wmap_laea_df, aes(long,lat,group=group), fill="white")+
-  geom_path(data=countries_laea_df, aes(long,lat, group=group), color="light grey",size=0.1) +
-  geom_point(data=loc_laea_df, aes(Longitude, Latitude, group=NULL,fill=NULL,size=V1),color="black",alpha=I(6/10)) +
-  scale_size(range=c(1,5), guide = "legend",labs(size="No. of Populations")) +
+  geom_path(data=countries_laea_df, aes(long,lat, group=group), color="light grey",
+            size=0.1) +
+  geom_point(data=loc_laea_df, aes(Longitude, Latitude, group=NULL,fill=NULL,size=V1),
+             color="black",alpha=I(6/10)) +
+  scale_size(range=c(1,7), guide = "legend",labs(size="No. of Populations")) +
   coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),(ymax+buff))) +
   theme(aspect.ratio=1)+
   theme_opts
@@ -153,7 +155,7 @@ xmin<-min(loc_df$Longitude)
 xmax<-max(loc_df$Longitude)
 ymin<-min(loc_df$Latitude)
 ymax<-max(loc_df$Latitude)
-buff<-1   #buffer around points so they all fit in but aren't squashed in 
+buff<-1   #buffer around points so they all fit in but aren't squashed in, here in degrees 
 
 ggplot() + 
   geom_polygon(data=wmap_df, aes(long,lat,group=group), fill="white")+
@@ -161,7 +163,7 @@ ggplot() +
   ,size=0.1) +
   geom_point(data=loc_df, aes(Longitude, Latitude, group=NULL, fill=NULL, 
   size=V1), color="black",alpha=I(6/10)) +
-  scale_size(range=c(1,10), guide = "legend",labs(size="No. of Populations")) +
+  scale_size(range=c(1,7), guide = "legend",labs(size="No. of Populations")) +
   coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),
   (ymax+buff))) +
   theme(aspect.ratio=1)+
@@ -172,23 +174,3 @@ ggplot() +
 
 
 
-UTM Example
-
-
-If you want to do a very localised area it may be best to use a UTM grid, (http://www.dmap.co.uk/utmworld.htm) the world is split up into UTM grids and each have their own projection.
-Alternatively lots of countries have their own projection which may be more appropriate for you to use.
-
-http://gadm.org/
-
-
-
-```{r, eval=FALSE}
-CRS("+proj=utm +zone=30+datum=WGS84")
-wmap_UTM<- spTransform(wmap, CRS("+init=EPSG:2041")) 
-```
-
-subset(wmap_df, long>=0 & long<=0.5& lat>=51 & lat <= 51.5)
-
-uk<-subset(wmap_df, id=135)
-
-plot(uk)
