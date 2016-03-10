@@ -1,0 +1,194 @@
+---
+title: "Making a Regional Map "
+author: "Fiona Spooner"
+date: "9 March 2016"
+output: pdf_document
+---
+These are the packages we need to install for the practical
+
+```{r}
+#install.packages("ggplot2")
+#install.packages("rgdal")
+```
+
+
+```{r, message=F,warning=FALSE}
+library(ggplot2)
+library(rgdal)
+```
+
+
+Download the data from http://www.naturalearthdata.com/downloads/ save them in your working directory and read in the data:
+
+```{r, message=FALSE, warning=FALSE}
+wmap <- readOGR(dsn="ne_50m_land.shp", layer="ne_50m_land")
+countries <- readOGR("ne_50m_admin_0_countries.shp", layer="ne_50m_admin_0_countries")
+```
+
+This is some of my data, it is point location data with a count value associated with it. I want to display these points with the size of the point varying with the count value, so that higher counts are represented by bigger circles. 
+
+If you have your own data you want to display load it in here or you can replicate mine.
+
+```{r}
+#loc<-read.csv("location_count.csv")
+
+Longitude<- c(-6.72, -6.50, -6.42, -6.28, -6.20, -5.62, -5.35, -5.08, -3.87, -2.92, -2.72,
+              -1.83,-1.63, -1.34, -1.28, -0.99, -0.48, -0.42,  0.22,  0.67,  0.84,  2.23,
+              2.92,  2.97,  3.12,  3.15,  3.65,  4.57,  4.77,  4.87,  4.93,  5.15,5.15,
+              5.35,5.88,5.91,  7.00,  7.35,  7.37,  7.46,  7.50, 7.57,  7.89,  7.92,  8.00,
+              8.10,  8.15,  8.31, 8.41,8.42,  9.05,  9.34,  9.38,  9.48,  9.95, 10.20, 12.19,
+              12.40, 14.34, 16.17, 17.19, 18.92, 19.86, 20.83,21.07, 21.77, 23.08, 23.13,
+              23.83, 23.92, 24.60, 25.02, 25.40, 25.40, 25.47, 26.38, 28.94)
+
+Latitude<- c(42.80, 37.00, 37.00, 57.02, 55.80, 41.83, 36.15, 40.30, 36.83, 55.17, 50.83,
+             48.88, 50.87, 51.78, 52.33, 42.73, 38.35, 46.08, 43.05, 52.45, 40.71, 42.39,
+             45.20, 45.77, 42.28, 43.26, 43.51, 43.52, 51.75, 43.60, 48.72, 43.47, 52.15,
+             52.43, 44.65, 51.87, 48.08, 53.47, 46.00, 46.98, 46.25, 45.42, 53.77, 46.73,
+             51.01, 46.63, 45.07, 51.19,56.46, 52.17, 53.12, 54.35, 46.95, 42.60, 46.42,
+             46.67,44.62, 41.71, 53.09, 65.97, 50.11, 47.53, 48.91, 39.08, 63.43, 60.48,
+             63.10, 60.38, 52.67, 66.78, 60.90, 61.08, 64.80, 64.83, 65.00, 64.75, 44.66)
+
+V1<-sample(1:40, 77, replace=T)
+
+loc_id<-seq(1,77,1)
+  
+loc<-data.frame(Longitude,Latitude,V1,loc_id)
+
+```
+
+
+My data is just for Europe so I am going to reproject to Europe, so that the output map isn't warped by the global projection which the original data is in. The original projection here is WGS 84. 
+
+I am going to use the LAEA projection which is specifically for Europe, you'll need to find a projection that suites your area. Look at http://spatialreference.org/ to see the range of projections available.
+
+An important thing to consider is the unit which you want your map in, some projections are in degrees and others are in meters. This will be important if you want to look at distances, for example if you want to create a buffer around your points.
+
+```{r}
+#reproject to european projection
+wmap_laea<- spTransform(wmap, CRS("+proj=laea"))    #laea
+countries_laea<-spTransform(countries, CRS("+proj=laea"))
+
+coordinates(loc)<-c("Longitude","Latitude")
+proj4string(loc) <- CRS("+proj=longlat")
+loc_laea<-spTransform(loc, CRS("+proj=laea"))
+
+```
+
+In order to plot the spatial data using ggplot we need to turn it into a dataframe using the fortify function or the data.frame function.
+
+We'll plot both the original and reprojected data so that we can see the difference reprojecting makes. So we need to turn both the original data and the reprojected data into dataframes.
+
+```{r,message=FALSE, warning=FALSE}
+#orginal data
+wmap_df<-fortify(wmap)
+countries_df<-fortify(countries)
+loc_df<-data.frame(loc)
+
+#reprojected data
+wmap_laea_df<-fortify(wmap_laea)
+countries_laea_df<-fortify(countries_laea)
+loc_laea_df<-data.frame(loc_laea)
+
+```
+
+Set general theme options for the ggplot. This includes things like the background colour, axis titles and tick marks.
+
+For maps you might want most of these to be blank, but for things like graphs this would be different.
+
+```{r}
+# create a blank ggplot theme
+
+theme_opts<-list(theme(panel.grid.minor = element_blank(),
+                       panel.grid.major = element_blank(),
+                       panel.background = element_rect(fill = 'light blue', colour = NA),
+                       plot.background = element_rect(fill="light grey",
+                       size=1,linetype="solid",color="black"),
+                       axis.line = element_blank(),
+                       axis.text.x = element_blank(),
+                       axis.text.y = element_blank(),
+                       axis.ticks = element_blank(),
+                       axis.title.x = element_blank(),
+                       axis.title.y = element_blank(),
+                       plot.title = element_text(size=22)))
+
+```
+
+We are still working with global data but we only want to display data for Europe, so we need to define the extent of the map we want to show. 
+
+I have done this by taking the maximum and minimum latitude and longitude values of the location data and adding a buffer around so that all of the points are within the map and not too close the edge.
+
+```{r}
+xmin<-min(loc_laea_df$Longitude)
+xmax<-max(loc_laea_df$Longitude)
+ymin<-min(loc_laea_df$Latitude)
+ymax<-max(loc_laea_df$Latitude)
+buff<-350000   #buffer around points so they all fit in but aren't squashed in 
+
+```
+
+
+Here is the main body of the ggplot commands which will actually output a map...
+
+geom_polygon is used for adding a polygon layer, geom_path for adding lines (here the country outlines) and geom_point for adding point data, here the location points. Within geom_point I have used the size argument to link the count data to the size of the points.
+
+
+
+```{r,fig.width=10, fig.height=10}
+ggplot() + 
+  geom_polygon(data=wmap_laea_df, aes(long,lat,group=group), fill="white")+
+  geom_path(data=countries_laea_df, aes(long,lat, group=group), color="light grey",size=0.1) +
+  geom_point(data=loc_laea_df, aes(Longitude, Latitude, group=NULL,fill=NULL,size=V1),color="black",alpha=I(6/10)) +
+  scale_size(range=c(1,5), guide = "legend",labs(size="No. of Populations")) +
+  coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),(ymax+buff))) +
+  theme(aspect.ratio=1)+
+  theme_opts
+
+```
+
+
+What the same information would look like but without the LAEA transformation.
+
+```{r,fig.width=10, fig.height=10}
+xmin<-min(loc_df$Longitude)
+xmax<-max(loc_df$Longitude)
+ymin<-min(loc_df$Latitude)
+ymax<-max(loc_df$Latitude)
+buff<-1   #buffer around points so they all fit in but aren't squashed in 
+
+ggplot() + 
+  geom_polygon(data=wmap_df, aes(long,lat,group=group), fill="white")+
+  geom_path(data=countries_df, aes(long,lat, group=group), color="light grey"
+  ,size=0.1) +
+  geom_point(data=loc_df, aes(Longitude, Latitude, group=NULL, fill=NULL, 
+  size=V1), color="black",alpha=I(6/10)) +
+  scale_size(range=c(1,10), guide = "legend",labs(size="No. of Populations")) +
+  coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),
+  (ymax+buff))) +
+  theme(aspect.ratio=1)+
+  theme_opts
+
+```
+
+
+
+
+UTM Example
+
+
+If you want to do a very localised area it may be best to use a UTM grid, (http://www.dmap.co.uk/utmworld.htm) the world is split up into UTM grids and each have their own projection.
+Alternatively lots of countries have their own projection which may be more appropriate for you to use.
+
+http://gadm.org/
+
+
+
+```{r, eval=FALSE}
+CRS("+proj=utm +zone=30+datum=WGS84")
+wmap_UTM<- spTransform(wmap, CRS("+init=EPSG:2041")) 
+```
+
+subset(wmap_df, long>=0 & long<=0.5& lat>=51 & lat <= 51.5)
+
+uk<-subset(wmap_df, id=135)
+
+plot(uk)
