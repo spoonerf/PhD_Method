@@ -4,8 +4,10 @@ author: "Fiona Spooner"
 date: "9 March 2016"
 output: html_document
 ---
-These are the packages we need to install for this practical
-You just need to install the packages the first time you run them on your computer. However every time you open R again and want to use the package you will first have to call them up with the 'library' command.
+These are the packages we need to install for this practical.
+You need to install the packages the first time you run them on your computer.
+
+However every time you open R again and want to use the package you will first have to call them up with the 'library' command.
 
 ```{r, message=F,warning=FALSE}
 #install.packages("ggplot2")
@@ -18,7 +20,9 @@ library(ggplot2)
 library(rgdal)
 ```
 
-First of all we need to download the data from http://www.naturalearthdata.com/downloads/ and save them in your working directory. There are three levels of detail in the data you can download, more detailed data are better for more local level analysis but as a trade off they are bigger files and more time consuming to use and manipulate. If you are making a global scale map you are better off using the 110m (small scale) resolution data and if you are doing a very local map you are better off using the 10m (large scale) resolution data. As we are doing a regional map the best data for us is probably the 50m (medium scale) resolution.
+First of all we need to download the data from http://www.naturalearthdata.com/downloads/ and save them in your working directory. 
+
+There are three levels of detail in the data you can download, more detailed data are better for more local level analysis but as a trade off they are bigger files and more time consuming to use and manipulate. If you are making a global scale map you are better off using the 110m (small scale) resolution data and if you are doing a very local map you are better off using the 10m (large scale) resolution data. As we are doing a regional map the best data for us is probably the 50m (medium scale) resolution.
 
 For this practical we need the land data, which is in the 'Physical' section of the medium scale data.
 
@@ -27,7 +31,7 @@ We also need the Admin 0 Countries data which is in the 'Cultural' section of th
 Save these data in the same folder and set this folder as your working directory:
 
 ```{r}
-setwd("C:/Users/Fiona/Desktop/PhD/PhD_Method") #change this to the filepath leading to the folder with your saved data
+setwd("C:/Users/Fiona/Desktop/PhD/PhD_Method") #change this to the filepath to the folder with your downloaded data
 
 ```
 
