@@ -223,5 +223,5 @@ ggplot() +
 ```
 
 
-
+This tutorial is adapted from the following blog - http://rpsychologist.com/working-with-shapefiles-projections-and-world-maps-in-ggplot
 

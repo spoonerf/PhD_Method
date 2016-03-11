@@ -155,3 +155,6 @@ ggplot() +
 ```
 
 
+This tutorial is adapted from the following blogs:
+http://prabhasp.com/wp/how-to-make-choropleths-in-r/
+http://www.r-bloggers.com/mapping-with-ggplot-create-a-nice-choropleth-map-in-r/
