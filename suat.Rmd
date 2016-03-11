@@ -1,5 +1,5 @@
 ---
-title: "Making a Regional Map "
+title: "Making a Regional Map Using ggplot2"
 author: "Fiona Spooner"
 date: "9 March 2016"
 output: html_document
