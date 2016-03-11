@@ -2,11 +2,12 @@
 title: "Making a Regional Map "
 author: "Fiona Spooner"
 date: "9 March 2016"
-output: pdf_document
+output: html_document
 ---
-These are the packages we need to install for the practical
+These are the packages we need to install for this practical
+You just need to install the packages the first time you run them on your computer. However every time you open R again and want to use the package you will first have to call them up with the 'library' command.
 
-```{r}
+```{r, message=F,warning=FALSE}
 #install.packages("ggplot2")
 #install.packages("rgdal")
 ```
@@ -17,12 +18,34 @@ library(ggplot2)
 library(rgdal)
 ```
 
+First of all we need to download the data from http://www.naturalearthdata.com/downloads/ and save them in your working directory. There are three levels of detail in the data you can download, more detailed data are better for more local level analysis but as a trade off they are bigger files and more time consuming to use and manipulate. If you are making a global scale map you are better off using the 110m (small scale) resolution data and if you are doing a very local map you are better off using the 10m (large scale) resolution data. As we are doing a regional map the best data for us is probably the 50m (medium scale) resolution.
 
-Download the data from http://www.naturalearthdata.com/downloads/ save them in your working directory and read in the data:
+For this practical we need the land data, which is in the 'Physical' section of the medium scale data.
+
+We also need the Admin 0 Countries data which is in the 'Cultural' section of the medium scale data.
+
+Save these data in the same folder and set this folder as your working directory:
+
+```{r}
+setwd("C:/Users/Fiona/Desktop/PhD/PhD_Method") #change this to the filepath leading to the folder with your saved data
+
+```
+
+
+Now we can read in the data. We do this using the 'readOGR' function which is from the 'rgdal' package.
 
 ```{r, message=FALSE, warning=FALSE}
+
 wmap <- readOGR(dsn="ne_50m_land.shp", layer="ne_50m_land")
 countries <- readOGR("ne_50m_admin_0_countries.shp", layer="ne_50m_admin_0_countries")
+```
+
+
+We can quickly plot the data to see what they look like. 'wmap' is the outline of all the countries and 'countries' has the border information for each country.
+
+```{r}
+plot(wmap)
+plot(countries)
 ```
 
 This is some of my data, it is point location data with a count value associated with it. I want to display these points with the size of the point varying with the count value, so that higher counts are represented by bigger circles. 
@@ -34,11 +57,11 @@ If you have your own data you want to display load it in here or you can replica
 
 Longitude<- c(-6.72, -6.50, -6.42, -6.28, -6.20, -5.62, -5.35, -5.08, -3.87, -2.92, -2.72,
               -1.83,-1.63, -1.34, -1.28, -0.99, -0.48, -0.42,  0.22,  0.67,  0.84,  2.23,
-              2.92,  2.97,  3.12,  3.15,  3.65,  4.57,  4.77,  4.87,  4.93,  5.15,5.15,
-              5.35,5.88,5.91,  7.00,  7.35,  7.37,  7.46,  7.50, 7.57,  7.89,  7.92,  8.00,
-              8.10,  8.15,  8.31, 8.41,8.42,  9.05,  9.34,  9.38,  9.48,  9.95, 10.20, 12.19,
-              12.40, 14.34, 16.17, 17.19, 18.92, 19.86, 20.83,21.07, 21.77, 23.08, 23.13,
-              23.83, 23.92, 24.60, 25.02, 25.40, 25.40, 25.47, 26.38, 28.94)
+              2.92,  2.97,  3.12,  3.15,  3.65,  4.57,  4.77,  4.87,  4.93,  5.15, 5.15,
+              5.35,  5.88,  5.91,  7.00,  7.35,  7.37,  7.46,  7.50,  7.57,  7.89,  7.92,  
+              8.00,  8.10,  8.15,  8.31,  8.41,  8.42,  9.05,  9.34,  9.38,  9.48,  9.95, 
+              10.20, 12.19, 12.40, 14.34, 16.17, 17.19, 18.92, 19.86, 20.83, 21.07, 21.77, 
+              23.08, 23.13, 23.83, 23.92, 24.60, 25.02, 25.40, 25.40, 25.47, 26.38, 28.94)
 
 Latitude<- c(42.80, 37.00, 37.00, 57.02, 55.80, 41.83, 36.15, 40.30, 36.83, 55.17, 50.83,
              48.88, 50.87, 51.78, 52.33, 42.73, 38.35, 46.08, 43.05, 52.45, 40.71, 42.39,
@@ -50,24 +73,37 @@ Latitude<- c(42.80, 37.00, 37.00, 57.02, 55.80, 41.83, 36.15, 40.30, 36.83, 55.1
 
 V1<-sample(1:40, 77, replace=T)
 
-loc_id<-seq(1,77,1)
   
-loc<-data.frame(Longitude,Latitude,V1,loc_id)
+loc<-data.frame(Longitude,Latitude,V1)
 
 ```
 
+Let's have a quick look at the data so we know what is going on. We have 'Longitude' and 'Latitude' columns which we will use to map the data and the 'V1' column is our count data which will control the size of the points
+
+```{r}
+head(loc)
+
+```
 
 My data is just for Europe so I am going to reproject to a European projection, so that the output map isn't warped by the global projection which the original data is in. The original projection here is WGS 84. 
 
 I am going to use the LAEA projection which is specifically for Europe, you'll need to find a projection that suites your area. Look at http://spatialreference.org/ to see the range of projections available.
 
-An important thing to consider is the unit which you want your map in, some projections are in degrees and others are in meters. This will be important if you want to look at distances, for example if you want to create a buffer around your points.
+An important thing to consider is the unit which you want your map in, some projections are in degrees and others are in meters. This will be important if you want to look at distances, for example if you want to create a buffer around your points. The LAEA projection I have chosen is in metres.
+
+Here we use the 'spTransform' function to change the projection of the data from WGS84 to LAEA. We need to do this for all of the data we want to display, it is important that they all have the same projection.
+
+You can add your own projection in here, if you are doing an area that is not Europe you will need to make sure that the extent of the map showing is right later on.
 
 ```{r}
 #reproject to european projection
-wmap_laea<- spTransform(wmap, CRS("+proj=laea"))    #laea
+wmap_laea<- spTransform(wmap, CRS("+proj=laea"))  #each projection will have it's own code which you can enter in after"+proj=XXXX"
 countries_laea<-spTransform(countries, CRS("+proj=laea"))
+```
 
+We need to use a couple of extra lines for the point data, first of all we need to tell R that the 'Longitude' and 'Latitude' columns are coordinates, then say that their original projection was WGS84 and then use spTransform to change this projection to LAEA.
+
+```{r}
 coordinates(loc)<-c("Longitude","Latitude")
 proj4string(loc) <- CRS("+proj=longlat")
 loc_laea<-spTransform(loc, CRS("+proj=laea"))
@@ -76,7 +112,7 @@ loc_laea<-spTransform(loc, CRS("+proj=laea"))
 
 In order to plot the spatial data using ggplot we need to turn it into a dataframe using the fortify function or the data.frame function.
 
-We'll plot both the original and reprojected data so that we can see the difference reprojecting makes. So we need to turn both the original data and the reprojected data into dataframes.
+We'll plot both the original and reprojected data so that we can see the difference reprojecting makes. So first of all we need to turn both the original data and the reprojected data into dataframes.
 
 ```{r,message=FALSE, warning=FALSE}
 #orginal data
@@ -94,6 +130,8 @@ loc_laea_df<-data.frame(loc_laea)
 Set general theme options for the ggplot. This includes things like the background colour, axis titles and tick marks.
 
 For maps you might want most of these to be blank, but for things like graphs this would be different.
+
+This stage is not essential but it is useful if you want to really customise your map or set parameters for a general theme that you use for several ggplots.
 
 ```{r}
 # create a blank ggplot theme
@@ -131,7 +169,7 @@ Here is the main body of the ggplot commands which will actually output a map...
 
 geom_polygon is used for adding a polygon layer, geom_path for adding lines (here the country outlines) and geom_point for adding point data, here the location points. Within geom_point I have used the size argument to link the count data to the size of the points and the alpha argument to control the transparency of the points.
 
-
+Each line in a ggplot command is separated by '+' and adds a new layer of information. To see the influence each line makes try running the code with just the first two lines, then the first three lines etc... (But be careful to end just before a '+')
 
 ```{r,fig.width=10, fig.height=10}
 ggplot() + 
@@ -140,22 +178,31 @@ ggplot() +
             size=0.1) +
   geom_point(data=loc_laea_df, aes(Longitude, Latitude, group=NULL,fill=NULL,size=V1),
              color="black",alpha=I(6/10)) +
-  scale_size(range=c(1,7), guide = "legend",labs(size="No. of Populations")) +
+  scale_size(range=c(1,7), guide = "legend",labs(size="Count")) +
   coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),(ymax+buff))) +
   theme(aspect.ratio=1)+
   theme_opts
 
 ```
 
+To get an idea of what the projection is doing we can just run the first few lines on their own to show the whole world projected in LAEA.  The world looks really weird and squashed, except for Europe which looks great, this is because this projection is designed to be used only for Europe. 
 
-What the same information would look like but without the LAEA transformation.
+
+```{r}
+ggplot() + 
+  geom_polygon(data=wmap_laea_df, aes(long,lat,group=group), fill="white")+
+  geom_path(data=countries_laea_df, aes(long,lat, group=group), color="light grey",size=0.1)
+
+```
+
+The following code will plot the same map of Europe as above but without the LAEA transformation. Without the LAEA transformation it looks pretty squashed and not that great, hopefully showing you the importance of projections!
 
 ```{r,fig.width=10, fig.height=10}
 xmin<-min(loc_df$Longitude)
 xmax<-max(loc_df$Longitude)
 ymin<-min(loc_df$Latitude)
 ymax<-max(loc_df$Latitude)
-buff<-1   #buffer around points so they all fit in but aren't squashed in, here in degrees 
+buff<-1.5   #buffer around points so they all fit in but aren't squashed in, here in degrees 
 
 ggplot() + 
   geom_polygon(data=wmap_df, aes(long,lat,group=group), fill="white")+
@@ -163,7 +210,7 @@ ggplot() +
   ,size=0.1) +
   geom_point(data=loc_df, aes(Longitude, Latitude, group=NULL, fill=NULL, 
   size=V1), color="black",alpha=I(6/10)) +
-  scale_size(range=c(1,7), guide = "legend",labs(size="No. of Populations")) +
+  scale_size(range=c(1,7), guide = "legend",labs(size="Count")) +
   coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),
   (ymax+buff))) +
   theme(aspect.ratio=1)+
