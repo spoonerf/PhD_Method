@@ -1,15 +1,14 @@
 ---
-title: "Making a Country Level Map"
+title: "Making a Country Level Map Using ggplot2"
 author: "Fiona Spooner"
 date: "10 March 2016"
 output: html_document
 ---
 
-UTM Example
 
 Download Kenya (or any other country) shapefile data from http://gadm.org/  you can either download it manually from the website, or use the getData function below to download it with R. 
 
-The level refers to the administrative level, so level 0 will just give you the country outline and level 1 will give you the regional boundaries.
+The level refers to the administrative level, so level 0 will give you the country outline and level 1 will give you the regional boundaries.
 
 The countries are identified by their ISO Country Code, a list of these can be found here:
 
@@ -25,24 +24,20 @@ library(rgdal)
 Kenya<-getData("GADM", country="KE", level=0)
 Kenya1<-getData("GADM", country="KE", level=1)
 
-#GB<-readOGR("GBR_adm1",layer="GBR_adm1.shp")
-
-
 plot(Kenya)
 plot(Kenya1)
 
 
-
 ```
 
-If you want to do a very localised area it may be best to use a UTM grid, (http://www.dmap.co.uk/utmworld.htm) the world is split up into UTM grids and each have their own projection.
+If you want to map a very localised area it may be best to use a UTM grid, (http://www.dmap.co.uk/utmworld.htm) the world is split up into UTM grids and each have their own projection. You can ignore the letters on the UTM map, you just need to know the grid number and your grid square is north or south.
 
 Once you have found which UTM square you want to use (I am using UTM 37S for Kenya), you need to find the EPSG code for it, you can do this on http://spatialreference.org/ 
 
-Reprojecting might not make a huge amount of difference to countries on the equator, but it is good practice to set an appropriate projection for your work.
+Reprojecting might not make a huge amount of difference to countries around the equator, but it is good practice to set an appropriate projection for your work.
 
 ```{r, warning=FALSE, message=FALSE}
-Kenya1_UTM<-spTransform(Kenya1, CRS("+init=EPSG:32737"))
+Kenya1_UTM<-spTransform(Kenya1, CRS("+init=EPSG:32737"))  
 
 ```
 
@@ -122,7 +117,7 @@ ggplot() +
 
 Now we can try and make it prettier
 
-```{r}
+```{r,warning=FALSE, message=FALSE}
 #install.packages("ggmap")
 #install.packages("scales")
 
@@ -149,7 +144,7 @@ theme_opts<-list(theme(panel.grid.minor = element_blank(),
 ```
 
 
-```{r}
+```{r,warning=FALSE, message=FALSE}
 ggplot() + 
   geom_polygon(data = Kenya1_df, aes(x = long, y = lat, group = group, fill =
                                        count), color = "black", size = 0.25) +
