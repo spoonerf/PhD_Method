@@ -1389,12 +1389,11 @@ bird_id<-LPI_bird[,c(1,2,20)]
 bird_match<-bird_id[bird_id$Binomial %in% bird_bm$Scientific_name,]
 bird_nomatch<-bird_id[!(bird_id$Binomial %in% bird_bm$Scientific_name),]
 
-
 match_merge<-merge(bird_match, bird_bm, by.x="Binomial", by.y="Scientific_name")
 
 bird_com_match<-bird_nomatch[bird_nomatch$Common_name %in% bird_bm$Common.name, ]
 
-match_merge2<-merge(bird_com_match, bird_bm, by.x="Binomial", by.y="Scientific_name")
+match_merge2<-merge(bird_com_match, bird_bm, by.x="Binomial", by.y="Scientific_name")  #no overlapping species
 
 bird_com_nomatch<-bird_nomatch[!(bird_nomatch$Common_name %in% bird_bm$Common.name), ]
 
@@ -1409,10 +1408,9 @@ bird_2match$Binomial[bird_2match$Binomial == "Sterna_albifrons"]<-"Sternula_albi
 bird_2match$Binomial[bird_2match$Binomial == "Casmerodius_albus"]<-"Ardea_alba"
 bird_2match$Binomial[bird_2match$Binomial ==  "Porzana_parva"] <-"Zapornia_parva"
 
-
 match_merge3<-merge(bird_2match, bird_bm, by.x="Binomial", by.y="Scientific_name")
 
-all_merge<-bind(match_merge, match_merge2, match_merge3)
+all_merge<-rbind(match_merge, match_merge2, match_merge3)
 
 all_merge<-all_merge[,c(1,2,5)]
 colnames(all_merge)<-c("Binomial_BL", "ID", "Bodymass_g")
