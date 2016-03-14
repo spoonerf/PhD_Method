@@ -5,6 +5,9 @@ date: "Wednesday, September 09, 2015"
 output: word_document
 ---
 ```{r Install Packages, warning=FALSE,message=FALSE}
+if(require("RevoUtilsMath")){
+  setMKLthreads(4)
+}
 
 #setwd("D:/Fiona/Git_Method/Git_Method")
 #rm(list=ls())
@@ -1397,16 +1400,19 @@ match_merge2<-merge(bird_com_match, bird_bm, by.x="Binomial", by.y="Scientific_n
 
 bird_com_nomatch<-bird_nomatch[!(bird_nomatch$Common_name %in% bird_bm$Common.name), ]
 
-bird_2match<-bird_com_nomatch[bird_com_nomatch$Binomial %in% Inc5MammalsTemp$Binomial,]   #checking which ones I actually need - using Inc5MammalsTemp from later chunk
+bird_2match<-bird_nomatch[bird_nomatch$Binomial %in% Inc5MammalsTemp$Binomial,]   #checking which ones I actually need - using Inc5MammalsTemp from later chunk
 
 bird_2match$Binomial<-as.character(bird_2match$Binomial)
 #manually correcting errors
 bird_2match$Binomial[bird_2match$Binomial == "Aquila_fasciatus"] <- "Aquila_fasciata"
+bird_2match$Binomial[bird_2match$Binomial == "Philomachus_pugnax"] <- "Calidris_pugnax"
 bird_2match$Binomial[bird_2match$Binomial == "Anas_clypeata"] <- "Spatula_clypeata"
+bird_2match$Binomial[bird_2match$Binomial == "Anas_strepera"] <- "Mareca_strepera"
 bird_2match$Binomial[bird_2match$Binomial == "Sterna_nilotica"]<-"Gelochelidon_nilotica"
 bird_2match$Binomial[bird_2match$Binomial == "Sterna_albifrons"]<-"Sternula_albifrons"
 bird_2match$Binomial[bird_2match$Binomial == "Casmerodius_albus"]<-"Ardea_alba"
 bird_2match$Binomial[bird_2match$Binomial ==  "Porzana_parva"] <-"Zapornia_parva"
+
 
 match_merge3<-merge(bird_2match, bird_bm, by.x="Binomial", by.y="Scientific_name")
 
@@ -1453,64 +1459,60 @@ write.csv(mm3, "PanTHERIA_bodymass.csv")
 
 ```
 
-```{r, bird and mammal traits}
-colnames(all_merge)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
-colnames(mm3)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
+```{r, herp traits}
+rep<-read.csv("feldman_et_al_reptile_traits.csv")
 
-bmt<-rbind(all_merge, mm3)
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI_herp<-subset(LPI, Class=="Amphibia"| Class=="Reptilia")
+herp_id<-LPI_herp[,c(1,2,20)]
 
-write.csv(bmt, "bird_and_mammal_traits.csv")
+rep$binomial<-gsub(" ", "_", rep$binomial)
+
+hmrg<-merge(herp_id, rep, by.x="Binomial", by.y="binomial")
+
+herp_id[herp_id$Binomial %in% hmrg$Binomial,]
+
+herp_id[!(herp_id$Binomial %in% hmrg$Binomial),]
+
+head(hmrg)
+
+hmrg<-hmrg[,c(1,2,14,13)]
+
+write.csv(hmrg, "reptile_bodymass.csv")
 
 ```
 
+```{r, amphibian traits}
 
-####Joining all of the data together
-```{r,eval=FALSE}
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI_amph<-subset(LPI, Class=="Amphibia")
+amph_id<-LPI_amph[,c(1,2,20)]
+amph<-read.csv("European_Amphibians_Database3.csv")
 
-####
-#Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_08_09_15_50kmbuffnarm.csv")
-#Clim<-read.csv("mean_df_slope_mon_avg_01_10_15_50kmbuffnarm.csv") ##monthly average mean slope and se
-#Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_28_09_15_50kmbuffnarm.csv")
-#Clim<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Climate_Slopes_17_10_15_50kmbuffnarm.csv")
-Clim<-read.csv("Climate_Slopes_16_01_05_50kmbuffnarm.csv")
-Clim<-read.csv("Mean_Temp_Slope_and_var_12_01_08_50kmbuffnarm.csv")
+amph$Species<-gsub(" ", "_", amph$Species)
 
+amph<-amph[,c(1,5)]
 
-#LU<-read.csv("LPI_LandUse_625_29_09_2015.csv")
-#LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/all_EU_Land_Use_Change_26_08_15.csv")
-#LU<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/LPI_LandUse_121_18_09_2015.csv")
-LU<-read.csv("LPI_LandUse_121_18_09_2015.csv")
-sens<-read.csv("Sensitivity_Land_Use.csv")
+amphmg<-merge(amph, amph_id, by.x="Species", by.y="Binomial")
+amphmg$Adult.body.mass<-as.numeric(as.character(amphmg$Adult.body.mass))
+amphmg$Bodymass<-log10(amphmg$Adult.body.mass)
 
+amphmg<-amphmg[,c(1,3,2,5)]
 
-#Pop<-read.csv("C:/Users/Fiona/Desktop/PhD/R_Directory/PhD/Use_This/Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv") #POpulations with model Rsq >0.5
-Traits<-read.csv("LPI_pops_20150529_EDRank2.csv")
+write.csv(amphmg, "amphibian_bodymass.csv")
+```
 
 
+```{r, combine traits}
+colnames(all_merge)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
+colnames(mm3)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
+colnames(hmrg)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
+colnames(amphmg)<-c("Binomial", "ID", "Bodymass_g", "Bodymass")
 
-#Pop_all<-read.csv("All_Population_Trends_Rsq_Lambda_18_08_15.csv")
-#Pop_all<-read.csv("All_Population_Trends_Rsq_Lambda_12_09_15.csv")
-#Pop_all<-read.csv("C:/Users/Fiona/Desktop/PhD/Git_Directory/PhD1/Method_RMd/Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
-Pop_all<-read.csv("Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+bmt<-rbind(all_merge, mm3, hmrg,amphmg)
 
-#mess <- merge(merge(Clim, LU, by="ID"), merge(Pop, Traits, by="ID"), by="ID")
-mess_all <- merge(merge(Clim, LU[c(2,150)], by="ID"), merge(Pop_all, Traits, by="ID"), by="ID")
+write.csv(bmt, "LPI_traits.csv")
 
-# clim_all<-merge(Clim, Traits, by="ID")
-# clim_all2<-merge(clim_all, Pop_all, by="ID")  #just climate, traits and populations, ignoring land use data
-
-#write.csv(mess_all, "2015_09_13_LMEModel_data3.csv")
-#write.csv(mess_all, "2015_09_18_LMEModel_data3.csv")
-#write.csv(mess_all, "2015_09_22_LMEModel_data3.csv")
-#write.csv(mess_all, "2015_09_28_LMEModel_data3.csv")   #added mean temp
-#write.csv(mess_all, "2015_09_29_LMEModel_data3.csv")  #wider land use grid
-#write.csv(mess_all, "2015_10_17_LMEModel_data3.csv")  #yearly and monthly variance added
-write.csv(mess_all, "2015_10_26_LMEModel_data3.csv") #added missing year counts
-write.csv(mess_all, "2016_01_05_LMEModel_data.csv") #climate var data diff?
-write.csv(mess_all, "2016_01_08_LMEModel_data.csv") #different clim var data
-
-write.csv(clim_all2, "2015_11_05_LMEModel_data_clim.csv")#no land use data
-#write.csv(mess_all, "2015_10_01_LMEModel_data3.csv")  ##trying with monthly mean slope and se
 ```
 
 ####Climate-population models
@@ -1656,42 +1658,38 @@ LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
 #LU_sens<-read.csv("Sensitivity_Land_Use.csv")
 LU_sens<-read.csv("Sensitivity_Land_Use_morepop.csv")
 Pop_tr<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_03.csv")
-
 clim_sens<-read.csv("Climate_Sensitivity_2016_03_02.csv")
-#hot<-read.csv("hot_days_pop.csv")
-#cold<-read.csv("cold_days_pop.csv")
-#res_mx<-read.csv("max_temp_residuals.csv")
+bm<-read.csv("LPI_traits.csv")
 res_mean<-read.csv("mean_temp_residuals_all_EU.csv")
-res_prec<-read.csv("prec_residuals_all_EU.csv")
+#res_prec<-read.csv("prec_residuals_all_EU.csv")
 
 res_mean<-res_mean[,c(2,7)]
-#res_prec<-res_prec[,c(2,8,9)]
-
 colnames(res_mean)<-c("ID","mean_res_quart")
+#res_prec<-res_prec[,c(2,8,9)]
 #colnames(res_prec)<-c("ID","prec_var_res", "prec_range_var")
 
-LPI_EDScores2<-merge(LPI_EDScores, LU_sens, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, res_mean, by="ID")
-LPI_EDScores2<-merge(LPI_EDScores2, res_prec, by="ID")
-
+LPI_EDScores2<-merge(LPI_EDScores, LU_sens, by="ID",all=T)
+LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID",all=T)
+LPI_EDScores2<-merge(LPI_EDScores2, res_mean, by="ID",all=T)
+LPI_EDScores2<-merge(LPI_EDScores2, bm[,c(3,5)], by="ID",all=T)
+LPI_EDScores2<-merge(LPI_EDScores2, Pop_tr, by="ID",all=T)
 
 #########
-df<-merge(merge(Pop_tr, LU_sens,by="ID", all=T), merge(clim_sens, res_mean, by="ID", all=T), by="ID", all=T)
-
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
-
-LPI2<-merge(df, LPI[,c(1,2,13,20,26,29,30,33)])
-
-Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 5 & System != "Marine")
-
-nrow(Inc5MammalsTemp)
+# df<-merge(merge(Pop_tr, LU_sens,by="ID", all=T), merge(clim_sens, res_mean, by="ID", all=T), by="ID", all=T)
+# 
+# LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+# 
+# LPI2<-merge(df, LPI[,c(1,2,13,20,26,29,30,33)])
+# 
+# Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >= 5 & System != "Marine")
+# 
+# nrow(Inc5MammalsTemp)
 
 ```
 
 
 ```{r}
-Inc5MammalsTemp <- subset(LPI2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=30 & System != "Marine" & Class=="Mammalia")
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=30 & System != "Marine" & !is.na(Bodymass))
 
 nrow(Inc5MammalsTemp)
 
@@ -1748,8 +1746,8 @@ source("rsquaredglmm.R")
 
 ```{r}
 
-R=299
-PValue = numeric(R)
+R=499
+PValue = numeric(R) 
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -1900,6 +1898,10 @@ for (i in 1:R) {
     
     m2f<-lmer(lambda_sum ~mean_var_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
+    m3<-lmer(lambda_sum ~ Bodymass +(1|Binomial),data=sp_dups_df2, REML=F)
+    
+    m4<-lmer(lambda_sum ~ Bodymass+mean_var_scale+mean_slope_scale+change_rate_scale +(1|Binomial),data=sp_dups_df2, REML=F)
+    
     mnull<-lmer(lambda_sum ~(1|Binomial),data=sp_dups_df2, REML=F)
 
   # models_list<-list(m1,m1a,m1b,m1c,m1d,m1e,m1f,m2,m2a,m2b,m2c,m2d,m2e,m2f,mnull)
@@ -1989,6 +1991,8 @@ for (i in 1:R) {
   AIC_m2d[i]<-AIC(m2d)
   AIC_m2e[i]<-AIC(m2e)
   AIC_m2f[i]<-AIC(m2f)
+  AIC_m3[i]<-AIC(m3)
+  AIC_m4[i]<-AIC(m4)
   AIC_mnull[i]<-AIC(mnull)
 #   AIC_m4[i]<-AIC(m4)
 #   AIC_m5[i]<-AIC(m5)
@@ -2028,9 +2032,9 @@ for (i in 1:R) {
 
 ```{r}
 
-AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_mnull))
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_m3,AIC_m4,AIC_mnull))
 
-AIC_del<-AIC_df[,c(1:14)] - AIC_df$AIC_mnull
+AIC_del<-AIC_df[,c(1:16)] - AIC_df$AIC_mnull
 
 
 colMeans(AIC_del)
@@ -2079,7 +2083,7 @@ mean(cond_Rsq_m4)
 mean(cond_Rsq_m5)
 
 
-AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f,AIC_m1g, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_m2g, AIC_m3, AIC_mnull))
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_m1d, AIC_m1e, AIC_m1f,AIC_m1g, AIC_m2,AIC_m2a, AIC_m2b, AIC_m2c, AIC_m2d, AIC_m2e, AIC_m2f,AIC_m3,AIC_m4, AIC_mnull))
 
 
 AIC_del<-AIC_df[,c(1:17)] - AIC_df$AIC_mnull
