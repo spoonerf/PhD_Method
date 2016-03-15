@@ -1648,13 +1648,16 @@ mapPoints + theme(axis.title=element_text(size=16), title=element_text(size=20))
 # LPI_EDScores<-read.csv("2015_10_26_LMEModel_data3.csv") 
 # Inc5MammalsTemp <- subset(LPI_EDScores, !is.na(max_slope_se)&!is.na(max_slope)&r_sq2 >= 0.5 & !is.na(ED_score) & !is.na(change_rate) &Include5 == "Yes" & PA_recoded != "Unknown"& Class != "Amphibia" )
 
-LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
+#LPI_EDScores<-read.csv("2016_01_05_LMEModel_data.csv")
 #LPI_EDScores2<-read.csv("2016_01_08_LMEModel_data.csv")   #seems to be 10 fewer populations in this one? 
 
 #LPI_EDScores3<-merge(LPI_EDScores2[,c(2,5:8)], LPI_EDScores, by="ID")
 
-LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
+#LPI_EDScores<-LPI_EDScores[,c(2,16,20,22,25,27:34,47:75,223,245:247)]
 
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+LPI2<-LPI[,c("ID","Binomial","Common_name", "System", "Class", "Longitude", "Latitude")]
 #LU_sens<-read.csv("Sensitivity_Land_Use.csv")
 LU_sens<-read.csv("Sensitivity_Land_Use_morepop.csv")
 Pop_tr<-read.csv("Europe_Population_Trends_Rsq_Lambda_16_03_03.csv")
@@ -1668,7 +1671,7 @@ colnames(res_mean)<-c("ID","mean_res_quart")
 #res_prec<-res_prec[,c(2,8,9)]
 #colnames(res_prec)<-c("ID","prec_var_res", "prec_range_var")
 
-LPI_EDScores2<-merge(LPI_EDScores, LU_sens, by="ID",all=T)
+LPI_EDScores2<-merge(LPI2, LU_sens, by="ID",all=T)
 LPI_EDScores2<-merge(LPI_EDScores2, clim_sens, by="ID",all=T)
 LPI_EDScores2<-merge(LPI_EDScores2, res_mean, by="ID",all=T)
 LPI_EDScores2<-merge(LPI_EDScores2, bm[,c(3,5)], by="ID",all=T)
@@ -1689,7 +1692,7 @@ LPI_EDScores2<-merge(LPI_EDScores2, Pop_tr, by="ID",all=T)
 
 
 ```{r}
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=30 & System != "Marine" & !is.na(Bodymass))
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=15 & !is.na(Bodymass) &System!="Marine" )
 
 nrow(Inc5MammalsTemp)
 
