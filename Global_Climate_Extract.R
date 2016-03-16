@@ -29,8 +29,6 @@ points(LPIsp$Longitude, LPIsp$Latitude)
 
 xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
 
-cbind(ex,xy)
-
 xy<-unique(xy)     #identifying unique locations to extract climate data from 
 
 xy_df<-data.frame(xy)
