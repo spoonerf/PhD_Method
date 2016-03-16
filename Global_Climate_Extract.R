@@ -29,11 +29,6 @@ points(LPIsp$Longitude, LPIsp$Latitude)
 
 xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
 
-test<-extract(CR[[1]], xy, buffer=5000, na.rm=T)
-
-
-ex<-matrix(unlist(test), ncol=1, byrow = TRUE)
-
 cbind(ex,xy)
 
 xy<-unique(xy)     #identifying unique locations to extract climate data from 
