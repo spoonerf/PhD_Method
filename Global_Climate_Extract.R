@@ -98,12 +98,3 @@ write.csv(LPIclim, "Global_Mean_Temp_All_LPI.csv")
 
 
 
-
-
-
-
-
-
-
-
-
