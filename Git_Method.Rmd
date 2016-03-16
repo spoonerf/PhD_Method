@@ -1692,7 +1692,7 @@ LPI_EDScores2<-merge(LPI_EDScores2, Pop_tr, by="ID",all=T)
 
 
 ```{r}
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=15 & !is.na(Bodymass) &System!="Marine" & Class=="Aves")
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=35 & !is.na(Bodymass) &System!="Marine" & Class=="Mammalia")
 
 nrow(Inc5MammalsTemp)
 
