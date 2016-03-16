@@ -49,6 +49,17 @@ AIC_m1b= numeric(R)
 AIC_m1c= numeric(R)
 AIC_mnull= numeric(R)
 
+marg_Rsq_m1 = numeric(R)
+marg_Rsq_m1a = numeric(R)
+marg_Rsq_m1b = numeric(R)
+marg_Rsq_m1c = numeric(R)
+
+m1_w = numeric(R)
+m1a_w = numeric(R)
+m1b_w = numeric(R)
+m1c_w = numeric(R)
+mnull_w = numeric(R)
+
 for (i in 1:R) {
   dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
   colnames(dt2)[2]<-"ID"
@@ -63,23 +74,52 @@ for (i in 1:R) {
   m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   
   mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
-
+#AIC
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
   AIC_m1b[i]<-AIC(m1b)
   AIC_m1c[i]<-AIC(m1c)
   AIC_mnull[i]<-AIC(mnull)
+#Rsq
+  models_list<-list(m1,m1a,m1b,m1c)
+  modelsR<-lapply(models_list,rsquared.glmm)
+  modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+  
+  marg_Rsq_m1[i]<-modelsRsq[1,4]
+  marg_Rsq_m1a[i]<-modelsRsq[2,4]
+  marg_Rsq_m1b[i]<-modelsRsq[3,4]
+  marg_Rsq_m1c[i]<-modelsRsq[4,4]
+#Weights
+  msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
+  msAICc$model<-rownames(msAICc)
+  msAICc<-data.frame(msAICc)
+  
+  m1_w[i]<-subset(msAICc, model=="m1")$weight
+  m1a_w[i]<-subset(msAICc, model=="m1a")$weight
+  m1b_w[i]<-subset(msAICc, model=="m1b")$weight
+  m1c_w[i]<-subset(msAICc, model=="m1c")$weight
+  mnull_w[i]<-subset(msAICc, model=="mnull")$weight
   
   print(i)
 }
 
 
-AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c))
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
 
 AIC_del<-AIC_df[,c(1:4)] - AIC_df$AIC_mnull
 
 
 colMeans(AIC_del)
 
+mean(marg_Rsq_m1)
+mean(marg_Rsq_m1a)
+mean(marg_Rsq_m1b)
+mean(marg_Rsq_m1c)
+
+mean(m1_w)
+mean(m1a_w)
+mean(m1b_w)
+mean(m1c_w)
+mean(mnull_w)
 
 
