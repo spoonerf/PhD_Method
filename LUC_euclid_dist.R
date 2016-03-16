@@ -1,5 +1,6 @@
 
-LPILU<-read.csv("Global_Land_Use_All_LPI.csv")
+LPILU<-read.csv("Global_Land_Use_All_LPI.csv") 
+#should probablyy get rid of those with high "other" category as may be reflective of crappy data
 
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
@@ -38,6 +39,7 @@ mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "LUC_dist")
 
 write.csv(mean_df, "LUC_distance_all.csv")
+
 
 
 
