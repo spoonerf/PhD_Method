@@ -123,3 +123,8 @@ mean(m1c_w)
 mean(mnull_w)
 
 
+mint<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=F)
+mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_df_scale, REML=F)
+
+AIC(mint)
+AIC(mnull)
