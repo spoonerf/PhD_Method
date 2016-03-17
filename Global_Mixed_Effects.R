@@ -5,14 +5,14 @@ pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_16.csv")
 
 head(pop)
 temp<-temp[,c("ID", "Estimate")]
-LPI<-LPI[,c("ID","Binomial","Common_name", "System", "Class","Specific_location", "Longitude", "Latitude")]
+LPI<-LPI[,c("ID","Binomial","Common_name","Country", "System", "Class","Specific_location", "Longitude", "Latitude")]
 
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1)
 
-nrow(Inc5MammalsTemp)
+nrow(df2)
 
 
 library(plyr)
@@ -122,9 +122,48 @@ mean(m1b_w)
 mean(m1c_w)
 mean(mnull_w)
 
+Euro<-sp_df_scale[sp_df_scale$ID %in% Inc5MammalsTemp$ID,] 
 
-mint<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=F)
-mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_df_scale, REML=F)
+minte<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=Euro, REML=F)
+mnulle<-lmer(lambda_sum ~ 1+(1|Binomial),data=Euro, REML=F)
+
+AIC(minte)
+AIC(mnulle)
+
+sp_df_scaleb<-subset(sp_df_scale, Class=="Aves")
+sp_df_scalem<-subset(sp_df_scale, Class=="Mammalia")
+
+mint<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=T)
+mint2<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|Country),data=sp_df_scale, REML=F)
+mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_df_scale, REML=T)
+mnull2<-lmer(lambda_sum ~ 1+(1|Binomial)+(1|Country),data=sp_df_scale, REML=F)
 
 AIC(mint)
+AIC(mint2)
 AIC(mnull)
+AIC(mnull2)
+
+
+anova(mint, mnull)
+
+models_list<-list(mint,mint2,mnull,mnull2)
+modelsR<-lapply(models_list,rsquared.glmm)
+modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+
+
+
+
+mintb<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scaleb, REML=F)
+mnullb<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_df_scaleb, REML=F)
+
+AIC(mintb)
+AIC(mnullb)
+
+mintm<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scalem, REML=F)
+mnullm<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_df_scalem, REML=F)
+
+AIC(mintm)
+AIC(mnullm)
+
+
+
