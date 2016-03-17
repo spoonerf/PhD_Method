@@ -42,7 +42,7 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=999
+R=9999
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
