@@ -5,7 +5,7 @@ pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_16.csv")
 
 head(pop)
 temp<-temp[,c("ID", "Estimate")]
-LPI<-LPI[,c("ID","Binomial","Common_name","Country", "System", "Class","Specific_location", "Longitude", "Latitude")]
+LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude")]
 
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
@@ -133,20 +133,21 @@ AIC(mnulle)
 sp_df_scaleb<-subset(sp_df_scale, Class=="Aves")
 sp_df_scalem<-subset(sp_df_scale, Class=="Mammalia")
 
-mint<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=T)
-mint2<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|Country),data=sp_df_scale, REML=F)
-mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_df_scale, REML=T)
-mnull2<-lmer(lambda_sum ~ 1+(1|Binomial)+(1|Country),data=sp_df_scale, REML=F)
+mint<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=F)
+madd<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=F)
+mlu<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial),data=sp_df_scale, REML=F)
+mcl<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=F)
+mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_df_scale, REML=F)
 
 AIC(mint)
-AIC(mint2)
+AIC(madd)
+AIC(mlu)
+AIC(mcl)
 AIC(mnull)
-AIC(mnull2)
-
 
 anova(mint, mnull)
 
-models_list<-list(mint,mint2,mnull,mnull2)
+models_list<-list(mint,madd,mlu,mcl,mnull)
 modelsR<-lapply(models_list,rsquared.glmm)
 modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
