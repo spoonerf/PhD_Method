@@ -1,7 +1,8 @@
 temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
-pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_16.csv")
+#pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_17.csv")
+pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 
 head(pop)
 temp<-temp[,c("ID", "Estimate")]
@@ -42,7 +43,7 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=9999
+R=999
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -151,7 +152,7 @@ models_list<-list(mint,madd,mlu,mcl,mnull)
 modelsR<-lapply(models_list,rsquared.glmm)
 modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
-
+modelsRsq
 
 
 mintb<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scaleb, REML=F)
