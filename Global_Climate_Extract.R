@@ -94,7 +94,4 @@ LPIclim<-merge(srm3, LPI_ID, by=c("Longitude", "Latitude"))
 write.csv(LPIclim, "Global_Mean_Temp_All_LPI.csv")
 
 
-
-
-
-
+###############
