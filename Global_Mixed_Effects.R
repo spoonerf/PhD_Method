@@ -8,16 +8,43 @@ EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")
 
 head(pop)
 temp<-temp[,c("ID", "Estimate")]
-LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude")]
+LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat")]
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1)
+hab<-subset(df, Primary_threat == "Habitat degradation/change" | Primary_threat =="Habitat loss" | Secondary_threat =="Habitat degradation/change"| Secondary_threat =="Habitat loss"| Tertiary_threat =="Habitat degradation/change"| Tertiary_threat =="Habitat loss" )
+nohab<-df[!(df$ID %in% hab$ID),]
 
-nrow(df2)
+hab$Habitat_Loss_Threat <- 1
+nohab$Habitat_Loss_Threat<- 0 
 
+df<-rbind(hab,nohab)
+
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 )
+
+#EurGlo<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1)
+
+#df2<-EurGlo[EurGlo$ID %in% EurHil$ID, ]  #Global data
+
+# nrow(df2)
+# 
+# hab<-subset(df2, Primary_threat == "Habitat degradation/change" | Primary_threat =="Habitat loss" | Secondary_threat =="Habitat degradation/change"| Secondary_threat =="Habitat loss"| Tertiary_threat =="Habitat degradation/change"| Tertiary_threat =="Habitat loss" )
+# 
+# nohab<-df2[!(df2$ID %in% hab$ID),]
+# 
+# nrow(hab)
+# nrow(nohab)
+# 
+# EUdf<-merge(EurHil, df, by="ID")
+# 
+# habE<-subset(EUdf, Primary_threat == "Habitat degradation/change" | Primary_threat =="Habitat loss" | Secondary_threat =="Habitat degradation/change"| Secondary_threat =="Habitat loss"| Tertiary_threat =="Habitat degradation/change"| Tertiary_threat =="Habitat loss" )
+# 
+# nohabE<-EUdf[!(EUdf$ID %in% habE$ID),]
+# 
+# nrow(habE)
+# nrow(nohabE)
 
 library(plyr)
 #counting duplicates at each location
@@ -29,6 +56,7 @@ library(data.table)
 #dt = as.data.table(sp_dups_df)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate
+   #for hilda data
 
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
@@ -43,6 +71,8 @@ sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
 dt<-data.table(sp_df_scale)
 
+
+#sp_df_scale<-EurHil
 
 library(lme4)
 library(MuMIn)
@@ -89,14 +119,14 @@ for (i in 1:R) {
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
-  m1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1T<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m1<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+Habitat_Loss_Threat:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1T<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+Habitat_Loss_Threat:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-  m1a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1aT<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m1a<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1aT<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-  m1b<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1bT<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial),data=sp_dups_df2)
+  m1b<-lmer(lambda_sum ~ Habitat_Loss_Threat+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1bT<-lmer(lambda_sum ~ Habitat_Loss_Threat+(1|Binomial),data=sp_dups_df2)
   
   m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   m1cT<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2)
@@ -142,14 +172,14 @@ for (i in 1:R) {
   #estimates from most complex model
   var_imp<-summary(model.avg(models_list))
   MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  LUC_i[i]<-var_imp$importance["change_rate_scale"]
-  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+  LUC_i[i]<-var_imp$importance["Habitat_Loss_Threat"]
+  LUC_MTC_i[i]<-var_imp$importance["Habitat_Loss_Threat:mean_slope_scale"]
   #BM_i[i]<-var_imp$importance["Bodymass"]
 
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
-  LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
-  LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
+  LUC_av[i]<-var_imp$coefmat.subset["Habitat_Loss_Threat","Estimate"]
+  LUC_MTC_av[i]<-var_imp$coefmat.subset["Habitat_Loss_Threat:mean_slope_scale","Estimate"]
   
   print(i)
   }
@@ -179,7 +209,22 @@ mean(m1b_w)
 mean(m1c_w)
 mean(mnull_w)
 
+mean_av<- c(mean(LUC_av),mean(MTC_av),mean(LUC_MTC_av))
+lowCI_av<-c(sort(LUC_av)[25], sort(MTC_av)[25], sort(LUC_MTC_av)[25])
+highCI_av<-c(sort(LUC_av)[975], sort(MTC_av)[975], sort(LUC_MTC_av)[975])
 
+Variable<-c("LUC", "MTC", "LUC*MTC")
+
+conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
+colnames(conf_av)<-Variable
+conf_av
+
+library(plotrix)
+
+plotCI(1:3, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="Variable Coefficients", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
+axis(1, at=1:3, labels=colnames(conf_i), las=2)
+abline(h=0, col="red", lty =2)
 
 
 

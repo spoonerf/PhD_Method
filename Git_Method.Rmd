@@ -64,8 +64,6 @@ This section inputs the LP time series data and excludes any Fish populations, t
 
 ```{r Counting population estimates, warning=FALSE, message=FALSE}
 
-
-
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 LPI_pop<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi")
@@ -78,11 +76,7 @@ points_per_pop1950_2012 = rowSums(pop_datab)
 length_id <- data.frame(ID,points_per_pop1950_2012)
 
 LPI_EU<-merge(length_id, LPI_pop, by = "ID")
-<<<<<<< HEAD
-LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=5)
-=======
 LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=2)
->>>>>>> c9c89fac5c1eaaea858feb406ab151db75414701
 
 LPI_EU2<-LPI_EU[,c(1:3,64:126)]
 LPI_EU2[LPI_EU2 == 'NULL'] = NA
@@ -126,7 +120,6 @@ doFit = function(sp_name) {
     }
 #     mg1<-mgcv:::gam(Population ~ s(Year))
 #     mg2<-mgcv:::gam(PopN ~ s(Year))
-<<<<<<< HEAD
     mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
     pv2 <- predict(mg2,df,type="response",se=TRUE) 
     R_sq2<-summary(mg2)$r.sq
@@ -134,28 +127,11 @@ doFit = function(sp_name) {
     pv2$fit[pv2$fit <= 0] <- NA
     lambda2<-diff(pv2$fit)
     lambda_sum2<-sum(lambda2, na.rm=TRUE)
-=======
-    mg1<-mgcv:::gam(Population ~ s(Year, k=SmoothParm), fx=TRUE)
-    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
-    pv1 <- predict(mg1,df,type="response",se=TRUE) 
-    pv2 <- predict(mg2,df,type="response",se=TRUE) 
-    R_sq1<-summary(mg1)$r.sq
-    R_sq2<-summary(mg2)$r.sq
-    model<-1
-    pv1$fit[pv1$fit <= 0] <- NA
-    pv2$fit[pv2$fit <= 0] <- NA
-    lambda1<-diff(log10(pv1$fit))
-    lambda2<-diff(pv2$fit)
-    lambda_sum1<-sum(lambda1, na.rm=TRUE)
-    lambda_sum2<-sum(lambda2, na.rm=TRUE)
-    lambda_mean1<-mean(lambda1, na.rm=TRUE)
->>>>>>> c9c89fac5c1eaaea858feb406ab151db75414701
     lambda_mean2<-mean(lambda2, na.rm=TRUE)
  
   } else {
     SmoothParm<-NA
     PopN = log10(Population)
-<<<<<<< HEAD
     ml2<-lm(PopN~df$Year)
     R_sq2<-summary(ml2)$r.sq
     model<-0
@@ -167,27 +143,7 @@ doFit = function(sp_name) {
   }
   
   res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq2, model=model,lambda_sum=lambda_sum2,lambda_mean=lambda_mean2,time=time, missing=missing)
-=======
-    ml1<-lm(df$Population~df$Year)
-    ml2<-lm(PopN~df$Year)
-    R_sq1<-summary(ml1)$r.sq
-    R_sq2<-summary(ml2)$r.sq
-    model<-0
-    Pop_interp1<-na.approx(Population)
-    Pop_interp2<-na.approx(PopN)
-    Pop_interp1[Pop_interp1<=0] <- NA
-    Pop_interp2[Pop_interp2<=0] <- NA
-    lambda1<-diff(log10(Pop_interp1))
-    lambda2<-diff(Pop_interp2)
-    lambda_sum1<-sum(lambda1, na.rm=TRUE)
-    lambda_sum2<-sum(lambda2, na.rm=TRUE)
-    lambda_mean1<-mean(lambda1, na.rm=TRUE)
-    lambda_mean2<-mean(lambda2, na.rm=TRUE)
-  }
-  
-  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq1=R_sq1, r_sq2=R_sq2, model=model,lambda_sum1=lambda_sum1,lambda_sum2=lambda_sum2,lambda_mean1=lambda_mean1,lambda_mean2=lambda_mean2,time=time, missing=missing)
->>>>>>> c9c89fac5c1eaaea858feb406ab151db75414701
-  
+
   print(res_df)
   return(res_df)
 }
@@ -198,27 +154,17 @@ all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
 ```
 
 ```{r}
-all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=12, byrow=TRUE)
+all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
-<<<<<<< HEAD
-colnames(all_df) <- c("ID", "points","SmoothParm",  "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
-=======
-all_df<-all_df[,c(1:3,5,6,8,10:12)]
-
 colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
->>>>>>> c9c89fac5c1eaaea858feb406ab151db75414701
 
 #write.csv(all_df, "All_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
-write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
-
-<<<<<<< HEAD
-write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_17.csv")
-=======
-write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_16.csv")
+# write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
+# 
+# write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_16.csv")
 write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
->>>>>>> c9c89fac5c1eaaea858feb406ab151db75414701
 #all_df_fit<-subset(all_df, r_sq>0.5)
 
 #write.csv(all_df_fit, "Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv")
@@ -1697,11 +1643,7 @@ LPI_EDScores2<-merge(LPI_EDScores2, Pop_tr, by="ID",all=T)
 
 
 ```{r}
-<<<<<<< HEAD
 Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=5 & !is.na(Bodymass) &System!="Marine" )
-=======
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=5 & !is.na(Bodymass) &System!="Marine")
->>>>>>> c9c89fac5c1eaaea858feb406ab151db75414701
 
 nrow(Inc5MammalsTemp)
 
@@ -1749,6 +1691,7 @@ colnames(parm_df_scale)<-c("ID","mean_slope_scale", "mean_var_scale", "change_ra
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
+#write.csv(sp_df_scale, "Europe_HILDA_5_year_pops.csv")
 
 library(lme4)
 library(MuMIn)
