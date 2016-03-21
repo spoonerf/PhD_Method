@@ -77,8 +77,8 @@ pop_datab <- (pop_data [,2:64] !="NULL")
 points_per_pop1950_2012 = rowSums(pop_datab)
 length_id <- data.frame(ID,points_per_pop1950_2012)
 
-LPI_EU<-merge(length_id, LPI_EU, by = "ID")
-LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=2)
+LPI_EU<-merge(length_id, LPI_pop, by = "ID")
+LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=5)
 
 LPI_EU2<-LPI_EU[,c(1:3,64:126)]
 LPI_EU2[LPI_EU2 == 'NULL'] = NA
@@ -96,7 +96,7 @@ doFit = function(sp_name) {
   spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
   spid = spid2[,4:66]                     #subsetting only the dates
   colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
-
+  
   name<-spid2$Binomial
   id<-spid2$ID
   points<-spid2$points_per_pop1950_2012
@@ -105,13 +105,14 @@ doFit = function(sp_name) {
   spidt<-destring(t(spid))
   time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
   missing<-time-points
-
+  
   Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01    #replacing zeros with 1% of the mean population as you cannot log0
-
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 
+  
   df<-data.frame(Year,Population)
-
+    
+  
   if (points >=6) {           ###should I be trying GAMs for populations with less than six points and if that doesn't fit then use a linear model - here I am automatically fitting a linear model if there are less than six points
     PopN = log10(Population)
     if (length(na.omit(PopN)) >=6) {
@@ -119,46 +120,49 @@ doFit = function(sp_name) {
     } else{
       SmoothParm=3
     }
-    mg<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
-    pv <- predict(mg,df,type="response",se=TRUE) 
-    R_sq<-summary(mg)$r.sq
+#     mg1<-mgcv:::gam(Population ~ s(Year))
+#     mg2<-mgcv:::gam(PopN ~ s(Year))
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv2 <- predict(mg2,df,type="response",se=TRUE) 
+    R_sq2<-summary(mg2)$r.sq
     model<-1
-    pv$fit[pv$fit <= 0] <- NA
-    lambda<-diff(pv$fit)
-    lambda_sum<-sum(lambda, na.rm=TRUE)
-    lambda_mean<-mean(lambda, na.rm=TRUE)
-
+    pv2$fit[pv2$fit <= 0] <- NA
+    lambda2<-diff(pv2$fit)
+    lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    lambda_mean2<-mean(lambda2, na.rm=TRUE)
+ 
   } else {
     SmoothParm<-NA
     PopN = log10(Population)
-    ml<-lm(PopN~df$Year)
-    R_sq<-summary(ml)$r.sq
+    ml2<-lm(PopN~df$Year)
+    R_sq2<-summary(ml2)$r.sq
     model<-0
-    Pop_interp<-na.approx(PopN)
-    Pop_interp[Pop_interp<=0] <- NA
-    lambda<-diff(Pop_interp)
-    lambda_sum<-sum(lambda, na.rm=TRUE)
-    lambda_mean<-mean(lambda, na.rm=TRUE)
+    Pop_interp2<-na.approx(PopN)
+    Pop_interp2[Pop_interp2<=0] <- NA
+    lambda2<-diff(Pop_interp2)
+    lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    lambda_mean2<-mean(lambda2, na.rm=TRUE)
   }
-
-  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq, model=model,lambda_sum=lambda_sum,lambda_mean=lambda_mean,time=time, missing=missing)
-
+  
+  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq2, model=model,lambda_sum=lambda_sum2,lambda_mean=lambda_mean2,time=time, missing=missing)
+  
   print(res_df)
   return(res_df)
 }
+
 
 all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
 
 all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
-colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
+colnames(all_df) <- c("ID", "points","SmoothParm",  "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
 
 #write.csv(all_df, "All_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_12_09_15.csv")
 #write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_17_10_15.csv")
 write.csv(all_df, "Europe_Population_Trends_Rsq_Lambda_26_10_15.csv")
 
-write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_16.csv")
+write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_17.csv")
 #all_df_fit<-subset(all_df, r_sq>0.5)
 
 #write.csv(all_df_fit, "Fitted_Population_Trends_Rsq_Lambda_18_08_15.csv")
@@ -1637,7 +1641,7 @@ LPI_EDScores2<-merge(LPI_EDScores2, Pop_tr, by="ID",all=T)
 
 
 ```{r}
-Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=35 & !is.na(Bodymass) &System!="Marine" & Class=="Mammalia")
+Inc5MammalsTemp <- subset(LPI_EDScores2, !is.na(MnSlope50k)&r_sq >= 0.5  & !is.na(change_rate_49)&length_time >=5 & !is.na(Bodymass) &System!="Marine" )
 
 nrow(Inc5MammalsTemp)
 

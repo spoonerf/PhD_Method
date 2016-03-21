@@ -2,6 +2,7 @@ temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_16.csv")
+pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_17.csv")
 
 head(pop)
 temp<-temp[,c("ID", "Estimate")]
@@ -42,7 +43,7 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=9999
+R=999
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -53,6 +54,12 @@ marg_Rsq_m1 = numeric(R)
 marg_Rsq_m1a = numeric(R)
 marg_Rsq_m1b = numeric(R)
 marg_Rsq_m1c = numeric(R)
+
+cond_Rsq_m1 = numeric(R)
+cond_Rsq_m1a = numeric(R)
+cond_Rsq_m1b = numeric(R)
+cond_Rsq_m1c = numeric(R)
+cond_Rsq_mnull = numeric(R)
 
 m1_w = numeric(R)
 m1a_w = numeric(R)
@@ -81,7 +88,7 @@ for (i in 1:R) {
   AIC_m1c[i]<-AIC(m1c)
   AIC_mnull[i]<-AIC(mnull)
 #Rsq
-  models_list<-list(m1,m1a,m1b,m1c)
+  models_list<-list(m1,m1a,m1b,m1c, mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
   
@@ -89,6 +96,13 @@ for (i in 1:R) {
   marg_Rsq_m1a[i]<-modelsRsq[2,4]
   marg_Rsq_m1b[i]<-modelsRsq[3,4]
   marg_Rsq_m1c[i]<-modelsRsq[4,4]
+  
+  cond_Rsq_m1[i]<-modelsRsq[1,5]
+  cond_Rsq_m1a[i]<-modelsRsq[2,5]
+  cond_Rsq_m1b[i]<-modelsRsq[3,5]
+  cond_Rsq_m1c[i]<-modelsRsq[4,5]
+  cond_Rsq_mnull[i]<-modelsRsq[5,5]
+  
 #Weights
   msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
@@ -122,13 +136,37 @@ mean(m1b_w)
 mean(m1c_w)
 mean(mnull_w)
 
-Euro<-sp_df_scale[sp_df_scale$ID %in% Inc5MammalsTemp$ID,] 
+Euro<-Inc5MammalsTemp[!(Inc5MammalsTemp$ID %in% sp_df_scale$ID),] 
+Euro<-subset(sp_df_scale, Region=="Europe")
+Afr<-subset(sp_df_scale, Region=="Africa")
+LAm<-subset(sp_df_scale, Region=="Latin America and Caribbean")
+Asia<-subset(sp_df_scale, Region=="Asia")
+NAm<-subset(sp_df_scale, Region=="North America")
+Oce<-subset(sp_df_scale, Region=="Oceania")
 
-minte<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=Euro, REML=F)
-mnulle<-lmer(lambda_sum ~ 1+(1|Binomial),data=Euro, REML=F)
+mintE<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|Country),data=Euro, REML=F)
+maddE<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|Country),data=Euro, REML=F)
+mluE<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial)+(1|Country),data=Euro, REML=F)
+mchE<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial)+(1|Country),data=Euro, REML=F)
+mnullE<-lmer(lambda_sum ~ 1+(1|Binomial)+(1|Country),data=Euro, REML=F)
 
-AIC(minte)
-AIC(mnulle)
+AIC(mintE)
+AIC(maddE)
+AIC(mluE)
+AIC(mchE)
+AIC(mnullE)
+
+mintA<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|Country),data=Afr, REML=F)
+mnullA<-lmer(lambda_sum ~ 1+(1|Binomial)+(1|Country),data=Afr, REML=F)
+
+
+AIC(mintA)
+AIC(mnullA)
+
+
+
+
+
 
 sp_df_scaleb<-subset(sp_df_scale, Class=="Aves")
 sp_df_scalem<-subset(sp_df_scale, Class=="Mammalia")
