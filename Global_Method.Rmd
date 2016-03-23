@@ -1,0 +1,663 @@
+---
+title: "Global_Method"
+author: "Fiona Spooner"
+date: "23 March 2016"
+output: html_document
+---
+
+Step 1 - Calculating Lambdas for each population
+```{r}
+library(plyr)
+library(taRifx)
+library(mgcv)
+library(zoo)
+```
+
+
+```{r}
+
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+LPI_pop<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi")
+
+ID<-LPI_pop$ID
+pop_data<- LPI_pop[,c(1,63:125)]
+
+pop_datab <- (pop_data [,2:64] !="NULL")
+points_per_pop1950_2012 = rowSums(pop_datab)
+length_id <- data.frame(ID,points_per_pop1950_2012)
+
+LPI_EU<-merge(length_id, LPI_pop, by = "ID")
+LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=2)
+
+LPI_EU2<-LPI_EU[,c(1:3,64:126)]
+LPI_EU2[LPI_EU2 == 'NULL'] = NA
+
+```
+
+
+```{r}
+doFit = function(sp_name) {
+  spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
+  spid = spid2[,4:66]                     #subsetting only the dates
+  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
+  missing<-time-points
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 
+  
+  df<-data.frame(Year,Population)
+    
+  
+  if (points >=6) {           ###should I be trying GAMs for populations with less than six points and if that doesn't fit then use a linear model - here I am automatically fitting a linear model if there are less than six points
+    PopN = log10(Population)
+    if (length(na.omit(PopN)) >=6) {
+      SmoothParm = round(length(na.omit(PopN))/2)    ####added na.omit in as was getting " A term has fewer unique covariate combinations than specified maximum degrees of freedom" error
+    } else{
+      SmoothParm=3
+    }
+#     mg1<-mgcv:::gam(Population ~ s(Year))
+#     mg2<-mgcv:::gam(PopN ~ s(Year))
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv2 <- predict(mg2,df,type="response",se=TRUE) 
+    R_sq2<-summary(mg2)$r.sq
+    model<-1
+    pv2$fit[pv2$fit <= 0] <- NA
+    lambda2<-diff(pv2$fit)
+    lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    lambda_mean2<-mean(lambda2, na.rm=TRUE)
+ 
+  } else {
+    SmoothParm<-NA
+    PopN = log10(Population)
+    ml2<-lm(PopN~df$Year)
+    R_sq2<-summary(ml2)$r.sq
+    model<-0
+    Pop_interp2<-na.approx(PopN)
+    Pop_interp2[Pop_interp2<=0] <- NA
+    lambda2<-diff(Pop_interp2)
+    lambda_sum2<-sum(lambda2, na.rm=TRUE)
+    lambda_mean2<-mean(lambda2, na.rm=TRUE)
+  }
+  
+  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq2, model=model,lambda_sum=lambda_sum2,lambda_mean=lambda_mean2,time=time, missing=missing)
+
+  print(res_df)
+  return(res_df)
+}
+
+
+all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
+
+```
+
+```{r}
+all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
+all_df <- data.frame(all_matrix)
+colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
+
+write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
+```
+
+Step 2 - Extracting the Climate data for each population
+
+```{r}
+library(raster)
+library(doParallel)
+library(beepr)
+library(lubridate)
+library(reshape2)
+
+```
+
+```{r}
+CR40s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1941.1950.tmp.dat.nc/cru_ts3.23.1941.1950.tmp.dat.nc")
+CR50s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1951.1960.tmp.dat.nc/cru_ts3.23.1951.1960.tmp.dat.nc")
+CR60s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1961.1970.tmp.dat.nc/cru_ts3.23.1961.1970.tmp.dat.nc")
+CR70s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1971.1980.tmp.dat.nc/cru_ts3.23.1971.1980.tmp.dat.nc")
+CR80s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1981.1990.tmp.dat.nc/cru_ts3.23.1981.1990.tmp.dat.nc")
+CR90s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1991.2000.tmp.dat.nc/cru_ts3.23.1991.2000.tmp.dat.nc")
+CR00s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.2001.2010.tmp.dat.nc/cru_ts3.23.2001.2010.tmp.dat.nc")
+CR10s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.2011.2014.tmp.dat.nc/cru_ts3.23.2011.2014.tmp.dat.nc")
+
+plot(CR40s[[11]])
+```
+
+
+```{r}
+LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
+
+CR<-stack(CR40s,CR50s,CR60s,CR70s,CR80s,CR90s,CR00s,CR10s)
+
+plot(CR[[1]])
+points(LPIsp$Longitude, LPIsp$Latitude)
+
+xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
+
+xy<-unique(xy)     #identifying unique locations to extract climate data from 
+
+xy_df<-data.frame(xy)
+colnames(xy_df)<-c("lon", "lat")
+coordinates(xy_df) <- c("lon", "lat")
+
+length(xy_df)
+
+```
+
+```{r}
+
+n<-6#number of cores to use - not sure how many I can go up to - 6 at UCL
+cl<-makeCluster(n)
+registerDoParallel(cl)  
+getDoParWorkers()
+
+buff<- function (year,b)  {
+  
+  rasterex<-raster:::extract(CR[[year]], xy_df, buff=b, fun=mean, na.rm=TRUE)
+  return(rasterex)
+  
+}
+
+```
+
+```{r}
+diam<-c(50000) #size of buffer to use - in metres
+lyr<-1:nlayers(CR)
+
+
+stime <- system.time({
+  sr <- foreach(1, .combine = cbind) %dopar% mapply(buff,lyr,diam)
+})
+stime
+beep(3)
+
+stopCluster(cl)
+
+```
+
+```{r}
+
+dates<-seq(ymd('1941-01-16'),ymd('2014-12-16'), by = 'months')
+
+
+datesr<-rep(dates, each=1078)
+
+srm<-melt(sr)
+
+lon<-xy[,1]
+lat<-xy[,2]
+
+srm2<-cbind(lon,lat,datesr, srm)
+
+srm3<-srm2[,c(1,2,3,6)]
+
+colnames(srm3)<-c("Longitude", "Latitude", "Date", "Mean_T")
+
+LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
+
+LPIclim<-merge(srm3, LPI_ID, by=c("Longitude", "Latitude"))
+
+write.csv(LPIclim, "Global_Mean_Temp_All_LPI.csv")
+
+```
+
+Step 3 - Calculating mean temp change for each population
+
+```{r}
+
+LPIclim<-read.csv("Global_Mean_Temp_All_LPI.csv")
+
+LPIclim$Date<-as.Date(LPIclim$Date, "%Y-%m-%d")
+LPIclim$Year<-format(LPIclim$Date, "%Y")
+
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" & ID !=4438)
+
+```
+
+```{r}
+
+doMean = function(sp_name) {
+  spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,63:125]                     #subsetting only the dates
+  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  climid=subset(LPIclim, ID == sp_name)  #subsetting the climate data by each population
+  
+  year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
+                     mean_mean = mean(na.omit(Mean_T)))
+  name<-spid2$Binomial
+  id<-spid2$ID
+  points<-spid2$points_per_pop1950_2012
+  name_id<-paste(name, id, sep="_") #creating id for naming files of plots
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Mean<-year_temp$mean_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  
+  Mean_mon<-climid[climid$Year %in% Year, ]$Mean_T
+
+  if (sum(is.nan(Mean))!=length(Mean)){
+    
+    lm_mean<-lm(Mean~Year)
+    lm_mean_df<-tidy(lm_mean)[2,]  
+    mean_df<-cbind(id,lm_mean_df)
+    
+  } else{
+    
+    mean_df<-matrix(c(id,NA,NA,NA,NA,NA), nrow=1, ncol=6)
+    colnames(mean_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value")
+    mean_df<-data.frame(mean_df)
+  }
+  
+  print(mean_df)  
+  return(mean_df)
+}
+
+all_df_list <- lapply(unique(LPIsp$ID), doMean)
+```
+
+```{r}
+all_matrix <- matrix(unlist(all_df_list), ncol=6, byrow=TRUE)
+mean_df <- data.frame(all_matrix)
+colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
+
+mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
+
+write.csv(mean_df, "All_LPI_Mean_Temp_Slope.csv")
+
+```
+
+
+Step 4 - Extracting Land Use Change Data for each population
+
+```{r}
+library(raster)
+
+```
+
+```{r}
+crop<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gcrop.nc4")
+prim<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gothr.nc4")
+past<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gpast.nc4")
+secd<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gsecd.nc4")
+urban<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gurbn.nc4")
+
+
+cropn<-crop[[251:306]]   #pulling out the data for 1950-2005 as the data starts at 1700
+primn<-prim[[251:306]]
+pastn<-past[[251:306]]
+secdn<-secd[[251:306]]
+urbann<-urban[[251:306]]
+
+writeRaster(cropn, "Crop_1950.tif")
+writeRaster(primn, "Prim_1950.tif")
+writeRaster(pastn, "Past_1950.tif")
+writeRaster(secdn, "Secd_1950.tif")
+writeRaster(urbann, "Urbn_1950.tif")
+
+cropn<-brick("Crop_1950.tif")
+primn<-brick("Prim_1950.tif")
+pastn<-brick("Past_1950.tif")
+secdn<-brick("Secd_1950.tif")
+urbn<-brick("Urbn_1950.tif")
+
+```
+
+```{r}
+LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
+
+xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
+
+xy<-unique(xy)     #identifying unique locations to extract climate data from 
+
+xy_df<-data.frame(xy)
+colnames(xy_df)<-c("lon", "lat")
+coordinates(xy_df) <- c("lon", "lat")
+
+```
+
+```{r}
+
+n<-6  #number of cores to use - not sure how many I can go up to
+cl<-makeCluster(n)
+registerDoParallel(cl)  
+
+days<-nlayers(urbn)    #splitting the data evenly between the cores
+step<-floor(days/n)
+
+ptime <- system.time({   
+  df<- foreach(days, .combine=cbind) %dopar%{
+    rasterex <- raster:::extract(urbn[[1:days]], xy_df)
+  }
+}) 
+ptime 
+beep(1)
+stopCluster(cl)
+
+```
+
+```{r}
+dates<-1950:2005
+
+datesr<-rep(dates, each=1078)
+
+dfm<-melt(df)
+
+lon<-xy[,1]
+lat<-xy[,2]
+
+dfm2<-cbind(lon,lat,datesr, dfm)
+
+#crop2<-dfm2   #do each individually
+#prim2<-dfm2
+#past2<-dfm2
+#secdn2<-dfm2
+#urbn2<-dfm2
+
+land_use<-data.frame(crop2$lon, crop2$lat, crop2$datesr, crop2$value, prim2$value, past2$value, secdn2$value, urbn2$value)
+
+colnames(land_use)<-c("Longitude", "Latitude","Year", "Crop", "Primary", "Pasture", "Secondary", "Urban")
+
+LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
+
+LPILU<-merge(LPI_ID,land_use, by=c("Longitude", "Latitude"))
+
+```
+
+```{r}
+sums<-rowSums(LPILU[,c(5:9)])
+hist(sums)
+
+LPILU$Other<- 1 - rowSums(LPILU[,c(5:9)])  #not all cells add up to 1 - not sure why
+ 
+write.csv(LPILU, "Global_Land_Use_All_LPI.csv")
+
+```
+
+Step 5 - Calculating land use change for each population
+
+```{r}
+LPILU<-read.csv("Global_Land_Use_All_LPI.csv") 
+#should probablyy get rid of those with high "other" category as may be reflective of crappy data
+
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
+
+```
+
+```{r}
+
+
+doDist = function(sp_name) {
+  spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,63:118]                     #subsetting only the dates
+  colnames(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
+  lu_id=subset(LPILU, ID == sp_name)  #subsetting the climate data by each population
+  
+  id<-spid2$ID
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  if (sum(!is.na(spidt)) > 0) {
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  minyr<-matrix(subset(lu_id, Year==min(Year))[,c(6:11)],nrow=1)
+  maxyr<-matrix(subset(lu_id, Year==max(Year))[,c(6:11)],nrow=1)
+  
+  mat<-rbind(minyr, maxyr)
+  euc<-dist(mat, method = "euclidean")
+  euc<-as.numeric(euc)  
+  } else{
+    euc<-NA
+  }
+  euc_df<-data.frame(id,euc)
+  print(euc_df)  
+  return(euc_df)
+}
+
+all_df_list <- lapply(unique(LPIsp$ID), doDist)
+
+```
+
+```{r}
+all_matrix <- matrix(unlist(all_df_list), ncol=2, byrow=TRUE)
+mean_df <- data.frame(all_matrix)
+colnames(mean_df) <- c("ID", "LUC_dist")
+
+write.csv(mean_df, "LUC_distance_all.csv")
+
+```
+
+Step 6 - Mixed Effects models exploring the impact of environmental change on population trends
+
+```{r}
+temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
+luc<-read.csv("LUC_distance_all.csv")
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
+EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
+
+```
+
+```{r}
+temp<-temp[,c("ID", "Estimate")]
+LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat")]
+
+df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+
+nrow(df)
+
+```
+
+```{r}
+library(plyr)
+#counting duplicates at each location
+sp_dups<-data.frame(ddply(df2,.(Longitude,Latitude),nrow))
+sp_dups$loc_id<-1:length(sp_dups$Longitude)
+sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
+
+library(data.table)
+#dt = as.data.table(sp_dups_df)
+
+parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate
+   #for hilda data
+
+parm_mat<-as.matrix(parm_df)
+parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+
+parm_id<-parm_mat[,"ID"]
+
+parm_df_scale<-data.frame(parm_id,parm_scale)
+
+colnames(parm_df_scale)<-c("ID","mean_slope_scale", "change_rate_scale")
+
+sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
+
+dt<-data.table(sp_df_scale)
+
+```
+
+```{r}
+library(lme4)
+library(MuMIn)
+source("rsquaredglmm.R")
+
+R=999
+AIC_m1= numeric(R)
+AIC_m1a= numeric(R)
+AIC_m1b= numeric(R)
+AIC_m1c= numeric(R)
+AIC_mnull= numeric(R)
+
+marg_Rsq_m1 = numeric(R)
+marg_Rsq_m1a = numeric(R)
+marg_Rsq_m1b = numeric(R)
+marg_Rsq_m1c = numeric(R)
+
+cond_Rsq_m1 = numeric(R)
+cond_Rsq_m1a = numeric(R)
+cond_Rsq_m1b = numeric(R)
+cond_Rsq_m1c = numeric(R)
+cond_Rsq_mnull = numeric(R)
+
+m1_w = numeric(R)
+m1a_w = numeric(R)
+m1b_w = numeric(R)
+m1c_w = numeric(R)
+mnull_w = numeric(R)
+
+MTC_i = numeric(R)
+LUC_i = numeric(R)
+LUC_MTC_i = numeric(R)
+
+int_av = numeric(R)
+MTC_av = numeric(R)
+LUC_av = numeric(R)
+LUC_MTC_av = numeric(R)
+
+
+#dt<-data.table(Euro)
+
+for (i in 1:R) {
+  dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
+  colnames(dt2)[2]<-"ID"
+  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
+  
+  m1<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+Habitat_Loss_Threat:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1T<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+Habitat_Loss_Threat:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  
+  m1a<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1aT<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  
+  m1b<-lmer(lambda_sum ~ Habitat_Loss_Threat+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1bT<-lmer(lambda_sum ~ Habitat_Loss_Threat+(1|Binomial),data=sp_dups_df2)
+  
+  m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1cT<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+ 
+  mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
+  mnullT<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2)
+  
+  #AIC
+  AIC_m1[i]<-AIC(m1)
+  AIC_m1a[i]<-AIC(m1a)
+  AIC_m1b[i]<-AIC(m1b)
+  AIC_m1c[i]<-AIC(m1c)
+  AIC_mnull[i]<-AIC(mnull)
+
+  #Weights
+  
+  msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
+  msAICc$model<-rownames(msAICc)
+  msAICc<-data.frame(msAICc)
+  
+  m1_w[i]<-subset(msAICc, model=="m1")$weight
+  m1a_w[i]<-subset(msAICc, model=="m1a")$weight
+  m1b_w[i]<-subset(msAICc, model=="m1b")$weight
+  m1c_w[i]<-subset(msAICc, model=="m1c")$weight
+  mnull_w[i]<-subset(msAICc, model=="mnull")$weight
+  
+  #Rsq
+  models_list<-list(m1T,m1aT,m1bT,m1cT,mnullT)
+  modelsR<-lapply(models_list,rsquared.glmm)
+  modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+  
+  marg_Rsq_m1[i]<-modelsRsq[1,4]
+  marg_Rsq_m1a[i]<-modelsRsq[2,4]
+  marg_Rsq_m1b[i]<-modelsRsq[3,4]
+  marg_Rsq_m1c[i]<-modelsRsq[4,4]
+  cond_Rsq_m1[i]<-modelsRsq[1,5]
+  cond_Rsq_m1a[i]<-modelsRsq[2,5]
+  cond_Rsq_m1b[i]<-modelsRsq[3,5]
+  cond_Rsq_m1c[i]<-modelsRsq[4,5]
+  cond_Rsq_mnull[i]<-modelsRsq[5,5]
+
+  
+  #estimates from most complex model
+  var_imp<-summary(model.avg(models_list))
+  MTC_i[i]<-var_imp$importance["mean_slope_scale"]
+  LUC_i[i]<-var_imp$importance["Habitat_Loss_Threat"]
+  LUC_MTC_i[i]<-var_imp$importance["Habitat_Loss_Threat:mean_slope_scale"]
+  #BM_i[i]<-var_imp$importance["Bodymass"]
+
+  int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
+  MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
+  LUC_av[i]<-var_imp$coefmat.subset["Habitat_Loss_Threat","Estimate"]
+  LUC_MTC_av[i]<-var_imp$coefmat.subset["Habitat_Loss_Threat:mean_slope_scale","Estimate"]
+  
+  print(i)
+  }
+```
+
+
+```{r}
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
+
+AIC_del<-AIC_df[,c(1:4)] - AIC_df$AIC_mnull
+
+colMeans(AIC_del)
+
+```
+
+```{r}
+
+mean(marg_Rsq_m1)
+mean(marg_Rsq_m1a)
+mean(marg_Rsq_m1b)
+mean(marg_Rsq_m1c)
+
+mean(cond_Rsq_m1)
+mean(cond_Rsq_m1a)
+mean(cond_Rsq_m1b)
+mean(cond_Rsq_m1c)
+mean(cond_Rsq_mnull)
+
+mean(m1_w)
+mean(m1a_w)
+mean(m1b_w)
+mean(m1c_w)
+mean(mnull_w)
+
+```
+
+
+```{r}
+
+Low<-(R+1)/40
+High<-(R+1)-(R+1)/40 
+
+mean_av<- c(mean(LUC_av),mean(MTC_av),mean(LUC_MTC_av))
+lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low], sort(LUC_MTC_av)[Low])
+highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High], sort(LUC_MTC_av)[High])
+
+Variable<-c("LUC", "MTC", "LUC*MTC")
+
+conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
+colnames(conf_av)<-Variable
+conf_av
+
+library(plotrix)
+
+plotCI(1:3, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="Variable Coefficients", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
+axis(1, at=1:3, labels=colnames(conf_i), las=2)
+abline(h=0, col="red", lty =2)
+
+```
