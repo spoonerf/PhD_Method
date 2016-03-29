@@ -28,9 +28,13 @@ library(data.table)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate
 #for hilda data
-
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+
+centre_temp<-attr(parm_scale, 'scaled:center')[1]
+centre_luc<-attr(parm_scale, 'scaled:center')[2]
+scale_temp<-attr(parm_scale, 'scaled:scale')[1] 
+scale_luc<-attr(parm_scale, 'scaled:scale')[2] 
 
 parm_id<-parm_mat[,"ID"]
 
@@ -85,8 +89,12 @@ LUC_MTC_av = numeric(R)
 land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=1000)
 temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=1000)
 
+landus<-(land  * scale_luc) + centre_luc
+tempus<-(temp * scale_temp) + centre_temp
+
 df<-expand.grid(land,temp)
 colnames(df)<-c("change_rate_scale", "mean_slope_scale")
+
 
 for (i in 1:R) {
   dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
@@ -128,7 +136,7 @@ for (i in 1:R) {
   mnull_w[i]<-subset(msAICc, model=="mnull")$weight
   
   #Rsq
-  models_list<-list(m1T,m1aT,m1bT,m1cT,mnullT)
+  models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
   
