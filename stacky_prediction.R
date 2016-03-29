@@ -50,7 +50,7 @@ library(lme4)
 library(MuMIn)
 source("rsquaredglmm.R")
 
-R=10
+R=999
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -89,11 +89,15 @@ LUC_MTC_av = numeric(R)
 land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=1000)
 temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=1000)
 
+df<-expand.grid(landus,tempus)
+colnames(df)<-c("change_rate_scale", "mean_slope_scale")
+
+#unscaling the data
 landus<-(land  * scale_luc) + centre_luc
 tempus<-(temp * scale_temp) + centre_temp
 
-df<-expand.grid(land,temp)
-colnames(df)<-c("change_rate_scale", "mean_slope_scale")
+dfus<-expand.grid(landus,tempus)
+colnames(dfus)<-c("change_rate_scale", "mean_slope_scale")
 
 
 for (i in 1:R) {
@@ -117,68 +121,77 @@ for (i in 1:R) {
   mnullT<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2)
   
   #AIC
-  AIC_m1[i]<-AIC(m1)
-  AIC_m1a[i]<-AIC(m1a)
-  AIC_m1b[i]<-AIC(m1b)
-  AIC_m1c[i]<-AIC(m1c)
-  AIC_mnull[i]<-AIC(mnull)
-  
-  #Weights
-  
-  msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
-  msAICc$model<-rownames(msAICc)
-  msAICc<-data.frame(msAICc)
-  
-  m1_w[i]<-subset(msAICc, model=="m1")$weight
-  m1a_w[i]<-subset(msAICc, model=="m1a")$weight
-  m1b_w[i]<-subset(msAICc, model=="m1b")$weight
-  m1c_w[i]<-subset(msAICc, model=="m1c")$weight
-  mnull_w[i]<-subset(msAICc, model=="mnull")$weight
-  
+  # AIC_m1[i]<-AIC(m1)
+  # AIC_m1a[i]<-AIC(m1a)
+  # AIC_m1b[i]<-AIC(m1b)
+  # AIC_m1c[i]<-AIC(m1c)
+  # AIC_mnull[i]<-AIC(mnull)
+  # 
+  # #Weights
+  # 
+  # msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
+  # msAICc$model<-rownames(msAICc)
+  # msAICc<-data.frame(msAICc)
+  # 
+  # m1_w[i]<-subset(msAICc, model=="m1")$weight
+  # m1a_w[i]<-subset(msAICc, model=="m1a")$weight
+  # m1b_w[i]<-subset(msAICc, model=="m1b")$weight
+  # m1c_w[i]<-subset(msAICc, model=="m1c")$weight
+  # mnull_w[i]<-subset(msAICc, model=="mnull")$weight
+  # 
   #Rsq
   models_list<-list(m1,m1a,m1b,m1c,mnull)
-  modelsR<-lapply(models_list,rsquared.glmm)
-  modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  
-  marg_Rsq_m1[i]<-modelsRsq[1,4]
-  marg_Rsq_m1a[i]<-modelsRsq[2,4]
-  marg_Rsq_m1b[i]<-modelsRsq[3,4]
-  marg_Rsq_m1c[i]<-modelsRsq[4,4]
-  cond_Rsq_m1[i]<-modelsRsq[1,5]
-  cond_Rsq_m1a[i]<-modelsRsq[2,5]
-  cond_Rsq_m1b[i]<-modelsRsq[3,5]
-  cond_Rsq_m1c[i]<-modelsRsq[4,5]
-  cond_Rsq_mnull[i]<-modelsRsq[5,5]
-  
-  var_imp<-summary(model.avg(models_list))
-  MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  LUC_i[i]<-var_imp$importance["change_rate_scale"]
-  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  #BM_i[i]<-var_imp$importance["Bodymass"]
-  
-  int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
-  MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
-  LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
-  LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
-  
+  # modelsR<-lapply(models_list,rsquared.glmm)
+  # modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+  # 
+  # marg_Rsq_m1[i]<-modelsRsq[1,4]
+  # marg_Rsq_m1a[i]<-modelsRsq[2,4]
+  # marg_Rsq_m1b[i]<-modelsRsq[3,4]
+  # marg_Rsq_m1c[i]<-modelsRsq[4,4]
+  # cond_Rsq_m1[i]<-modelsRsq[1,5]
+  # cond_Rsq_m1a[i]<-modelsRsq[2,5]
+  # cond_Rsq_m1b[i]<-modelsRsq[3,5]
+  # cond_Rsq_m1c[i]<-modelsRsq[4,5]
+  # cond_Rsq_mnull[i]<-modelsRsq[5,5]
+  # 
+  # var_imp<-summary(model.avg(models_list))
+  # MTC_i[i]<-var_imp$importance["mean_slope_scale"]
+  # LUC_i[i]<-var_imp$importance["change_rate_scale"]
+  # LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+  # #BM_i[i]<-var_imp$importance["Bodymass"]
+  # 
+  # int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
+  # MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
+  # LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
+  # LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
+  # 
   mav<-model.avg(models_list)
-  pred<-predict(mav, df, re.form=NA)
-  pdf<-data.frame(df, pred)
-  pred2<-matrix(pred, ncol=length(land), nrow=length(temp), byrow=T)
+  pred<-predict(mav, dfus, re.form=NA)
+  pdf<-data.frame(dfus, pred)
+  pred2<-matrix(pred, ncol=length(landus), nrow=length(tempus), byrow=T)
   #image(land,temp,pred2)
+  # head(pred2)
+  # pras<-raster(pred2, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
+  # 
+  pred_pcnt<-(10^pred2) - 1
+  pcntras<-raster(pred_pcnt, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
   
-  pras<-raster(pred2, xmn=min(land), xmx=max(land), ymn=min(temp), ymx=max(temp))
   file<-paste("predict_", i,".tif" ,sep="")
-  writeRaster(pras, filename=file)
+  writeRaster(pcntras, filename=file, overwrite=TRUE)
   print(i)
 }
 
-'data-.*\\.csv',
+
 list<-list.files(path = getwd(), pattern = "predict.*\\.tif$")
 
-br<-brick(list)
+br<-stack(list)
 
-test<-raster("predict_1.tif")
+#plot(br)
+
+br_av<-mean(br)
+
+plot(br_av, xlab="Land Use Change Distance", ylab="Mean Temperature Change", main="Percentage Population Change")
+
 
 # plot(pras)
 # head(pred2)
