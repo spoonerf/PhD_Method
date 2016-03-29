@@ -119,14 +119,14 @@ for (i in 1:R) {
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
-  m1<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+Habitat_Loss_Threat:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1T<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+Habitat_Loss_Threat:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1T<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-  m1a<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1aT<-lmer(lambda_sum ~ Habitat_Loss_Threat+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m1a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1aT<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-  m1b<-lmer(lambda_sum ~ Habitat_Loss_Threat+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1bT<-lmer(lambda_sum ~ Habitat_Loss_Threat+(1|Binomial),data=sp_dups_df2)
+  m1b<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1bT<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial),data=sp_dups_df2)
   
   m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   m1cT<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2)
@@ -172,14 +172,14 @@ for (i in 1:R) {
   #estimates from most complex model
   var_imp<-summary(model.avg(models_list))
   MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  LUC_i[i]<-var_imp$importance["Habitat_Loss_Threat"]
-  LUC_MTC_i[i]<-var_imp$importance["Habitat_Loss_Threat:mean_slope_scale"]
+  LUC_i[i]<-var_imp$importance["change_rate_scale"]
+  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
   #BM_i[i]<-var_imp$importance["Bodymass"]
 
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
-  LUC_av[i]<-var_imp$coefmat.subset["Habitat_Loss_Threat","Estimate"]
-  LUC_MTC_av[i]<-var_imp$coefmat.subset["Habitat_Loss_Threat:mean_slope_scale","Estimate"]
+  LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
+  LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
   
   print(i)
   }
