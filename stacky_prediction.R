@@ -13,7 +13,8 @@ df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE)
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 )
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time 
+            >=5 & System!="Marine" &Specific_location == 1 )
 
 nrow(df2)
 
@@ -93,20 +94,20 @@ for (i in 1:R) {
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
   
-  m1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1T<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1T<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-  m1a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1aT<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1aT<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-  m1b<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1bT<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial),data=sp_dups_df2)
+  m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1bT<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial),data=sp_dups_df2)
   
-  m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1cT<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  m1cT<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
-  mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
-  mnullT<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2)
+  mnull<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
+  mnullT<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2)
   
   #AIC
   AIC_m1[i]<-AIC(m1)
