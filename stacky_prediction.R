@@ -2,21 +2,27 @@
 temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+Realm<-read.csv("selected_pops_Ecoregion.csv")
+Realm<-Realm[,c("ID", "WWF_REALM2")]
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 
 temp<-temp[,c("ID", "Estimate")]
-LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat")]
+LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "T_realm", "FW_realm")]
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+
+df<-merge(df, Realm, by="ID")
 
 nrow(df)
 
 df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time 
             >=5 & System!="Marine" &Specific_location == 1 )
 
+
 nrow(df2)
+#write.csv(df2, "selected_pops_LPI.csv")
 
 library(plyr)
 #counting duplicates at each location
@@ -29,9 +35,13 @@ library(data.table)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate
 #for hilda data
-
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+
+centre_temp<-attr(parm_scale, 'scaled:center')[1]
+centre_luc<-attr(parm_scale, 'scaled:center')[2]
+scale_temp<-attr(parm_scale, 'scaled:scale')[1] 
+scale_luc<-attr(parm_scale, 'scaled:scale')[2] 
 
 parm_id<-parm_mat[,"ID"]
 
@@ -43,11 +53,29 @@ sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
 dt<-data.table(sp_df_scale)
 
+
+#dt<-data.table(Euro)
+
+land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=100)
+temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
+
+# df<-expand.grid(land,temp)
+# colnames(df)<-c("change_rate_scale", "mean_slope_scale")
+
+#unscaling the data
+landus<-(land  * scale_luc) + centre_luc
+tempus<-(temp * scale_temp) + centre_temp
+
+dfus<-expand.grid(landus,tempus)
+colnames(dfus)<-c("change_rate_scale", "mean_slope_scale")
+
+
 library(lme4)
 library(MuMIn)
+library(raster)
 source("rsquaredglmm.R")
 
-R=10
+R=299
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -80,20 +108,15 @@ MTC_av = numeric(R)
 LUC_av = numeric(R)
 LUC_MTC_av = numeric(R)
 
+MTC_avus = numeric(R)
+LUC_avus = numeric(R)
 
-#dt<-data.table(Euro)
-
-land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=1000)
-temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=1000)
-
-df<-expand.grid(land,temp)
-colnames(df)<-c("change_rate_scale", "mean_slope_scale")
 
 for (i in 1:R) {
   dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
-  
+
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   m1T<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
@@ -108,31 +131,31 @@ for (i in 1:R) {
   
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
   mnullT<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2)
-  
+
   #AIC
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
   AIC_m1b[i]<-AIC(m1b)
   AIC_m1c[i]<-AIC(m1c)
   AIC_mnull[i]<-AIC(mnull)
-  
-  #Weights
-  
+
+  # #Weights
+
   msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
-  
+
   m1_w[i]<-subset(msAICc, model=="m1")$weight
   m1a_w[i]<-subset(msAICc, model=="m1a")$weight
   m1b_w[i]<-subset(msAICc, model=="m1b")$weight
   m1c_w[i]<-subset(msAICc, model=="m1c")$weight
   mnull_w[i]<-subset(msAICc, model=="mnull")$weight
-  
+
   #Rsq
-  models_list<-list(m1T,m1aT,m1bT,m1cT,mnullT)
+  models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  
+
   marg_Rsq_m1[i]<-modelsRsq[1,4]
   marg_Rsq_m1a[i]<-modelsRsq[2,4]
   marg_Rsq_m1b[i]<-modelsRsq[3,4]
@@ -142,38 +165,101 @@ for (i in 1:R) {
   cond_Rsq_m1b[i]<-modelsRsq[3,5]
   cond_Rsq_m1c[i]<-modelsRsq[4,5]
   cond_Rsq_mnull[i]<-modelsRsq[5,5]
-  
+
   var_imp<-summary(model.avg(models_list))
-  MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  LUC_i[i]<-var_imp$importance["change_rate_scale"]
-  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  #BM_i[i]<-var_imp$importance["Bodymass"]
-  
+  # MTC_i[i]<-var_imp$importance["mean_slope_scale"]
+  # LUC_i[i]<-var_imp$importance["change_rate_scale"]
+  # LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+  # #BM_i[i]<-var_imp$importance["Bodymass"]
+
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
   LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
   
-  mav<-model.avg(models_list)
-  pred<-predict(mav, df, re.form=NA)
-  pdf<-data.frame(df, pred)
-  pred2<-matrix(pred, ncol=length(land), nrow=length(temp), byrow=T)
-  #image(land,temp,pred2)
+  MTC_avus[i]<-(MTC_av[i] * scale_temp) + centre_temp
+  LUC_avus[i]<-(LUC_av[i] * scale_luc) + centre_luc
   
-  pras<-raster(pred2, xmn=min(land), xmx=max(land), ymn=min(temp), ymx=max(temp))
+  mav<-model.avg(models_list)
+  pred<-predict(mav, dfus, re.form=NA)
+  pdf<-data.frame(dfus, pred)
+  pred2<-matrix(pred, ncol=length(landus), nrow=length(tempus), byrow=T)
+  #image(land,temp,pred2)
+  # head(pred2)
+  # pras<-raster(pred2, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
+  # 
+  pred_pcnt<-(10^pred2) - 1
+  pcntras<-raster(pred_pcnt, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
+  
   file<-paste("predict_", i,".tif" ,sep="")
-  writeRaster(pras, filename=file)
+  writeRaster(pcntras, filename=file, overwrite=TRUE)
   print(i)
 }
 
-'data-.*\\.csv',
+
 list<-list.files(path = getwd(), pattern = "predict.*\\.tif$")
 
-br<-brick(list)
+br<-stack(list)
 
-test<-raster("predict_1.tif")
+br_av<-mean(br)
 
-# plot(pras)
-# head(pred2)
-# lev<-levelplot(pred ~ change_rate_scale + mean_slope_scale, data=pdf, useRaster = TRUE)
-# 
+plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Percentage Population Change - Global Mammals and Birds")
+
+writeRaster(br_av, "Global_Mammals_and_Birds_Prediction_Average_Raster.tif", overwrite=TRUE)
+
+####
+AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
+
+AIC_del<-AIC_df[,c(1:4)] - AIC_df$AIC_mnull
+
+colMeans(AIC_del)
+
+AIC_int<-data.frame(AIC=AIC_m1)
+AIC_luc<-data.frame(AIC=AIC_m1b)
+AIC_mtc<-data.frame(AIC=AIC_m1c)
+AIC_null<-data.frame(AIC=AIC_mnull)
+
+AIC_int$model<-'Interacting'
+AIC_luc$model<- 'Land Use Change'
+AIC_mtc$model<- 'Mean Temp Change'
+AIC_null$model<-'Null'
+#and combine into your new data frame vegLengths
+AIClengths <- rbind(AIC_int, AIC_null)
+#AIClengths <- rbind(AIC_mtc, AIC_null)
+#AIClengths <- rbind(AIC_luc, AIC_null)
+
+library(ggplot2)
+#now make your lovely plot
+ggplot(AIClengths, aes(AIC, fill = model)) + geom_density(alpha = 0.2)
+
+
+
+
+#####
+
+Low<-(R+1)/40
+High<-(R+1)-(R+1)/40 
+
+mean_av<- c(mean(LUC_av),mean(MTC_av),mean(LUC_MTC_av), mean(LUC_avus), mean(MTC_avus))
+lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low], sort(LUC_MTC_av)[Low], sort(LUC_avus)[Low], sort(MTC_avus)[Low])
+highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High], sort(LUC_MTC_av)[High],sort(LUC_avus)[High], sort(MTC_avus)[High] )
+
+Variable<-c("LUC", "MTC", "LUC*MTC", "LUC_unscale", "MTC_unscale")
+
+conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
+colnames(conf_av)<-Variable
+conf_av
+
+######
+
+
+
+mean(marg_Rsq_m1)
+mean(marg_Rsq_m1a)
+mean(marg_Rsq_m1b)
+mean(marg_Rsq_m1c)
+mean(cond_Rsq_m1)
+mean(cond_Rsq_m1a)
+mean(cond_Rsq_m1b)
+mean(cond_Rsq_m1c)
+mean(cond_Rsq_mnull)

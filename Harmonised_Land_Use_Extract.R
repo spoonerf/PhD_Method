@@ -25,6 +25,7 @@ pastn<-brick("Past_1950.tif")
 secdn<-brick("Secd_1950.tif")
 urbn<-brick("Urbn_1950.tif")
 
+
 LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
