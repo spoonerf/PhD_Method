@@ -18,7 +18,8 @@ df<-merge(df, Realm, by="ID")
 nrow(df)
 
 df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time 
-            >=5 & System!="Marine" &Specific_location == 1 )
+            >=5 & System!="Marine" &Specific_location == 1 & !is.na(lambda_sum) 
+            & !is.na(lambda_mean) & Class=="Aves")
 
 
 nrow(df2)
@@ -188,7 +189,7 @@ for (i in 1:R) {
   # head(pred2)
   # pras<-raster(pred2, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
   # 
-  pred_pcnt<-(10^pred2) - 1
+  pred_pcnt<-(10^pred2) - 1    #for lambda sum this is total population change, for lambda mean this is average annual rate of change
   pcntras<-raster(pred_pcnt, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
   
   file<-paste("predict_", i,".tif" ,sep="")
@@ -203,9 +204,9 @@ br<-stack(list)
 
 br_av<-mean(br)
 
-plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Percentage Population Change - Global Mammals and Birds")
+plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Average Annual Population Change (%) - Birds")
 
-writeRaster(br_av, "Global_Mammals_and_Birds_Prediction_Average_Raster.tif", overwrite=TRUE)
+writeRaster(br_av, "Global_Birds_Prediction_Average_Raster_Lambda_mean.tif", overwrite=TRUE)
 
 ####
 AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
