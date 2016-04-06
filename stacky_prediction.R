@@ -203,9 +203,9 @@ br<-stack(list)
 
 br_av<-mean(br)
 
-plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Percentage Population Change - Global Mammals and Birds")
+plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Percentage Population Change -  Birds")
 
-writeRaster(br_av, "Global_Mammals_and_Birds_Prediction_Average_Raster.tif", overwrite=TRUE)
+writeRaster(br_av, "Global_Birds_Prediction_Average_Raster_Lambda_mean.tif", overwrite=TRUE)
 
 ####
 AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
