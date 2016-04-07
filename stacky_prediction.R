@@ -19,7 +19,7 @@ nrow(df)
 
 df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time 
             >=5 & System!="Marine" &Specific_location == 1 & !is.na(lambda_sum) 
-            & !is.na(lambda_mean) & Class=="Aves")
+            & !is.na(lambda_mean) & WWF_REALM2 =="Afrotropic" )
 
 
 nrow(df2)
@@ -205,9 +205,9 @@ br<-stack(list)
 br_av<-mean(br)
 
 
-plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Average Annual Population Change (%) - Birds")
+plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Average Annual Population Change (%) - Indo-Malay Birds")
 
-writeRaster(br_av, "Global_Birds_Prediction_Average_Raster_Lambda_mean.tif", overwrite=TRUE)
+writeRaster(br_av, "Birds_and_Mammals_Prediction_Average_Raster_Lambda_mean.tif", overwrite=TRUE)
 
 ####
 AIC_df<-data.frame(cbind(AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
@@ -227,7 +227,7 @@ AIC_mtc$model<- 'Mean Temp Change'
 AIC_null$model<-'Null'
 #and combine into your new data frame vegLengths
 AIClengths <- rbind(AIC_int, AIC_null)
-#AIClengths <- rbind(AIC_mtc, AIC_null)
+#AIClengths <- rbind(AIC_mtc, AIC_null)  #m1c
 #AIClengths <- rbind(AIC_luc, AIC_null)
 
 library(ggplot2)
@@ -235,18 +235,16 @@ library(ggplot2)
 ggplot(AIClengths, aes(AIC, fill = model)) + geom_density(alpha = 0.2)
 
 
-
-
 #####
 
 Low<-(R+1)/40
 High<-(R+1)-(R+1)/40 
 
-mean_av<- c(mean(LUC_av),mean(MTC_av),mean(LUC_MTC_av), mean(LUC_avus), mean(MTC_avus))
-lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low], sort(LUC_MTC_av)[Low], sort(LUC_avus)[Low], sort(MTC_avus)[Low])
-highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High], sort(LUC_MTC_av)[High],sort(LUC_avus)[High], sort(MTC_avus)[High] )
+mean_av<- c(mean(int_av), mean(LUC_av),mean(MTC_av),mean(LUC_MTC_av), mean(LUC_avus), mean(MTC_avus))
+lowCI_av<-c(sort(int_av)[Low],sort(LUC_av)[Low], sort(MTC_av)[Low], sort(LUC_MTC_av)[Low], sort(LUC_avus)[Low], sort(MTC_avus)[Low])
+highCI_av<-c(sort(int_av)[High],sort(LUC_av)[High], sort(MTC_av)[High], sort(LUC_MTC_av)[High],sort(LUC_avus)[High], sort(MTC_avus)[High] )
 
-Variable<-c("LUC", "MTC", "LUC*MTC", "LUC_unscale", "MTC_unscale")
+Variable<-c("Intercept","LUC", "MTC", "LUC*MTC", "LUC_unscale", "MTC_unscale")
 
 conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
 colnames(conf_av)<-Variable
