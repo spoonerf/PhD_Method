@@ -172,7 +172,7 @@ buff<- function (year,b)  {
 ```
 
 ```{r}
-diam<-c(50000) #size of buffer to use - in metres
+diam<-0 #size of buffer to use - in metres
 lyr<-1:nlayers(CR)
 
 
@@ -208,7 +208,7 @@ LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
 LPIclim<-merge(srm3, LPI_ID, by=c("Longitude", "Latitude"))
 
-write.csv(LPIclim, "Global_Mean_Temp_All_LPI.csv")
+write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff.csv")
 
 ```
 
@@ -216,7 +216,8 @@ Step 3 - Calculating mean temp change for each population
 
 ```{r}
 
-LPIclim<-read.csv("Global_Mean_Temp_All_LPI.csv")
+#LPIclim<-read.csv("Global_Mean_Temp_All_LPI.csv")
+LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff.csv")
 
 LPIclim$Date<-as.Date(LPIclim$Date, "%Y-%m-%d")
 LPIclim$Year<-format(LPIclim$Date, "%Y")
@@ -225,6 +226,10 @@ LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" & ID !=4438)
 
+```
+
+```{r}
+library(broom)
 ```
 
 ```{r}
@@ -277,7 +282,7 @@ colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
 
 mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 
-write.csv(mean_df, "All_LPI_Mean_Temp_Slope.csv")
+write.csv(mean_df, "All_LPI_Mean_Temp_Slope_nobuff.csv")
 
 ```
 
@@ -447,7 +452,8 @@ write.csv(mean_df, "LUC_distance_all.csv")
 Step 6 - Mixed Effects models exploring the impact of environmental change on population trends
 
 ```{r}
-temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
+#temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
+temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
@@ -466,7 +472,7 @@ df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE)
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & Class=="Mammalia" )
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1)
 
 nrow(df2)
 ```
