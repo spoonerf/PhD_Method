@@ -472,7 +472,7 @@ df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE)
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1)
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 &Class=="Amphibia")
 
 nrow(df2)
 ```
@@ -493,6 +493,11 @@ parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climat
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
 
+centre_temp<-attr(parm_scale, 'scaled:center')[1]
+centre_luc<-attr(parm_scale, 'scaled:center')[2]
+scale_temp<-attr(parm_scale, 'scaled:scale')[1] 
+scale_luc<-attr(parm_scale, 'scaled:scale')[2] 
+
 parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale)
@@ -506,11 +511,25 @@ dt<-data.table(sp_df_scale)
 ```
 
 ```{r}
+land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=100)
+temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
+
+landus<-(land  * scale_luc) + centre_luc
+tempus<-(temp * scale_temp) + centre_temp
+
+dfus<-expand.grid(landus,tempus)
+colnames(dfus)<-c("change_rate_scale", "mean_slope_scale")
+
+
+```
+
+```{r}
 library(lme4)
 library(MuMIn)
+library(raster)
 source("rsquaredglmm.R")
 
-R=999
+R=299
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -543,14 +562,15 @@ MTC_av = numeric(R)
 LUC_av = numeric(R)
 LUC_MTC_av = numeric(R)
 
+MTC_avus = numeric(R)
+LUC_avus = numeric(R)
 
-#dt<-data.table(Euro)
 
 for (i in 1:R) {
   dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
   colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
-  
+
   m1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   m1T<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
   
@@ -562,10 +582,10 @@ for (i in 1:R) {
   
   m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   m1cT<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2)
- 
+  
   mnull<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
   mnullT<-lmer(lambda_sum ~ 1+(1|Binomial),data=sp_dups_df2)
-  
+
   #AIC
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
@@ -573,23 +593,23 @@ for (i in 1:R) {
   AIC_m1c[i]<-AIC(m1c)
   AIC_mnull[i]<-AIC(mnull)
 
-  #Weights
-  
+  # #Weights
+
   msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
-  
+
   m1_w[i]<-subset(msAICc, model=="m1")$weight
   m1a_w[i]<-subset(msAICc, model=="m1a")$weight
   m1b_w[i]<-subset(msAICc, model=="m1b")$weight
   m1c_w[i]<-subset(msAICc, model=="m1c")$weight
   mnull_w[i]<-subset(msAICc, model=="mnull")$weight
-  
+
   #Rsq
-  models_list<-list(m1T,m1aT,m1bT,m1cT,mnullT)
+  models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  
+
   marg_Rsq_m1[i]<-modelsRsq[1,4]
   marg_Rsq_m1a[i]<-modelsRsq[2,4]
   marg_Rsq_m1b[i]<-modelsRsq[3,4]
@@ -600,21 +620,48 @@ for (i in 1:R) {
   cond_Rsq_m1c[i]<-modelsRsq[4,5]
   cond_Rsq_mnull[i]<-modelsRsq[5,5]
 
-  
-  #estimates from most complex model
   var_imp<-summary(model.avg(models_list))
-  MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  LUC_i[i]<-var_imp$importance["change_rate_scale"]
-  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  #BM_i[i]<-var_imp$importance["Bodymass"]
+  # MTC_i[i]<-var_imp$importance["mean_slope_scale"]
+  # LUC_i[i]<-var_imp$importance["change_rate_scale"]
+  # LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+  # #BM_i[i]<-var_imp$importance["Bodymass"]
 
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
   LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
   
+  MTC_avus[i]<-(MTC_av[i] * scale_temp) + centre_temp
+  LUC_avus[i]<-(LUC_av[i] * scale_luc) + centre_luc
+  
+  mav<-model.avg(models_list)
+  pred<-predict(mav, dfus, re.form=NA)
+  pdf<-data.frame(dfus, pred)
+  pred2<-matrix(pred, ncol=length(landus), nrow=length(tempus), byrow=T)
+  #image(land,temp,pred2)
+  # head(pred2)
+  # pras<-raster(pred2, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
+  # 
+  pred_pcnt<-(10^pred2) - 1    #for lambda sum this is total population change, for lambda mean this is average annual rate of change
+  pcntras<-raster(pred_pcnt, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
+  
+  file<-paste("predict_", i,".tif" ,sep="")
+  writeRaster(pcntras, filename=file, overwrite=TRUE)
   print(i)
 }
+```
+
+```{r}
+list<-list.files(path = getwd(), pattern = "predict.*\\.tif$")
+
+br<-stack(list)
+
+br_av<-mean(br)
+
+
+plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Total Population Change (%) -Amphibians")
+
+writeRaster(br_av, "Birds_and_Mammals_Prediction_Average_Raster_Lambda_mean_noclimbuff.tif", overwrite=TRUE)
 
 ```
 
