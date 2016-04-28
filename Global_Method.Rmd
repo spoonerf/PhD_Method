@@ -253,8 +253,11 @@ doMean = function(sp_name) {
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   Mean<-year_temp$mean_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   
-  Mean_mon<-climid[climid$Year %in% Year, ]$Mean_T
-
+  # Mean_mon<-climid[climid$Year %in% Year, ]
+  # Mean_mon<-Mean_mon[order(as.Date(Mean_mon$Date, format="%Y/%m/%d")),]
+  # plot(Mean_mon$Date, Mean_mon$Mean_T, type="l", xlab="Year", ylab="Degrees Celsius", main="Monthly Mean Temperature")
+ # abline(lm(Mean_mon$Mean_T~Mean_mon$Date), col="red")
+  
   if (sum(is.nan(Mean))!=length(Mean)){
     
     lm_mean<-lm(Mean~Year)
@@ -295,11 +298,11 @@ library(raster)
 ```
 
 ```{r}
-crop<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gcrop.nc4")
-prim<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gothr.nc4")
-past<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gpast.nc4")
-secd<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gsecd.nc4")
-urban<-brick("D:/Fiona/PhD1/Land_Use/Harmonised/LUHa_u2t1.v1_gurbn.nc4")
+crop<-brick("LUHa_u2t1.v1_gcrop.nc4")
+prim<-brick("LUHa_u2t1.v1_gothr.nc4")
+past<-brick("LUHa_u2t1.v1_gpast.nc4")
+secd<-brick("LUHa_u2t1.v1_gsecd.nc4")
+urban<-brick("LUHa_u2t1.v1_gurbn.nc4")
 
 
 cropn<-crop[[251:306]]   #pulling out the data for 1950-2005 as the data starts at 1700
@@ -325,7 +328,7 @@ urbn<-brick("Urbn_1950.tif")
 ```{r}
 LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
-LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" & ID==10694 )
 
 xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
 
@@ -335,29 +338,34 @@ xy_df<-data.frame(xy)
 colnames(xy_df)<-c("lon", "lat")
 coordinates(xy_df) <- c("lon", "lat")
 
+head(xy_df)
 ```
 
 ```{r}
+library(doParallel)
+library(beepr)
+library(reshape2)
+```
 
-n<-6  #number of cores to use - not sure how many I can go up to
+```{r}
+layer<-urbn
+
+n<-2  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 
-days<-nlayers(urbn)    #splitting the data evenly between the cores
+days<-nlayers(layer)    #splitting the data evenly between the cores
 step<-floor(days/n)
 
 ptime <- system.time({   
   df<- foreach(days, .combine=cbind) %dopar%{
-    rasterex <- raster:::extract(urbn[[1:days]], xy_df)
+    rasterex <- raster:::extract(layer[[1:days]], xy_df)
   }
 }) 
 ptime 
-beep(1)
+#beep(3)
 stopCluster(cl)
 
-```
-
-```{r}
 dates<-1950:2005
 
 datesr<-rep(dates, each=1078)
@@ -367,8 +375,11 @@ dfm<-melt(df)
 lon<-xy[,1]
 lat<-xy[,2]
 
-dfm2<-cbind(lon,lat,datesr, dfm)
+#dfm2<-cbind(lon,lat,datesr, dfm)
+dfm2<-cbind(lon,lat,dates, dfm)
+```
 
+```{r}
 #crop2<-dfm2   #do each individually
 #prim2<-dfm2
 #past2<-dfm2
@@ -384,6 +395,23 @@ LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 LPILU<-merge(LPI_ID,land_use, by=c("Longitude", "Latitude"))
 
 ```
+
+Ibex example
+```{r}
+LPILU<-subset(LPILU, Year >=1950 & Year <=1984)
+euc<-numeric(nrow(LPILU-1))
+for (i in 2:nrow(LPILU)){
+  euc[i]<-dist(as.matrix(LPILU[c(i-1,i),c(5:9)]))
+  print(i)
+  }
+  
+years<-1950:1984
+
+plot(years,euc, type="l", ylab="Land Use Change", xlab="Year", main="Annual Land Use Change")
+
+
+```
+
 
 ```{r}
 sums<-rowSums(LPILU[,c(5:9)])
@@ -472,7 +500,7 @@ df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE)
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 &Class=="Amphibia")
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 &(Class=="Aves" | Class=="Mammalia"))
 
 nrow(df2)
 ```
