@@ -257,14 +257,12 @@ doMean = function(sp_name) {
   # Mean_mon<-climid[climid$Year %in% Year, ]$Mean_T
   year_temp$Year<-as.numeric(year_temp$Year)
   
-<<<<<<< HEAD
-=======
+
   # Mean_mon<-climid[climid$Year %in% Year, ]
   # Mean_mon<-Mean_mon[order(as.Date(Mean_mon$Date, format="%Y/%m/%d")),]
   # plot(Mean_mon$Date, Mean_mon$Mean_T, type="l", xlab="Year", ylab="Degrees Celsius", main="Monthly Mean Temperature")
  # abline(lm(Mean_mon$Mean_T~Mean_mon$Date), col="red")
   
->>>>>>> 85f0403e5477306e934f893c43e6ebbcde6c7b8c
   if (sum(is.nan(Mean))!=length(Mean)){
     
     #lm_mean<-lm(Mean~Year)
