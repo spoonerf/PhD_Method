@@ -120,6 +120,7 @@ library(reshape2)
 ```
 
 ```{r}
+CR30s<-brick("D:/Fiona/Git_Method/Git_Method/cru_ts3.23.1931.1940.tmp.dat.nc")
 CR40s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1941.1950.tmp.dat.nc/cru_ts3.23.1941.1950.tmp.dat.nc")
 CR50s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1951.1960.tmp.dat.nc/cru_ts3.23.1951.1960.tmp.dat.nc")
 CR60s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1961.1970.tmp.dat.nc/cru_ts3.23.1961.1970.tmp.dat.nc")
@@ -138,7 +139,7 @@ LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_201403
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
-CR<-stack(CR40s,CR50s,CR60s,CR70s,CR80s,CR90s,CR00s,CR10s)
+CR<-stack(CR30s,CR40s,CR50s,CR60s,CR70s,CR80s,CR90s,CR00s,CR10s)
 
 plot(CR[[1]])
 points(LPIsp$Longitude, LPIsp$Latitude)
@@ -188,7 +189,7 @@ stopCluster(cl)
 
 ```{r}
 
-dates<-seq(ymd('1941-01-16'),ymd('2014-12-16'), by = 'months')
+dates<-seq(ymd('1931-01-16'),ymd('2014-12-16'), by = 'months')
 
 
 datesr<-rep(dates, each=1078)
