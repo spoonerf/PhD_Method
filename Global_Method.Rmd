@@ -523,8 +523,8 @@ Step 6 - Mixed Effects models exploring the impact of environmental change on po
 
 ```{r}
 #temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
-#temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
-temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
+temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+#temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
@@ -546,9 +546,10 @@ df<-merge(df, Realm, by="ID")
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1)
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & Class=="Mammalia")
 
 nrow(df2)
+
 
 ```
 
@@ -582,6 +583,14 @@ colnames(parm_df_scale)<-c("ID","mean_slope_scale", "change_rate_scale")
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
 dt<-data.table(sp_df_scale)
+
+length(subset(dt,lambda_mean == NA))
+
+range_lam<-tapply(dt$lambda_mean, dt$loc_id, range)
+rl<-data.frame(matrix(unlist(range_lam), ncol=2, byrow=T))
+rl$diff<-rl[,1] - rl[,2]
+hist(rl$diff)
+#dt<-subset(dt, loc_id!=277)
 
 ```
 
@@ -949,6 +958,8 @@ abline(h=0, col="red", lty =2)
 
 
 ```{r}
+#install.packages('ggthemes', dependencies = TRUE)
+
 library(ggplot2)
 library(ggthemes)
 library(palettetown)
@@ -959,9 +970,12 @@ colnames(AIC_df)<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null")
 AIC_df<-melt(AIC_df)
 colnames(AIC_df)<-c("Model", "AIC")
 
+p<-ggplot(AIC_df, aes(x=factor(Model), y=AIC, fill=factor(Model)))
+p+geom_violin(trim=FALSE) +
+xlab("Model")+
+scale_fill_poke(pokemon = 'Vileplume', spread = 5)
 
 
-install.packages('ggthemes', dependencies = TRUE)
 ```
 
 ```{r}
