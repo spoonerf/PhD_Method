@@ -120,6 +120,7 @@ library(reshape2)
 ```
 
 ```{r}
+CR30s<-brick("D:/Fiona/Git_Method/Git_Method/cru_ts3.23.1931.1940.tmp.dat.nc")
 CR40s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1941.1950.tmp.dat.nc/cru_ts3.23.1941.1950.tmp.dat.nc")
 CR50s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1951.1960.tmp.dat.nc/cru_ts3.23.1951.1960.tmp.dat.nc")
 CR60s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1961.1970.tmp.dat.nc/cru_ts3.23.1961.1970.tmp.dat.nc")
@@ -138,7 +139,7 @@ LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_201403
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
-CR<-stack(CR40s,CR50s,CR60s,CR70s,CR80s,CR90s,CR00s,CR10s)
+CR<-stack(CR30s,CR40s,CR50s,CR60s,CR70s,CR80s,CR90s,CR00s,CR10s)
 
 plot(CR[[1]])
 points(LPIsp$Longitude, LPIsp$Latitude)
@@ -188,7 +189,7 @@ stopCluster(cl)
 
 ```{r}
 
-dates<-seq(ymd('1941-01-16'),ymd('2014-12-16'), by = 'months')
+dates<-seq(ymd('1931-01-16'),ymd('2014-12-16'), by = 'months')
 
 
 datesr<-rep(dates, each=1078)
@@ -208,7 +209,7 @@ LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
 LPIclim<-merge(srm3, LPI_ID, by=c("Longitude", "Latitude"))
 
-write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff.csv")
+write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff_1931.csv")
 
 ```
 
@@ -218,6 +219,7 @@ Step 3 - Calculating mean temp change for each population
 
 #LPIclim<-read.csv("Global_Mean_Temp_All_LPI.csv")
 LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff.csv")
+LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff_1931.csv")
 
 LPIclim$Date<-as.Date(LPIclim$Date, "%Y-%m-%d")
 LPIclim$Year<-format(LPIclim$Date, "%Y")
@@ -230,14 +232,21 @@ LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopt
 
 ```{r}
 library(broom)
+library(plyr)
+library(taRifx)
 ```
 
 ```{r}
+lag<-0 #number of years before start date of pop recordes which i want climate data from
 
 doMean = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
   spid = spid2[,63:125]                     #subsetting only the dates
-  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  rep ("NULL", 10)
+  nid<-matrix(rep (NA, 10), nrow=1)                
+  colnames(nid)<-1940:1949
+  colnames(spid)<-1950:2012
+  spid<-cbind(nid, spid)#renaming the date column names as R doesn't like numbered column names
   climid=subset(LPIclim, ID == sp_name)  #subsetting the climate data by each population
   
   year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
@@ -248,11 +257,16 @@ doMean = function(sp_name) {
   name_id<-paste(name, id, sep="_") #creating id for naming files of plots
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
-  
-  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+
+  Year<-Date[(min(which(!is.na(spidt)))-lag):max(which(!is.na(spidt)))]
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Mean<-year_temp$mean_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+
+  Mean<-year_temp$mean_mean[(min(which(!is.na(spidt)))-lag):max(which(!is.na(spidt)))]
+  # 
+  Mean_mon<-climid[climid$Year %in% Year, ]$Mean_T
+  year_temp$Year<-as.numeric(year_temp$Year)
   
+
   # Mean_mon<-climid[climid$Year %in% Year, ]
   # Mean_mon<-Mean_mon[order(as.Date(Mean_mon$Date, format="%Y/%m/%d")),]
   # plot(Mean_mon$Date, Mean_mon$Mean_T, type="l", xlab="Year", ylab="Degrees Celsius", main="Monthly Mean Temperature")
@@ -261,6 +275,7 @@ doMean = function(sp_name) {
   if (sum(is.nan(Mean))!=length(Mean)){
     
     lm_mean<-lm(Mean~Year)
+    #lm_mean<-lm(year_temp$mean_mean~year_temp$Year)
     lm_mean_df<-tidy(lm_mean)[2,]  
     mean_df<-cbind(id,lm_mean_df)
     
@@ -285,8 +300,9 @@ colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
 
 mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 
-write.csv(mean_df, "All_LPI_Mean_Temp_Slope_nobuff.csv")
-
+#write.csv(mean_df, "All_LPI_Mean_Temp_Slope_nobuff.csv")
+#write.csv(mean_df, "All_LPI_All_Years_Nobuff.csv")
+write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931.csv")
 ```
 
 
@@ -328,7 +344,7 @@ urbn<-brick("Urbn_1950.tif")
 ```{r}
 LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
-LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" & ID==10694 )
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
 xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
 
@@ -436,7 +452,7 @@ LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopt
 ```
 
 ```{r}
-
+library(taRifx)
 
 doDist = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
@@ -469,6 +485,32 @@ all_df_list <- lapply(unique(LPIsp$ID), doDist)
 ```
 
 ```{r}
+
+lu_id<- lu_id[ order(lu_id[,5]), ]
+
+plot(lu_id$Year, lu_id$Crop, type="l", col="Orange", ylim=c(0,1), ylab="Percentage Cover", xlab="Year")
+lines(lu_id$Year, lu_id$Primary, col="Green")
+lines(lu_id$Year, lu_id$Pasture, col="Brown")
+lines(lu_id$Year, lu_id$Secondary, col="Dark Green")
+lines(lu_id$Year, lu_id$Urban, col="Grey")
+lines(lu_id$Year, lu_id$Other, col="black")
+
+lu_id<-subset(lu_id, Year >= 1956 & Year <= 2000)
+
+lu_df<-melt(lu_id[,c(6:11)])
+lu_df2<-cbind(lu_id$Year, lu_df)
+colnames(lu_df2)<-c("Year", "Land_Use_Type", "Percentage_Cover")
+
+ggplot(data=lu_df2, aes(x=Year, y=Percentage_Cover, group=Land_Use_Type)) +
+  geom_line(aes(color=Land_Use_Type))+
+  geom_point(aes(color=Land_Use_Type))+
+  labs(title="Land Use Cover Over Time",x="Year", y = "Percentage Cover")+
+  theme(legend.title=element_blank())
+
+
+```
+
+```{r}
 all_matrix <- matrix(unlist(all_df_list), ncol=2, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "LUC_dist")
@@ -482,27 +524,33 @@ Step 6 - Mixed Effects models exploring the impact of environmental change on po
 ```{r}
 #temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
 temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+#temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
+#temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+
+
+Realm<-read.csv("selected_pops_Ecoregion.csv")
+Realm<-Realm[,c("ID", "WWF_REALM2")]
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 
-```
-
-```{r}
 temp<-temp[,c("ID", "Estimate")]
 
-
-LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat")]
+LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory")]
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
+df<-merge(df, Realm, by="ID")
+
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 &(Class=="Aves" | Class=="Mammalia"))
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & Class=="Mammalia")
 
 nrow(df2)
+
+
 ```
 
 ```{r}
@@ -536,6 +584,14 @@ sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
 dt<-data.table(sp_df_scale)
 
+length(subset(dt,lambda_mean == NA))
+
+range_lam<-tapply(dt$lambda_mean, dt$loc_id, range)
+rl<-data.frame(matrix(unlist(range_lam), ncol=2, byrow=T))
+rl$diff<-rl[,1] - rl[,2]
+hist(rl$diff)
+#dt<-subset(dt, loc_id!=277)
+
 ```
 
 ```{r}
@@ -545,10 +601,28 @@ temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
 landus<-(land  * scale_luc) + centre_luc
 tempus<-(temp * scale_temp) + centre_temp
 
+landus<-landus/sqrt(2) * 100    #so it is as a % pf land use change
+
 dfus<-expand.grid(landus,tempus)
 colnames(dfus)<-c("change_rate_scale", "mean_slope_scale")
 
 
+```
+
+```{r}
+LU<-raster("Glob_LU_plot_1950_2005.tif")
+TM<-raster("Glob_Slop_plot.tif")
+
+LU_us<-(LU  - centre_luc )/scale_luc
+TM_us<-(TM -centre_temp)/ scale_temp
+LU_ust<-trim(LU_us)
+LU_ust2<-resample(LU_ust,TM_us)
+
+rc<-stack(TM_us,LU_ust2)
+
+names(rc)<-c("mean_slope_scale","change_rate_scale")
+rcm<-as.matrix(rc) 
+rcmd<-data.frame(rcm)
 ```
 
 ```{r}
@@ -557,7 +631,7 @@ library(MuMIn)
 library(raster)
 source("rsquaredglmm.R")
 
-R=299
+R=499
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -593,11 +667,13 @@ LUC_MTC_av = numeric(R)
 MTC_avus = numeric(R)
 LUC_avus = numeric(R)
 
+sp_dups_df$mean_slope_scale<-sp_dups_df$Estimate
+sp_dups_df$change_rate_scale<-sp_dups_df$LUC_dist
 
 for (i in 1:R) {
   dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
   colnames(dt2)[2]<-"ID"
-  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
+  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]    #sp_df_scale
 
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   m1T<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
@@ -670,13 +746,20 @@ for (i in 1:R) {
   # head(pred2)
   # pras<-raster(pred2, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
   # 
-  pred_pcnt<-(10^pred2) - 1    #for lambda sum this is total population change, for lambda mean this is average annual rate of change
+  pred_pcnt<-((10^pred2) - 1)    #for lambda sum this is total population change, for lambda mean this is average annual rate of change
   pcntras<-raster(pred_pcnt, xmn=min(landus), xmx=max(landus), ymn=min(tempus), ymx=max(tempus))
   
-  file<-paste("predict_", i,".tif" ,sep="")
-  writeRaster(pcntras, filename=file, overwrite=TRUE)
+  # p3s <- predict(mav,rcmd,re.form=NA) 
+  # 
+  # p4s<-raster(matrix(p3s, nrow=280, ncol=720, byrow=T))
+  # 
+  file_m<-paste("predict_", i,".tif" ,sep="")
+  # file_pl<-paste("world_plot", i, ".tif", sep="")
+  writeRaster(pcntras, filename=file_m, overwrite=TRUE)
+  # writeRaster(p4s, filename = file_pl, overwrite=TRUE)
   print(i)
 }
+
 ```
 
 ```{r}
@@ -687,10 +770,98 @@ br<-stack(list)
 br_av<-mean(br)
 
 
-plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Total Population Change (%)")
-points
+#plot(br_av, xlab="Land Use Change Distance", ylab="Annual Mean Temperature Change", main="Total Population Change (%) - Birds")
+#points(df2$LUC, df2$Estimate, col=df2$WWF_REALM2, pch=16)
 
-writeRaster(br_av, "Birds_and_Mammals_Prediction_Average_Raster_Lambda_mean_noclimbuff.tif", overwrite=TRUE)
+
+#writeRaster(br_av, "Birds_and_Mammals_Prediction_Average_Raster_Lambda_mean_noclimbuff.tif", overwrite=TRUE)
+
+```
+
+```{r}
+a<-seq(1:100)
+b<-seq(1:100)
+ab<-expand.grid(a,b)  
+ab$c<-ab$Var1*ab$Var2
+abm<-matrix(ab$c, ncol=length(a), nrow=length(b),byrow=F)
+plot(raster(abm))
+
+```
+
+```{r}
+library(ggplot2)
+
+br_avp<-rasterToPoints(br_av)
+
+br_av_df <- data.frame(br_avp)
+colnames(br_av_df) <- c("Land_Use_Change", "Annual_Mean_Temperature_Change", "Population")
+
+df2$LUC<-(df2$LUC/sqrt(2))*100
+```
+
+```{r}
+xydata<-data.frame(df2$LUC, df2$Estimate, df2$WWF_REALM2)
+colnames(xydata)<-c("Land_Use", "Mean_Temp", "Realm")
+
+ggplot(data=br_av_df, aes(y=Annual_Mean_Temperature_Change, x=Land_Use_Change)) +
+geom_raster(aes(fill=Population)) +
+geom_point(data=xydata, aes(x=Land_Use, y=Mean_Temp,colour=Realm),size=2) +
+theme_bw() +
+scale_fill_continuous("Average Annual \nPopulation Change (%)", low="black", high="white")+
+theme(axis.title.x = element_text(size=16),
+axis.title.y = element_text(size=16, angle=90),
+axis.text.x = element_text(size=14),
+axis.text.y = element_text(size=14),
+panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),
+legend.position = "right",
+legend.key = element_blank()
+)+
+labs(x="Land Use Change (%)", y="Annual Mean Temperature" *-Change~degree*C)
+
+hist(df2$Estimate, breaks=100, xlab="Annual Mean Temperature " *Change~degree*C, main="")
+
+hist(df2$LUC_dist/sqrt(2), breaks=100, xlab="Percentage Land Use Change", main="")
+```
+
+```{r}
+plist<-list.files(path = getwd(), pattern = "world_plot.*\\.tif$")
+
+plr<-stack(plist)
+
+plr_av<-mean(plr)
+
+```
+
+```{r}
+plr_av2<-(10^plr_av) - 1
+
+extent(plr_av2)<-c(-180, 180, -56, 84)
+
+
+plr_avp<-rasterToPoints(plr_av2)
+
+plr_av_df <- data.frame(plr_avp)
+colnames(plr_av_df) <- c("Longitude", "Latitude", "Population")
+
+# xydata<-data.frame(df2$Longitude, df2$Latitude, df2$WWF_REALM2)
+# colnames(xydata)<-c("Land_Use", "Mean_Temp", "Realm")
+
+ggplot(data=plr_av_df, aes(y=Latitude, x=Longitude)) +
+geom_raster(aes(fill=Population)) +
+theme_bw() +
+scale_fill_continuous(low="light grey", high="darkred")+
+theme(axis.title.x = element_text(size=16),
+axis.title.y = element_text(size=16, angle=90),
+axis.text.x = element_text(size=14),
+axis.text.y = element_text(size=14),
+panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),
+legend.position = "right",
+legend.key = element_blank()
+)+
+labs(x="Longitude", y="Latitude", colourbar= "Average Annual Population Change (%)")
+
 
 ```
 
@@ -731,11 +902,13 @@ mean(mnull_w)
 Low<-(R+1)/40
 High<-(R+1)-(R+1)/40 
 
+LUC_avus
+
 mean_av<- c(mean(LUC_av),mean(MTC_av),mean(LUC_MTC_av))
 lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low], sort(LUC_MTC_av)[Low])
 highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High], sort(LUC_MTC_av)[High])
 
-Variable<-c("LUC", "MTC", "LUC*MTC")
+Variable<-c("Land Use \nChange", "Mean Temp. \nChange", "Interaction")
 
 conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
 colnames(conf_av)<-Variable
@@ -744,8 +917,164 @@ conf_av
 library(plotrix)
 
 plotCI(1:3, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
-       main="Variable Coefficients", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
+       main="Averaged Model Variable Coefficients - Non-Migratory Birds", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
 axis(1, at=1:3, labels=colnames(conf_av), las=2)
 abline(h=0, col="red", lty =2)
 
 ```
+
+
+```{r}
+
+
+AIC_av<- c(mean(AIC_m1),mean(AIC_m1a),mean(AIC_m1b), mean(AIC_m1c), mean(AIC_mnull))
+low_AIC<-c(sort(AIC_m1)[Low], sort(AIC_m1a)[Low], sort(AIC_m1b)[Low], sort(AIC_m1c)[Low], sort(AIC_mnull)[Low])
+high_AIC<-c(sort(AIC_m1)[High], sort(AIC_m1a)[High], sort(AIC_m1b)[High], sort(AIC_m1c)[High], sort(AIC_mnull)[High])
+
+Variable<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null")
+
+conf_av<-data.frame(rbind( AIC_av, low_AIC, high_AIC))
+colnames(conf_av)<-Variable
+conf_av
+
+library(plotrix)
+
+plotCI(1:5, AIC_av, (high_AIC-AIC_av), (AIC_av-low_AIC), ylab="AIC values (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="Distribution of AIC - Non-Migratory Birds", lwd=1, ylim=c(min(low_AIC*1.01), max(high_AIC*0.99)))
+axis(1, at=1:5, labels=colnames(conf_av), las=2)
+abline(h=mean(AIC_mnull), col="red", lty =2)
+
+
+###plotting difference between interaction and null 
+plot(AIC_m1, ylab="AIC value", xlab="Model Run", ylim=c(-320, -200))
+points(AIC_mnull, col="red")
+
+plot(AIC_m1 - AIC_mnull, main="Difference in AIC between Interacting and Null Model - Mammals", ylab="Delta AIC", xlab="Model Run", )
+abline(h=0, col="red", lty =2)
+
+
+
+```
+
+
+```{r}
+#install.packages('ggthemes', dependencies = TRUE)
+
+library(ggplot2)
+library(ggthemes)
+library(palettetown)
+library(reshape2)
+
+AIC_df<-data.frame(AIC_m1, AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull)
+colnames(AIC_df)<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null")
+AIC_df<-melt(AIC_df)
+colnames(AIC_df)<-c("Model", "AIC")
+
+p<-ggplot(AIC_df, aes(x=factor(Model), y=AIC, fill=factor(Model)))
+p+geom_violin(trim=FALSE) +
+xlab("Model")+
+scale_fill_poke(pokemon = 'Vileplume', spread = 5)
+
+
+```
+
+```{r}
+
+mean_rsq<-c(mean(marg_Rsq_m1), mean(marg_Rsq_m1a), mean(marg_Rsq_m1b), mean(marg_Rsq_m1c))*100
+low_rsq<-c(sort(marg_Rsq_m1)[Low], sort(marg_Rsq_m1a)[Low], sort(marg_Rsq_m1b)[Low], sort(marg_Rsq_m1c)[Low])*100
+high_rsq<-c(sort(marg_Rsq_m1)[High], sort(marg_Rsq_m1a)[High], sort(marg_Rsq_m1b)[High], sort(marg_Rsq_m1c)[High])*100
+
+Variable<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC")
+
+rsq_df<-data.frame(rbind(low_rsq, mean_rsq, high_rsq))
+colnames(rsq_df)<-Variable
+
+
+library(plotrix)
+
+plotCI(1:4, mean_rsq, (high_rsq-mean_rsq), (mean_rsq-low_rsq), ylab="R squared value (%) (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="Distribution of R squared - Migratory Birds", lwd=1, ylim=c(min(low_rsq*1.01), max(high_rsq*0.99)))
+axis(1, at=1:4, labels=colnames(rsq_df), las=2)
+
+
+
+```
+
+```{r}
+w_av<- c(mean(m1_w),mean(m1a_w),mean(m1b_w), mean(m1c_w), mean(mnull_w))*100
+low_w<-c(sort(m1_w)[Low], sort(m1a_w)[Low], sort(m1b_w)[Low], sort(m1c_w)[Low], sort(mnull_w)[Low])*100
+high_w<-c(sort(m1_w)[High], sort(m1a_w)[High], sort(m1b_w)[High], sort(m1c_w)[High], sort(mnull_w)[High])*100
+
+Variable<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null")
+
+conf_av<-data.frame(rbind(w_av, low_w, high_w))
+colnames(conf_av)<-Variable
+conf_av
+
+library(plotrix)
+
+plotCI(1:5, w_av, (high_w-w_av), (w_av-low_w), ylab="Model Weight Values (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="Distribution of Model Weight - Birds", lwd=1, ylim=c(min(low_w*1.01), max(high_w*1.01)))
+axis(1, at=1:5, labels=colnames(conf_av), las=2)
+
+
+```
+
+```{r,eval=FALSE, echo=FALSE}
+Low<-(R+1)/40
+High<-(R+1)-(R+1)/40 
+
+
+mean_avus<- c(mean(LUC_avus),mean(MTC_avus))
+lowCI_avus<-c(sort(LUC_avus)[Low], sort(MTC_avus)[Low])
+highCI_avus<-c(sort(LUC_avus)[High], sort(MTC_avus)[High])
+
+Variable<-c("LUC", "MTC")
+
+conf_avus<-data.frame(rbind(lowCI_avus, mean_avus, highCI_avus))
+colnames(conf_avus)<-Variable
+conf_avus
+
+library(plotrix)
+
+plotCI(1:2, mean_avus, (highCI_avus-mean_avus), (mean_avus-lowCI_avus), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="Variable Coefficients", lwd=1, ylim=c(min(lowCI_avus*1.1), max(highCI_avus*1.1)))
+axis(1, at=1:2, labels=colnames(conf_avus), las=2)
+abline(h=0, col="red", lty =2)
+
+```
+
+```{r,eval=FALSE, echo=FALSE}
+
+
+m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_df_scale, REML=F)
+ 
+p3s <- predict(m1,rcmd,re.form=NA) 
+
+p4s<-raster(matrix(p3s, nrow=280, ncol=720, byrow=T))
+
+plot(p4s)
+p5s<-(10^p4s) - 1
+plot(p5s)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+
+for (i in 1:R) {
+  dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
+  colnames(dt2)[2]<-"ID"
+  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
+
+  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  mnull<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+
+```
+
