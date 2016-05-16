@@ -53,7 +53,7 @@ doFit = function(sp_name) {
   
   Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 #if a population is zero one year thhis is replaced with 1% of the average population estimate - because you can log zeros
   
   df<-data.frame(Year,Population)
     
