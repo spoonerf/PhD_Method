@@ -237,12 +237,16 @@ library(taRifx)
 ```
 
 ```{r}
-lag<-10 #number of years before start date of pop recordes which i want climate data from
+lag<-0 #number of years before start date of pop recordes which i want climate data from
 
 doMean = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
   spid = spid2[,63:125]                     #subsetting only the dates
-  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  rep ("NULL", 10)
+  nid<-matrix(rep (NA, 10), nrow=1)                
+  colnames(nid)<-1940:1949
+  colnames(spid)<-1950:2012
+  spid<-cbind(nid, spid)#renaming the date column names as R doesn't like numbered column names
   climid=subset(LPIclim, ID == sp_name)  #subsetting the climate data by each population
   
   year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
@@ -297,8 +301,8 @@ colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
 mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 
 #write.csv(mean_df, "All_LPI_Mean_Temp_Slope_nobuff.csv")
-write.csv(mean_df, "All_LPI_All_Years_Nobuff.csv")
-
+#write.csv(mean_df, "All_LPI_All_Years_Nobuff.csv")
+write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931.csv")
 ```
 
 
@@ -448,7 +452,7 @@ LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopt
 ```
 
 ```{r}
-
+library(taRifx)
 
 doDist = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
@@ -481,6 +485,32 @@ all_df_list <- lapply(unique(LPIsp$ID), doDist)
 ```
 
 ```{r}
+
+lu_id<- lu_id[ order(lu_id[,5]), ]
+
+plot(lu_id$Year, lu_id$Crop, type="l", col="Orange", ylim=c(0,1), ylab="Percentage Cover", xlab="Year")
+lines(lu_id$Year, lu_id$Primary, col="Green")
+lines(lu_id$Year, lu_id$Pasture, col="Brown")
+lines(lu_id$Year, lu_id$Secondary, col="Dark Green")
+lines(lu_id$Year, lu_id$Urban, col="Grey")
+lines(lu_id$Year, lu_id$Other, col="black")
+
+lu_id<-subset(lu_id, Year >= 1956 & Year <= 2000)
+
+lu_df<-melt(lu_id[,c(6:11)])
+lu_df2<-cbind(lu_id$Year, lu_df)
+colnames(lu_df2)<-c("Year", "Land_Use_Type", "Percentage_Cover")
+
+ggplot(data=lu_df2, aes(x=Year, y=Percentage_Cover, group=Land_Use_Type)) +
+  geom_line(aes(color=Land_Use_Type))+
+  geom_point(aes(color=Land_Use_Type))+
+  labs(title="Land Use Cover Over Time",x="Year", y = "Percentage Cover")+
+  theme(legend.title=element_blank())
+
+
+```
+
+```{r}
 all_matrix <- matrix(unlist(all_df_list), ncol=2, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "LUC_dist")
@@ -493,7 +523,8 @@ Step 6 - Mixed Effects models exploring the impact of environmental change on po
 
 ```{r}
 #temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
-temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+#temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
@@ -507,7 +538,7 @@ EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analy
 
 temp<-temp[,c("ID", "Estimate")]
 
-LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat")]
+LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory")]
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
@@ -515,7 +546,7 @@ df<-merge(df, Realm, by="ID")
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 &Class=="Mammalia" )
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1)
 
 nrow(df2)
 
@@ -591,7 +622,7 @@ library(MuMIn)
 library(raster)
 source("rsquaredglmm.R")
 
-R=999
+R=499
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -779,6 +810,9 @@ legend.key = element_blank()
 )+
 labs(x="Land Use Change (%)", y="Annual Mean Temperature" *-Change~degree*C)
 
+hist(df2$Estimate, breaks=100, xlab="Annual Mean Temperature " *Change~degree*C, main="")
+
+hist(df2$LUC_dist/sqrt(2), breaks=100, xlab="Percentage Land Use Change", main="")
 ```
 
 ```{r}
@@ -874,7 +908,7 @@ conf_av
 library(plotrix)
 
 plotCI(1:3, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
-       main="Averaged Model Variable Coefficients - Birds", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
+       main="Averaged Model Variable Coefficients - Non-Migratory Birds", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
 axis(1, at=1:3, labels=colnames(conf_av), las=2)
 abline(h=0, col="red", lty =2)
 
@@ -882,6 +916,7 @@ abline(h=0, col="red", lty =2)
 
 
 ```{r}
+
 
 AIC_av<- c(mean(AIC_m1),mean(AIC_m1a),mean(AIC_m1b), mean(AIC_m1c), mean(AIC_mnull))
 low_AIC<-c(sort(AIC_m1)[Low], sort(AIC_m1a)[Low], sort(AIC_m1b)[Low], sort(AIC_m1c)[Low], sort(AIC_mnull)[Low])
@@ -896,7 +931,7 @@ conf_av
 library(plotrix)
 
 plotCI(1:5, AIC_av, (high_AIC-AIC_av), (AIC_av-low_AIC), ylab="AIC values (95% C.I.)", xlab="" ,xaxt = "n", 
-       main="Distribution of AIC - Mammals", lwd=1, ylim=c(min(low_AIC*1.01), max(high_AIC*0.99)))
+       main="Distribution of AIC - Non-Migratory Birds", lwd=1, ylim=c(min(low_AIC*1.01), max(high_AIC*0.99)))
 axis(1, at=1:5, labels=colnames(conf_av), las=2)
 abline(h=mean(AIC_mnull), col="red", lty =2)
 
@@ -910,6 +945,23 @@ abline(h=0, col="red", lty =2)
 
 
 
+```
+
+
+```{r}
+library(ggplot2)
+library(ggthemes)
+library(palettetown)
+library(reshape2)
+
+AIC_df<-data.frame(AIC_m1, AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull)
+colnames(AIC_df)<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null")
+AIC_df<-melt(AIC_df)
+colnames(AIC_df)<-c("Model", "AIC")
+
+
+
+install.packages('ggthemes', dependencies = TRUE)
 ```
 
 ```{r}
@@ -927,7 +979,7 @@ colnames(rsq_df)<-Variable
 library(plotrix)
 
 plotCI(1:4, mean_rsq, (high_rsq-mean_rsq), (mean_rsq-low_rsq), ylab="R squared value (%) (95% C.I.)", xlab="" ,xaxt = "n", 
-       main="Distribution of R squared - Birds", lwd=1, ylim=c(min(low_rsq*1.01), max(high_rsq*0.99)))
+       main="Distribution of R squared - Migratory Birds", lwd=1, ylim=c(min(low_rsq*1.01), max(high_rsq*0.99)))
 axis(1, at=1:4, labels=colnames(rsq_df), las=2)
 
 
