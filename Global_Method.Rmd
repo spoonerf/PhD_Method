@@ -559,7 +559,7 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & (Class=="Aves") & !is.na(Bodymass) )
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=10 & System!="Marine" &Specific_location == 1 & (Class=="Aves") & !is.na(Bodymass) & Migratory ==0)
 
 nrow(df2)
 
@@ -607,6 +607,8 @@ rl$diff<-rl[,1] - rl[,2]
 hist(rl$diff)
 #dt<-subset(dt, loc_id!=277)
 
+sp_df_scale[is.na(sp_df_scale$lambda_mean),]$lambda_mean<-0  #####is this a problem?
+
 ```
 
 ```{r}
@@ -641,6 +643,8 @@ rcmd<-data.frame(rcm)
 ```
 
 ```{r}
+
+
 library(lme4)
 library(MuMIn)
 library(raster)
@@ -694,7 +698,7 @@ for (i in 1:R) {
  #dt2<-dt[sample(nrow(dt), 150, replace=TRUE), ]
   
  colnames(dt2)[2]<-"ID"
-  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt$ID,]    #sp_df_scale   #should be dt2
+  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]    #sp_df_scale   #should be dt2
 
  
   m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
@@ -787,6 +791,23 @@ for (i in 1:R) {
   # writeRaster(p4s, filename = file_pl, overwrite=TRUE)
   print(i)
 }
+```
+
+```{r}
+land<-seq(min(dt$Nat_loss),max(dt$Nat_loss),length.out=100)
+temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
+body<-seq(min(dt$Bodymass),max(dt$Bodymass),length.out=100)
+
+pr_dfx<-expand.grid(land, temp, dt$Binomial)
+
+colnames(pr_dfx)<-c("change_rate_scale", "mean_slope_scale", "Binomial")
+#prd<-predict(m1, pr_dfx)
+
+
+p <- ggplot(sp_dups_df2, aes(x = sp_dups_df2$mean_slope_scale, y = sp_dups_df2$lambda_mean, colour = sp_dups_df2$Binomial)) +
+  geom_point(size=3) +
+  geom_line(aes(y = predict(m1b)),size=1) 
+print(p)
 
 ```
 
@@ -995,11 +1016,11 @@ library(reshape2)
 
 #AIC_df<-data.frame(AIC_m1, AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull)
 colnames(AIC_del)<-c("BM+LUC*MTC", "LUC*MTC", "LUC+MTC", "LUC", "MTC")
-AIC_del<-melt(AIC_del)
-colnames(AIC_del)<-c("Model", "AIC")
+AIC_del2<-melt(AIC_del)
+colnames(AIC_del2)<-c("Model", "AIC")
 
-p<-ggplot(AIC_del, aes(x=factor(Model), y=AIC, fill=factor(Model)))
-p+geom_violin(trim=FALSE) +
+p<-ggplot(AIC_del2, aes(x=factor(Model), y=AIC, fill=factor(Model)))
+p+geom_violin(trim=TRUE) +
 xlab("Model")+
 scale_fill_poke(pokemon = 'Vaporeon', spread = 5)
 
