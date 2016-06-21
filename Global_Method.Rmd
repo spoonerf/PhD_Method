@@ -208,7 +208,7 @@ LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
 LPIclim<-merge(srm3, LPI_ID, by=c("Longitude", "Latitude"))
 
-write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff.csv")
+write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff_1931.csv")
 
 ```
 
