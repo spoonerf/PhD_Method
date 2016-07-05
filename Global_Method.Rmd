@@ -115,26 +115,26 @@ library(doParallel)
 library(beepr)
 library(lubridate)
 library(reshape2)
-
+library(ncdf4)
 ```
 
 ```{r}
-CR30s<-brick("D:/Fiona/Git_Method/Git_Method/cru_ts3.23.1931.1940.tmp.dat.nc")
-CR40s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1941.1950.tmp.dat.nc/cru_ts3.23.1941.1950.tmp.dat.nc")
-CR50s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1951.1960.tmp.dat.nc/cru_ts3.23.1951.1960.tmp.dat.nc")
-CR60s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1961.1970.tmp.dat.nc/cru_ts3.23.1961.1970.tmp.dat.nc")
-CR70s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1971.1980.tmp.dat.nc/cru_ts3.23.1971.1980.tmp.dat.nc")
-CR80s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1981.1990.tmp.dat.nc/cru_ts3.23.1981.1990.tmp.dat.nc")
-CR90s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.1991.2000.tmp.dat.nc/cru_ts3.23.1991.2000.tmp.dat.nc")
-CR00s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.2001.2010.tmp.dat.nc/cru_ts3.23.2001.2010.tmp.dat.nc")
-CR10s<-brick("D:/Fiona/PhD1/Climate/Global/cru_ts3.23.2011.2014.tmp.dat.nc/cru_ts3.23.2011.2014.tmp.dat.nc")
+CR30s<-brick("cru_ts3.23.1931.1940.tmp.dat.nc")
+CR40s<-brick("cru_ts3.23.1941.1950.tmp.dat.nc")
+CR50s<-brick("cru_ts3.23.1951.1960.tmp.dat.nc")
+CR60s<-brick("cru_ts3.23.1961.1970.tmp.dat.nc")
+CR70s<-brick("cru_ts3.23.1971.1980.tmp.dat.nc")
+CR80s<-brick("cru_ts3.23.1981.1990.tmp.dat.nc")
+CR90s<-brick("cru_ts3.23.1991.2000.tmp.dat.nc")
+CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
+CR10s<-brick("cru_ts3.23.2011.2014.tmp.dat.nc")
 
 plot(CR40s[[11]])
 ```
 
 
 ```{r}
-LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
@@ -157,7 +157,7 @@ length(xy_df)
 
 ```{r}
 
-n<-6#number of cores to use - not sure how many I can go up to - 6 at UCL
+n<-3#number of cores to use - not sure how many I can go up to - 6 at UCL
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 getDoParWorkers()
@@ -174,7 +174,6 @@ buff<- function (year,b)  {
 ```{r}
 diam<-0 #size of buffer to use - in metres
 lyr<-1:nlayers(CR)
-
 
 stime <- system.time({
   sr <- foreach(1, .combine = cbind) %dopar% mapply(buff,lyr,diam)
@@ -558,7 +557,7 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=10 & System!="Marine" &Specific_location == 1 & (Class=="Aves") & !is.na(Bodymass) & Migratory ==0)
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=10 & System!="Marine" &Specific_location == 1 & (Class=="Mammalia") & !is.na(Bodymass) )
 
 nrow(df2)
 
@@ -621,7 +620,6 @@ landus<-landus/sqrt(2) * 100    #so it is as a % pf land use change
 
 dfus<-expand.grid(landus,tempus)
 colnames(dfus)<-c("change_rate_scale", "mean_slope_scale")
-
 
 ```
 
