@@ -88,13 +88,12 @@ doFit = function(sp_name) {
     lambda_sum2<-sum(lambda2, na.rm=TRUE)
     lambda_mean2<-mean(lambda2, na.rm=TRUE)
   }
-  
-  res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq2, model=model,lambda_sum=lambda_sum2,lambda_mean=lambda_mean2,time=time, missing=missing)
 
-  print(res_df)
-  return(res_df)
+res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq2, model=model,lambda_sum=lambda_sum2,lambda_mean=lambda_mean2,time=time, missing=missing)
+
+print(res_df)
+return(res_df)
 }
-
 
 all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
 
