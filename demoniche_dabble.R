@@ -1,3 +1,4 @@
+body<-read.csv("bird_and_mammal_traits2.csv")
 luc<-read.csv("LUC_average_annual_change_nat_025.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 Realm<-read.csv("selected_pops_Ecoregion.csv")
@@ -33,8 +34,11 @@ pyrs<-pyr[,c("ID","Longitude","Latitude","lambda_mean")]
 id<-pyrs$ID
 lam<-as.numeric(pyrs$lambda_mean)
 
+library(rgdal)
 
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+
+library(raster)
 
 e<-extent(pyrxy)
 
@@ -47,8 +51,8 @@ plot(rid)
 
 rz_spdf<-xyFromCell(rz, 1:108)
 
-rzm<-matrix(rz)
-ridm<-matrix(rid)
+rzm<-as.vector(rz)
+ridm<-as.vector(rid)
 patchID<-1:length(rid)
 
 df<-cbind(patchID,rz_spdf,rzm,ridm)
@@ -64,8 +68,6 @@ lnd_rp<-merge(df,lnd, by="ID")
 lnd_rp2<-unique(lnd_rp[,c("ID","patchID", "x", "y")])
 
 library(reshape2)
-
-?dcast
 
 lnd_rp2<-lnd_rp[,c("ID","Year","natural")]
 
@@ -96,10 +98,10 @@ secdf_cr<-secdf[[1091:1166]]
 secdn_cr<-secdn[[1091:1166]]
 
 
-writeRaster(primf_cr, "primf_1940.tif")
-writeRaster(primn_cr, "primn_1940.tif")
-writeRaster(secdf_cr, "secdf_1940.tif")
-writeRaster(secdn_cr, "secdn_1940.tif")
+# writeRaster(primf_cr, "primf_1940.tif")
+# writeRaster(primn_cr, "primn_1940.tif")
+# writeRaster(secdf_cr, "secdf_1940.tif")
+# writeRaster(secdn_cr, "secdn_1940.tif")
 
 primf<-brick("primf_1940.tif")
 primn<-brick("primn_1940.tif")
@@ -131,14 +133,14 @@ n2010<-primf[[71]]+ primn[[71]]+secdf[[71]]+secdn[[71]]
 n2010c<-crop(n2010,e)
 
 
-n40m<-matrix(n40c)
-n50m<-matrix(n50c)
-n60m<-matrix(n60c)
-n70m<-matrix(n70c)
-n80m<-matrix(n80c)
-n90m<-matrix(n90c)
-n2000m<-matrix(n2000c)
-n2010m<-matrix(n2010c)
+n40m<-as.vector(n40c)
+n50m<-as.vector(n50c)
+n60m<-as.vector(n60c)
+n70m<-as.vector(n70c)
+n80m<-as.vector(n80c)
+n90m<-as.vector(n90c)
+n2000m<-as.vector(n2000c)
+n2010m<-as.vector(n2010c)
 
 nall<-cbind(n40m,n50m,n60m,n70m,n80m,n90m,n2000m,n2010m)
 colnames(nall)<-c("period_1940", "period_1950", "period_1960", "period_1970", "period_1980", "period_1990", "period_2000", "period_2010")
