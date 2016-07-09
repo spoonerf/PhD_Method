@@ -1,4 +1,3 @@
-body<-read.csv("bird_and_mammal_traits2.csv")
 luc<-read.csv("LUC_average_annual_change_nat_025.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 Realm<-read.csv("selected_pops_Ecoregion.csv")
