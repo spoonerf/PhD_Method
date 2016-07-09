@@ -32,7 +32,8 @@ plot(pyr$Longitude, pyr$Latitude)
 pyrs<-pyr[,c("ID","Longitude","Latitude","lambda_mean")]
 
 id<-pyrs$ID
-lam<-as.numeric(pyrs$lambda_mean)
+#lam<-as.numeric(pyrs$lambda_mean)
+lam<-rep(2,length(id))
 
 library(rgdal)
 
@@ -41,41 +42,50 @@ pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 library(raster)
 
 e<-extent(pyrxy)
+xmn<-floor(e[1])
+xmx<-ceiling(e[2])
+ymn<-floor(e[3])
+ymx<-ceiling(e[4])
 
-r<-raster(e, resolution=0.25)
+e2<-extent(xmn,xmx,ymn,ymx)
+
+r<-raster(e2, resolution=0.25)
 
 rz<-rasterize(pyrxy,r,lam )
 rid<-rasterize(pyrxy,r,id)
 plot(rz)
 plot(rid)
 
-rz_spdf<-xyFromCell(rz, 1:108)
+rz_spdf<-xyFromCell(rz, 1:ncell(rid))
 
 rzm<-as.vector(rz)
 ridm<-as.vector(rid)
-patchID<-1:length(rid)
 
-df<-cbind(patchID,rz_spdf,rzm,ridm)
-colnames(df)[c(4,5)]<-c("area", "ID")
+df<-data.frame(ridm,rz_spdf,rzm)
+colnames(df)[c(1,3)]<-c( "PatchID","area")
 
-write.csv(df, "Rupicapra_pyrenaica_populations.csv")
+Orig_Populations<-na.omit(df)   #df without squares with missing pops
 
 
-lnd<-read.csv("LUH2_Land_Use_All_LPI.csv")
+write.csv(Orig_Populations, "Rupicapra_pyrenaica_populations.csv")
 
-lnd_rp<-merge(df,lnd, by="ID")
-
-lnd_rp2<-unique(lnd_rp[,c("ID","patchID", "x", "y")])
-
-library(reshape2)
-
-lnd_rp2<-lnd_rp[,c("ID","Year","natural")]
-
-lnd_rp_cast<-dcast(lnd_rp2, ID ~ Year )
-
-####geographic data
+#############geographic data for populations#######
+# lnd<-read.csv("LUH2_Land_Use_All_LPI.csv")
+# 
+# lnd_rp<-merge(df,lnd, by="ID")
+# 
+# lnd_rp2<-unique(lnd_rp[,c("ID","patchID", "x", "y")])
+# 
+# library(reshape2)
+# 
+# lnd_rp2<-lnd_rp[,c("ID","Year","natural")]
+# 
+# lnd_rp_cast<-dcast(lnd_rp2, ID ~ Year )
+# 
+######geographic data in grids###############
 
 library(raster)
+library(ncdf4)
 
 yr<-as.character(850:2015)
 date<-as.Date(yr, format="%Y" )
@@ -109,28 +119,28 @@ secdf<-brick("secdf_1940.tif")
 secdn<-brick("secdn_1940.tif")
 
 n40<-primf[[1]]+ primn[[1]]+secdf[[1]]+secdn[[1]]
-n40c<-crop(n40, e)
+n40c<-crop(n40, r)
 
 n50<-primf[[11]]+ primn[[11]]+secdf[[11]]+secdn[[11]]
-n50c<-crop(n50,e)
+n50c<-crop(n50,r)
 
 n60<-primf[[21]]+ primn[[21]]+secdf[[21]]+secdn[[21]]
-n60c<-crop(n60,e)
+n60c<-crop(n60,r)
 
 n70<-primf[[31]]+ primn[[31]]+secdf[[31]]+secdn[[31]]
-n70c<-crop(n70,e)
+n70c<-crop(n70,r)
 
 n80<-primf[[41]]+ primn[[41]]+secdf[[41]]+secdn[[41]]
-n80c<-crop(n80,e)
+n80c<-crop(n80,r)
 
 n90<-primf[[51]]+ primn[[51]]+secdf[[51]]+secdn[[51]]
-n90c<-crop(n90,e)
+n90c<-crop(n90,r)
 
 n2000<-primf[[61]]+ primn[[61]]+secdf[[61]]+secdn[[61]]
-n2000c<-crop(n2000,e)
+n2000c<-crop(n2000,r)
 
 n2010<-primf[[71]]+ primn[[71]]+secdf[[71]]+secdn[[71]]
-n2010c<-crop(n2010,e)
+n2010c<-crop(n2010,r)
 
 
 n40m<-as.vector(n40c)
@@ -142,16 +152,38 @@ n90m<-as.vector(n90c)
 n2000m<-as.vector(n2000c)
 n2010m<-as.vector(n2010c)
 
-nall<-cbind(n40m,n50m,n60m,n70m,n80m,n90m,n2000m,n2010m)
-colnames(nall)<-c("period_1940", "period_1950", "period_1960", "period_1970", "period_1980", "period_1990", "period_2000", "period_2010")
+Niche_values<-cbind(n40m,n50m,n60m,n70m,n80m,n90m,n2000m,n2010m)
+colnames(Niche_values)<-c("period_1940", "period_1950", "period_1960", "period_1970", "period_1980", "period_1990", "period_2000", "period_2010")
 
-land_use_map<-cbind(df[,c(1:3)], nall) #percentage cover of natural land use (primary+secondary) for each decade 1940-2010
+Nicheid<-1:length(n40m) + 5000
+land_use_map<-cbind(Nicheid,df[,c(2,3,1)]) #percentage cover of natural land use (primary+secondary) for each decade 1940-2010
+
 
 no_yrs_mine<-10
 
 ###### demographic information
+install.packages("demoniche", repos="http://R-Forge.R-project.org")
 
 library(popbio)
+library(demoniche)
+
+dir<-getwd()
+load(paste(dir, "COMADRE_v.1.0.0.RData", sep="/"))
+
+tempMetadata<-subset(comadre$metadata, SpeciesAccepted=="Ovis_aries")
+
+keep<-as.numeric(rownames(tempMetadata))
+
+tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and C
+
+#first matrix in list is the mean of others?
+
+#tempMatmean<-(tempMat[[1]][[1]]+ tempMat[[2]][[1]]+tempMat[[3]][[1]]+tempMat[[4]][[1]]+tempMat[[5]][[1]]+tempMat[[6]][[1]]+tempMat[[7]][[1]])/length(keep)
+
+MatList<-list(tempMat[[1]][[1]], tempMat[[2]][[1]], tempMat[[3]][[1]],tempMat[[4]][[1]],tempMat[[5]][[1]],tempMat[[6]][[1]],tempMat[[7]][[1]])
+AllMat<-unlist(MatList)
+Matcol<-matrix(AllMat, ncol=7)
+colnames(Matcol)<- c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4", "Matrix_5", "Matrix_6")
 
 
 
