@@ -155,11 +155,14 @@ n2010m<-as.vector(n2010c)
 Niche_values<-cbind(n40m,n50m,n60m,n70m,n80m,n90m,n2000m,n2010m)
 colnames(Niche_values)<-c("period_1940", "period_1950", "period_1960", "period_1970", "period_1980", "period_1990", "period_2000", "period_2010")
 
-Nicheid<-1:length(n40m) + 5000
-land_use_map<-cbind(Nicheid,df[,c(2,3,1)]) #percentage cover of natural land use (primary+secondary) for each decade 1940-2010
+Niche_ID<-1:length(n40m) + 5000
+land_use_map<-cbind(Niche_ID,df[,c(2,3,1)]) #percentage cover of natural land use (primary+secondary) for each decade 1940-2010
 
+land_use_map[is.na(land_use_map)]<-0
 
-no_yrs_mine<-10
+years_projections<-colnames(Niche_values)
+
+no_yrs<-10
 
 ###### demographic information
 install.packages("demoniche", repos="http://R-Forge.R-project.org")
@@ -182,12 +185,18 @@ tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F a
 
 MatList<-list(tempMat[[1]][[1]], tempMat[[2]][[1]], tempMat[[3]][[1]],tempMat[[4]][[1]],tempMat[[5]][[1]],tempMat[[6]][[1]],tempMat[[7]][[1]])
 AllMat<-unlist(MatList)
-Matcol<-matrix(AllMat, ncol=7)
-colnames(Matcol)<- c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4", "Matrix_5", "Matrix_6")
+matrices<-matrix(AllMat, ncol=7)
+colnames(matrices)<- c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4", "Matrix_5", "Matrix_6")
 
+matrices_var<-rep(0.1, length(matrices[,1]))   #standard deviation of matrices
 
+prob_scenario<-c(0.5,0.5)    #need to check this
 
+noise<-0.95     #need to check this
 
+stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
+
+list_names_matrices<-colnames(matrices)
 
 
 
