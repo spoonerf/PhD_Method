@@ -16,6 +16,10 @@ AllMat<-unlist(MatList)
 Matcol<-matrix(AllMat, ncol=7)
 
 
+
+
+
+
 output<-data.frame(lambdas = rep(NA, length(tempMat)), damps= rep (NA, length(tempMat)))
 
 require(popbio)

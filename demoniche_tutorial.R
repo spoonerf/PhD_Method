@@ -7,6 +7,7 @@ data("Hmontana")
 str(Hmontana)
 Hmontana$Niche_values
 Hmontana$matrices
+Hmontana$Orig_Populations
 
 
 
