@@ -5,7 +5,7 @@ Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-Realm[,c("ID", "WWF_REALM2")]
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
-EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
+#EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 
 temp<-temp[,c("ID", "Estimate")]
 
@@ -33,7 +33,7 @@ pyrs<-pyr[,c("ID","Longitude","Latitude","lambda_mean")]
 
 id<-pyrs$ID
 #lam<-as.numeric(pyrs$lambda_mean)
-lam<-rep(2,length(id))
+lam<-rep(200,length(id))    #not sure what the value here pertains to
 
 library(rgdal)
 
@@ -62,7 +62,7 @@ rzm<-as.vector(rz)
 ridm<-as.vector(rid)
 
 df<-data.frame(ridm,rz_spdf,rzm)
-colnames(df)[c(1,3)]<-c( "PatchID","area")
+colnames(df)<-c( "PatchID","X","Y","area")
 
 Orig_Populations<-na.omit(df)   #df without squares with missing pops
 
@@ -159,13 +159,22 @@ Niche_ID<-1:length(n40m) + 5000
 land_use_map<-cbind(Niche_ID,df[,c(2,3,1)]) #percentage cover of natural land use (primary+secondary) for each decade 1940-2010
 
 land_use_map[is.na(land_use_map)]<-0
+colnames(land_use_map)[3]<-"y"
 
 years_projections<-colnames(Niche_values)
 
 no_yrs<-10
+######## heat map of niche values (natural land use cover 1940-2010)
+
+nichemap<-cbind(land_use_map[,c(1:3)],Niche_values )
+
+niche_formulas <- as.formula(paste(paste(colnames(nichemap)[-c(1:3)],collapse="+"),"x+y",sep="~"))
+
+print(levelplot(niche_formulas, nichemap, col.regions=rev(heat.colors(100)), main = "Niche Values"))
+
 
 ###### demographic information
-install.packages("demoniche", repos="http://R-Forge.R-project.org")
+#install.packages("demoniche", repos="http://R-Forge.R-project.org")
 
 library(popbio)
 library(demoniche)
@@ -177,7 +186,7 @@ tempMetadata<-subset(comadre$metadata, SpeciesAccepted=="Ovis_aries")
 
 keep<-as.numeric(rownames(tempMetadata))
 
-tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and C
+tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and/or C
 
 #first matrix in list is the mean of others?
 
@@ -188,7 +197,6 @@ AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=7)
 colnames(matrices)<- c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4", "Matrix_5", "Matrix_6")
 
-matrices_var<-rep(0.1, length(matrices[,1]))   #standard deviation of matrices
 
 prob_scenario<-c(0.5,0.5)    #need to check this
 
@@ -197,6 +205,59 @@ noise<-0.95     #need to check this
 stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
 
 list_names_matrices<-colnames(matrices)
+
+sumweight<-c(1,1,1,1,1,1)  #weight of stages  - should be equal for all mine just in plants seed not included in calculating population sizes - or if you wanted to just calculate the female population it would be c(1,1,1,0,0,0)
+
+
+transition_affected_niche<-"all"    #which parts of the matrix are affected by the niche values
+
+transition_affected_env <- "all"
+
+transition_affected_demogr <- "all"
+
+env_stochas_type<-"normal"   #can also be lognormal
+
+matrices_var <- matrix(0.01, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) #standard deviation of matrices
+
+proportion_initial<- c(0.9818098089, 0.0006907668, 0.0069076675,0.0036840893, 0.0057563896, 0.0011512779)  #proportion of population in each stage - no idea what this should be and will likely have a big impact on results!
+
+density_individuals <- 20000   #also compulsory not sure what best value would be
+
+K<-NULL
+
+K_weight<-FALSE
+
+fraction_SDD <- 0.05  #short distance dispersal
+
+#fraction_LDD_mine <- 0.05 #long distance dispersal
+
+
+###Minimal Setup #Remember that the demographic info is for different species - ovis aries
+##doesn't work with ovis aries because the matrix is split into male and female so used the default from popbio
+
+library(popbio)
+data(hudvrs)
+data(hudsonia)
+matrices_mine <- cbind(meanmatrix = as.vector(hudmxdef(hudvrs$mean)),sapply(hudsonia, unlist))
+head(matrices_mine)
+colnames(matrices_mine) <-c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4")
+
+hudsonia_stages<-c("seeds", "seedlings", "tiny", "small", "medium", "large")
+####################################
+
+demoniche_setup(modelname = "RPyran_minimal",Populations = Orig_Populations, matrices_var = matrices_var,matrices = matrices_mine,
+                stages = hudsonia_stages, proportion_initial = proportion_initial,density_individuals = density_individuals,
+                no_yrs = 10)
+
+RPyran_min_run <- demoniche_model(modelname = "RPyran_minimal", Niche = FALSE, Dispersal = FALSE, repetitions = 1,foldername = "RPyran_minimal")
+dimnames(RPyran_min_run)
+
+RPyran_min_run[,"Meanpop","Reference_matrix"]
+
+
+
+(hudsonia)
+
 
 
 
