@@ -3,40 +3,40 @@ library(raster)
 yr<-as.character(850:2015)
 date<-as.Date(yr, format="%Y" )
 
-primf<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="primf")
+primf<-brick(paste(getwd(),"/states.nc", sep=""), varname="primf")
 primf<-setZ(primf, date, name="year")
 
-primn<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="primn")
+primn<-brick(paste(getwd(),"/states.nc", sep=""), varname="primn")
 primn<-setZ(primn, date, name="year")
 
-secdf<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="secdf")
+secdf<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdf")
 secdf<-setZ(secdf, date, name="year")
 
-secdn<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="secdn")
+secdn<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdn")
 secdn<-setZ(secdn, date, name="year")
 
-urban<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="urban")
+urban<-brick(paste(getwd(),"/states.nc", sep=""), varname="urban")
 urban<-setZ(urban, date, name="year")
 
-pastr<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="pastr")
+pastr<-brick(paste(getwd(),"/states.nc", sep=""), varname="pastr")
 pastr<-setZ(pastr, date, name="year")
 
-rnge<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="range")
+rnge<-brick(paste(getwd(),"/states.nc", sep=""), varname="range")
 rnge<-setZ(rnge, date, name="year")
 
-c3ann<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="c3ann")
+c3ann<-brick(paste(getwd(),"/states.nc", sep=""), varname="c3ann")
 c3ann<-setZ(c3ann, date, name="year")
 
-c4ann<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="c4ann")
+c4ann<-brick(paste(getwd(),"/states.nc", sep=""), varname="c4ann")
 c4ann<-setZ(c4ann, date, name="year")
 
-c3per<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="c3per")
+c3per<-brick(paste(getwd(),"/states.nc", sep=""), varname="c3per")
 c3per<-setZ(c3per, date, name="year")
 
-c4per<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="c4per")
+c4per<-brick(paste(getwd(),"/states.nc", sep=""), varname="c4per")
 c4per<-setZ(c4per, date, name="year")
 
-c3nfx<-brick("D:/Fiona/PhD1/Land_Use/LUH2/states.nc", varname="c3nfx")
+c3nfx<-brick(paste(getwd(),"/states.nc", sep=""), varname="c3nfx")
 c3nfx<-setZ(c3nfx, date, name="year")
 
 
@@ -171,6 +171,7 @@ LPILU<-merge(LPI_ID,land_use, by=c("Longitude", "Latitude"))
 
 
 write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv")
+
 
 
 library(taRifx)

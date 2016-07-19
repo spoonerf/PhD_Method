@@ -3,6 +3,7 @@ luc<-read.csv("LUC_average_annual_change_nat_025.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-Realm[,c("ID", "WWF_REALM2")]
+temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
@@ -64,10 +65,10 @@ ridm<-as.vector(rid)
 df<-data.frame(ridm,rz_spdf,rzm)
 colnames(df)<-c( "PatchID","X","Y","area")
 
-Orig_Populations<-na.omit(df)   #df without squares with missing pops
+Populations<-data.frame(na.omit(df))   #df without squares with missing pops
 
 
-write.csv(Orig_Populations, "Rupicapra_pyrenaica_populations.csv")
+write.csv(Populations, "Rupicapra_pyrenaica_populations.csv")
 
 #############geographic data for populations#######
 # lnd<-read.csv("LUH2_Land_Use_All_LPI.csv")
@@ -87,25 +88,27 @@ write.csv(Orig_Populations, "Rupicapra_pyrenaica_populations.csv")
 library(raster)
 library(ncdf4)
 
-yr<-as.character(850:2015)
-date<-as.Date(yr, format="%Y" )
+#only need to do hashed out bit first time
 
-primf<-brick("states.nc", varname="primf")
-primf<-setZ(primf, date, name="year")
-
-primn<-brick("states.nc", varname="primn")
-primn<-setZ(primn, date, name="year")
-
-secdf<-brick("states.nc", varname="secdf")
-secdf<-setZ(secdf, date, name="year")
-
-secdn<-brick("states.nc", varname="secdn")
-secdn<-setZ(secdn, date, name="year")
-
-primf_cr<-primf[[1091:1166]]
-primn_cr<-primn[[1091:1166]]
-secdf_cr<-secdf[[1091:1166]]
-secdn_cr<-secdn[[1091:1166]]
+# yr<-as.character(850:2015)
+# date<-as.Date(yr, format="%Y" )
+# 
+# primf<-brick("states.nc", varname="primf")
+# primf<-setZ(primf, date, name="year")
+# 
+# primn<-brick("states.nc", varname="primn")
+# primn<-setZ(primn, date, name="year")
+# 
+# secdf<-brick("states.nc", varname="secdf")
+# secdf<-setZ(secdf, date, name="year")
+# 
+# secdn<-brick("states.nc", varname="secdn")
+# secdn<-setZ(secdn, date, name="year")
+# 
+# primf_cr<-primf[[1091:1166]]
+# primn_cr<-primn[[1091:1166]]
+# secdf_cr<-secdf[[1091:1166]]
+# secdn_cr<-secdn[[1091:1166]]
 
 
 # writeRaster(primf_cr, "primf_1940.tif")
@@ -159,16 +162,19 @@ Niche_ID<-1:length(n40m) + 5000
 land_use_map<-cbind(Niche_ID,df[,c(2,3,1)]) #percentage cover of natural land use (primary+secondary) for each decade 1940-2010
 
 land_use_map[is.na(land_use_map)]<-0
-colnames(land_use_map)[3]<-"y"
+colnames(land_use_map)[3]<-"Y"
 
 years_projections<-colnames(Niche_values)
 
 no_yrs<-10
 ######## heat map of niche values (natural land use cover 1940-2010)
 
+library(lattice)
 nichemap<-cbind(land_use_map[,c(1:3)],Niche_values )
 
-niche_formulas <- as.formula(paste(paste(colnames(nichemap)[-c(1:3)],collapse="+"),"x+y",sep="~"))
+nichemap[is.na(nichemap)] <- 0    #demoniche doesn't like NAs
+
+niche_formulas <- as.formula(paste(paste(colnames(nichemap)[-c(1:3)],collapse="+"),"X+Y",sep="~"))
 
 print(levelplot(niche_formulas, nichemap, col.regions=rev(heat.colors(100)), main = "Niche Values"))
 
@@ -192,22 +198,31 @@ tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F a
 
 #tempMatmean<-(tempMat[[1]][[1]]+ tempMat[[2]][[1]]+tempMat[[3]][[1]]+tempMat[[4]][[1]]+tempMat[[5]][[1]]+tempMat[[6]][[1]]+tempMat[[7]][[1]])/length(keep)
 
+##test with a just females of one matrix
+MatList<-tempMat[[1]][[1]][c(1:3),c(1:3)]
+AllMat<-unlist(MatList)
+matrices<-matrix(AllMat, ncol=1)
+colnames(matrices)<- c("Reference_matrix")
+##
+
+###with both males and females
 MatList<-list(tempMat[[1]][[1]], tempMat[[2]][[1]], tempMat[[3]][[1]],tempMat[[4]][[1]],tempMat[[5]][[1]],tempMat[[6]][[1]],tempMat[[7]][[1]])
 AllMat<-unlist(MatList)
-matrices<-matrix(AllMat, ncol=7)
+matrices<-matrix(AllMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4", "Matrix_5", "Matrix_6")
-
+######
 
 prob_scenario<-c(0.5,0.5)    #need to check this
 
 noise<-0.95     #need to check this
 
 stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
+stagesf<-stages[1:3]
 
 list_names_matrices<-colnames(matrices)
 
 sumweight<-c(1,1,1,1,1,1)  #weight of stages  - should be equal for all mine just in plants seed not included in calculating population sizes - or if you wanted to just calculate the female population it would be c(1,1,1,0,0,0)
-
+sumweightf<-c(1,1,1)
 
 transition_affected_niche<-"all"    #which parts of the matrix are affected by the niche values
 
@@ -219,9 +234,10 @@ env_stochas_type<-"normal"   #can also be lognormal
 
 matrices_var <- matrix(0.01, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) #standard deviation of matrices
 
-proportion_initial<- c(0.9818098089, 0.0006907668, 0.0069076675,0.0036840893, 0.0057563896, 0.0011512779)  #proportion of population in each stage - no idea what this should be and will likely have a big impact on results!
+proportion_initial<- c(1/6,1/6,1/6,1/6,1/6,1/6)  #proportion of population in each stage - no idea what this should be and will likely have a big impact on results!
+proportion_initialf<- c(1/3,1/3,1/3)
 
-density_individuals <- 20000   #also compulsory not sure what best value would be
+density_individuals <- 1   #also compulsory not sure what best value would be
 
 K<-NULL
 
@@ -233,35 +249,68 @@ fraction_SDD <- 0.05  #short distance dispersal
 
 
 ###Minimal Setup #Remember that the demographic info is for different species - ovis aries
-##doesn't work with ovis aries because the matrix is split into male and female so used the default from popbio
 
-library(popbio)
-data(hudvrs)
-data(hudsonia)
-matrices_mine <- cbind(meanmatrix = as.vector(hudmxdef(hudvrs$mean)),sapply(hudsonia, unlist))
-head(matrices_mine)
-colnames(matrices_mine) <-c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4")
 
-hudsonia_stages<-c("seeds", "seedlings", "tiny", "small", "medium", "large")
-####################################
+demoniche_setup(modelname = "RPyran",Populations = Populations, matrices_var = matrices_var,matrices = matrices,
+                stages = stagesf, proportion_initial = proportion_initialf,density_individuals = density_individuals,
+                no_yrs = 100, sumweight =sumweightf)   #important to include sumweight, I think the default is FALSE but that causes the population to be 0 in all years
 
-demoniche_setup(modelname = "RPyran_minimal",Populations = Orig_Populations, matrices_var = matrices_var,matrices = matrices_mine,
-                stages = hudsonia_stages, proportion_initial = proportion_initial,density_individuals = density_individuals,
-                no_yrs = 10)
-
-RPyran_min_run <- demoniche_model(modelname = "RPyran_minimal", Niche = FALSE, Dispersal = FALSE, repetitions = 1,foldername = "RPyran_minimal")
-dimnames(RPyran_min_run)
+RPyran_min_run <- demoniche_model(modelname = "RPyran", Niche = FALSE, Dispersal = FALSE, repetitions = 1,foldername = "RPyran_minimal")
+#dimnames(RPyran_min_run)
 
 RPyran_min_run[,"Meanpop","Reference_matrix"]
 
 
+#maximal setup
+demoniche_setup(modelname = "RPyran_max",Populations = Populations, Nichemap = nichemap,matrices = matrices, 
+                matrices_var = matrices_var, noise = 0.9, prob_scenario = prob_scenario,stages = stagesf, 
+                proportion_initial = proportion_initialf, density_individuals = density_individuals, fraction_LDD = 0.05, 
+                fraction_SDD = fraction_SDD, dispersal_constants = FALSE, transition_affected_niche = transition_affected_niche,
+                transition_affected_demogr = transition_affected_demogr, transition_affected_env = transition_affected_env,
+                env_stochas_type = env_stochas_type, no_yrs = no_yrs, K = 10000, Kweight = FALSE, sumweight = sumweightf)
 
-(hudsonia)
+
+RPyran_max_run <- demoniche_model(modelname = "RPyran_max", Niche = FALSE, Dispersal = FALSE, repetitions = 10,foldername = "RPyran_minimal")
+
+RPyran_max_run[,"Meanpop","Reference_matrix"]
 
 
+data("Hmontana")
 
 
+Hmontana$Orig_Populations<-RPyran$Orig_Populations#
+Hmontana$Niche_ID<-RPyran$Niche_ID#
+Hmontana$Niche_values<-RPyran$Niche_values#
+Hmontana$years_projections<-RPyran$years_projections#
+Hmontana$matrices<-RPyran$matrices#
+Hmontana$matrices_var<-RPyran$matrices_var#
+Hmontana$prob_scenario<-RPyran$prob_scenario#
+Hmontana$noise<-RPyran$noise#
+Hmontana$stages<-RPyran$stages#
+Hmontana$proportion_initial<-RPyran$proportion_initial#
+Hmontana$density_individuals<-RPyran$density_individuals#
+Hmontana$fraction_SDD<-RPyran$fraction_SDD#
+Hmontana$dispersal_probabilities<-RPyran$dispersal_probabilities#
+Hmontana$dist_latlong<-RPyran$dist_latlong#
+Hmontana$neigh_index<-RPyran$neigh_index#
+Hmontana$fraction_LDD<-RPyran$fraction_LDD#
+Hmontana$no_yrs<-RPyran$no_yrs#
+Hmontana$K<-RPyran$K#
+Hmontana$Kweight<-RPyran$Kweight#
+Hmontana$populationmax_all<-RPyran$populationmax_all#
+Hmontana$n0_all<-RPyran$n0_all # 
+Hmontana$list_names_matrices<-RPyran$list_names_matrices#
+Hmontana$sumweight<-RPyran$sumweight #####Problem! #coming up as false rather than a string of weights
+Hmontana$sumweight<-c(1,1,1,1,1,1) ##works!!
+Hmontana$transition_affected_env<-RPyran$transition_affected_env
+Hmontana$transition_affected_niche<-RPyran$transition_affected_niche
+Hmontana$transition_affected_demogr<-RPyran$transition_affected_demogr
+Hmontana$env_stochas_type<-RPyran$env_stochas_type
 
+
+RPyran_min_run <- demoniche_model(modelname = "Hmontana", Niche = FALSE, Dispersal = FALSE, repetitions = 1,foldername = "RPyran_minimal")
+
+RPyran_min_run[,"Meanpop","Matrix_1"]
 
 
 
