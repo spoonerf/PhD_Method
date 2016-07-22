@@ -215,7 +215,7 @@ colnames(matrices)<- c("Reference_matrix")
 MatList<-list(tempMat[[1]][[1]], tempMat[[2]][[1]], tempMat[[3]][[1]],tempMat[[4]][[1]],tempMat[[5]][[1]],tempMat[[6]][[1]],tempMat[[7]][[1]])
 AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
-colnames(matrices)<- c("Reference_matrix", "Matrix_1", "Matrix_2", "Matrix_3", "Matrix_4", "Matrix_5", "Matrix_6")
+colnames(matrices)<- c("Reference_matrix")
 ######
 
 prob_scenario<-c(0.5,0.5)    #need to check this
@@ -227,8 +227,8 @@ stagesf<-stages[1:3]
 
 list_names_matrices<-colnames(matrices)
 
-sumweight<-c(1,1,1,1,1,1)  #weight of stages  - should be equal for all mine just in plants seed not included in calculating population sizes - or if you wanted to just calculate the female population it would be c(1,1,1,0,0,0)
-sumweightf<-c(1,1,1)
+sumweight<-rep(1, length(stages)) #weight of stages  - should be equal for all mine just in plants seed not included in calculating population sizes - or if you wanted to just calculate the female population it would be c(1,1,1,0,0,0)
+#sumweightf<-c(1,1,1)
 
 transition_affected_niche<-"all"    #which parts of the matrix are affected by the niche values
 
@@ -240,8 +240,8 @@ env_stochas_type<-"normal"   #can also be lognormal
 
 matrices_var <- matrix(0.01, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) #standard deviation of matrices
 
-proportion_initial<- c(1/6,1/6,1/6,1/6,1/6,1/6)  #proportion of population in each stage - no idea what this should be and will likely have a big impact on results!
-proportion_initialf<- c(1/3,1/3,1/3)
+proportion_initial<- rep(1/length(stages), length(stages)) #proportion of population in each stage - no idea what this should be and will likely have a big impact on results! - just doing eqaul splits for now
+#proportion_initialf<- c(1/3,1/3,1/3)
 
 density_individuals <- 1   #also compulsory not sure what best value would be
 
@@ -258,13 +258,28 @@ fraction_SDD <- 0.05  #short distance dispersal
 
 
 demoniche_setup(modelname = "RPyran",Populations = Populations, matrices_var = matrices_var,matrices = matrices,
-                stages = stagesf, proportion_initial = proportion_initialf,density_individuals = density_individuals,
-                no_yrs = 100, sumweight =sumweightf)   #important to include sumweight, I think the default is FALSE but that causes the population to be 0 in all years
+                stages = stages, proportion_initial = proportion_initial,density_individuals = density_individuals,
+                no_yrs = 80, sumweight =sumweight)   #important to include sumweight, I think the default is FALSE but that causes the population to be 0 in all years
 
 RPyran_min_run <- demoniche_model(modelname = "RPyran", Niche = FALSE, Dispersal = FALSE, repetitions = 1,foldername = "RPyran_minimal")
 #dimnames(RPyran_min_run)
 
 RPyran_min_run[,"Meanpop","Reference_matrix"]
+
+###Maximal set up
+
+
+demoniche_setup(modelname = "RPyran_max",Populations = Populations, Nichemap = nichemap,matrices = matrices, 
+                                 matrices_var = matrices_var, noise = 0.1, prob_scenario = prob_scenario,stages = stages, 
+                                 proportion_initial = proportion_initial, density_individuals = density_individuals, fraction_LDD = 0.95, 
+                                 fraction_SDD = 0.95, dispersal_constants = FALSE, transition_affected_niche = transition_affected_niche,
+                                 transition_affected_demogr = transition_affected_demogr, transition_affected_env = transition_affected_env,
+                                 env_stochas_type = env_stochas_type, no_yrs = no_yrs, K = 10000000, Kweight = FALSE, sumweight = sumweight)
+
+
+RPyran_max_run <- demoniche_model(modelname = "RPyran_max", Niche = FALSE, Dispersal = FALSE, repetitions = 10,foldername = "RPyran_minimal")
+RPyran_max_run[,"Meanpop","Reference_matrix"]
+
 
 ######which species are in both comadrea and LPI
 comsp<-unique(comadre$metadata$SpeciesAccepted)
