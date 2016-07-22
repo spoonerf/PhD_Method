@@ -18,7 +18,7 @@ df<-merge(df, Realm, by="ID")
 
 df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=10 & System!="Marine" &Specific_location == 1 & (Class=="Mammalia") & !is.na(Bodymass) )
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=10 & System!="Marine" &Specific_location == 1  & !is.na(Bodymass) )
 
 nrow(df2)
 
@@ -26,7 +26,10 @@ df2$Nat_loss<-0-df2$Nat_change
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
-pyr<-subset(df2, Common_name =="Pyrenean chamois")    #record 11470 had wrong longitude - in Russia!
+species<-"Capra_ibex"
+
+
+pyr<-subset(df2, Binomial ==species)    #record 11470 had wrong longitude - in Russia!
 
 plot(pyr$Longitude, pyr$Latitude)
 
@@ -68,7 +71,7 @@ colnames(df)<-c( "PatchID","X","Y","area")
 Populations<-data.frame(na.omit(df))   #df without squares with missing pops
 
 
-write.csv(Populations, "Rupicapra_pyrenaica_populations.csv")
+#write.csv(Populations, "Rupicapra_pyrenaica_populations.csv")
 
 #############geographic data for populations#######
 # lnd<-read.csv("LUH2_Land_Use_All_LPI.csv")
@@ -145,6 +148,9 @@ n2000c<-crop(n2000,r)
 n2010<-primf[[71]]+ primn[[71]]+secdf[[71]]+secdn[[71]]
 n2010c<-crop(n2010,r)
 
+# plot(stack(n40c,n50c,n60c,n70c,n80c,n90c,n2000c,n2010c))  #plot of nat veg cover over 1940-2010
+# plot(n2010c)
+# points(pyrxy)
 
 n40m<-as.vector(n40c)
 n50m<-as.vector(n50c)
@@ -188,7 +194,7 @@ library(demoniche)
 dir<-getwd()
 load(paste(dir, "COMADRE_v.1.0.0.RData", sep="/"))
 
-tempMetadata<-subset(comadre$metadata, SpeciesAccepted=="Ovis_aries")
+tempMetadata<-subset(comadre$metadata, SpeciesAccepted==species)
 
 keep<-as.numeric(rownames(tempMetadata))
 
@@ -260,63 +266,27 @@ RPyran_min_run <- demoniche_model(modelname = "RPyran", Niche = FALSE, Dispersal
 
 RPyran_min_run[,"Meanpop","Reference_matrix"]
 
-
-#maximal setup
-demoniche_setup(modelname = "RPyran_max",Populations = Populations, Nichemap = nichemap,matrices = matrices, 
-                matrices_var = matrices_var, noise = 0.9, prob_scenario = prob_scenario,stages = stagesf, 
-                proportion_initial = proportion_initialf, density_individuals = density_individuals, fraction_LDD = 0.05, 
-                fraction_SDD = fraction_SDD, dispersal_constants = FALSE, transition_affected_niche = transition_affected_niche,
-                transition_affected_demogr = transition_affected_demogr, transition_affected_env = transition_affected_env,
-                env_stochas_type = env_stochas_type, no_yrs = no_yrs, K = 10000, Kweight = FALSE, sumweight = sumweightf)
+######which species are in both comadrea and LPI
+comsp<-unique(comadre$metadata$SpeciesAccepted)
+lpisp<-as.character(unique(df2$Binomial))
 
 
-RPyran_max_run <- demoniche_model(modelname = "RPyran_max", Niche = FALSE, Dispersal = FALSE, repetitions = 10,foldername = "RPyran_minimal")
+bothsp<-comsp[comsp %in% lpisp]
 
-RPyran_max_run[,"Meanpop","Reference_matrix"]
+com_matn<-data.frame(table(comadre$metadata$SpeciesAccepted[comadre$metadata$SpeciesAccepted %in% bothsp]))
 
+lpi_popn<-data.frame(table(as.character(df2$Binomial)[as.character(df2$Binomial) %in% bothsp]))
 
-data("Hmontana")
+LPICN<-unique(LPI[,c("Binomial","Common_name")])
 
+counts<-merge(com_matn, lpi_popn, by="Var1")
 
-Hmontana$Orig_Populations<-RPyran$Orig_Populations#
-Hmontana$Niche_ID<-RPyran$Niche_ID#
-Hmontana$Niche_values<-RPyran$Niche_values#
-Hmontana$years_projections<-RPyran$years_projections#
-Hmontana$matrices<-RPyran$matrices#
-Hmontana$matrices_var<-RPyran$matrices_var#
-Hmontana$prob_scenario<-RPyran$prob_scenario#
-Hmontana$noise<-RPyran$noise#
-Hmontana$stages<-RPyran$stages#
-Hmontana$proportion_initial<-RPyran$proportion_initial#
-Hmontana$density_individuals<-RPyran$density_individuals#
-Hmontana$fraction_SDD<-RPyran$fraction_SDD#
-Hmontana$dispersal_probabilities<-RPyran$dispersal_probabilities#
-Hmontana$dist_latlong<-RPyran$dist_latlong#
-Hmontana$neigh_index<-RPyran$neigh_index#
-Hmontana$fraction_LDD<-RPyran$fraction_LDD#
-Hmontana$no_yrs<-RPyran$no_yrs#
-Hmontana$K<-RPyran$K#
-Hmontana$Kweight<-RPyran$Kweight#
-Hmontana$populationmax_all<-RPyran$populationmax_all#
-Hmontana$n0_all<-RPyran$n0_all # 
-Hmontana$list_names_matrices<-RPyran$list_names_matrices#
-Hmontana$sumweight<-RPyran$sumweight #####Problem! #coming up as false rather than a string of weights
-Hmontana$sumweight<-c(1,1,1,1,1,1) ##works!!
-Hmontana$transition_affected_env<-RPyran$transition_affected_env
-Hmontana$transition_affected_niche<-RPyran$transition_affected_niche
-Hmontana$transition_affected_demogr<-RPyran$transition_affected_demogr
-Hmontana$env_stochas_type<-RPyran$env_stochas_type
+colnames(counts)<-c("Binomial", "Comadre", "LPI")
 
+counts2<-merge(counts,LPICN, by="Binomial" )
 
-RPyran_min_run <- demoniche_model(modelname = "Hmontana", Niche = FALSE, Dispersal = FALSE, repetitions = 1,foldername = "RPyran_minimal")
+colnames(counts2)<-c("Binomial", "Comadre_Matrices", "LPI_Populations", "Common_name")
 
-RPyran_min_run[,"Meanpop","Matrix_1"]
+counts2<-counts2[,c("Common_name", "Binomial", "Comadre_Matrices", "LPI_Populations")]
 
-
-
-
-
-
-
-
-
+write.csv(counts2,"Summary_of_LPI_pops_Comadre_Matrics.csv")
