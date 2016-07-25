@@ -37,6 +37,9 @@ LPI_EU2[LPI_EU2 == 'NULL'] = NA
 
 
 ```{r}
+source("gm_mean.R")
+
+
 doFit = function(sp_name) {
   spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
   spid = spid2[,4:66]                     #subsetting only the dates
@@ -75,7 +78,7 @@ doFit = function(sp_name) {
     lambda2<-diff(pv2$fit)
     lambda_sum2<-sum(lambda2, na.rm=TRUE)
     lambda_mean2<-mean(lambda2, na.rm=TRUE)
- 
+
   } else {
     SmoothParm<-NA
     PopN = log10(Population)
@@ -87,6 +90,7 @@ doFit = function(sp_name) {
     lambda2<-diff(Pop_interp2)
     lambda_sum2<-sum(lambda2, na.rm=TRUE)
     lambda_mean2<-mean(lambda2, na.rm=TRUE)
+ 
   }
 
 res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq2, model=model,lambda_sum=lambda_sum2,lambda_mean=lambda_mean2,time=time, missing=missing)
@@ -312,30 +316,37 @@ library(raster)
 ```
 
 ```{r}
-crop<-brick("LUHa_u2t1.v1_gcrop.nc4")
-prim<-brick("LUHa_u2t1.v1_gothr.nc4")
-past<-brick("LUHa_u2t1.v1_gpast.nc4")
-secd<-brick("LUHa_u2t1.v1_gsecd.nc4")
-urban<-brick("LUHa_u2t1.v1_gurbn.nc4")
+library(raster)
 
+yr<-as.character(850:2015)
+date<-as.Date(yr, format="%Y" )
 
-cropn<-crop[[251:306]]   #pulling out the data for 1950-2005 as the data starts at 1700
-primn<-prim[[251:306]]
-pastn<-past[[251:306]]
-secdn<-secd[[251:306]]
-urbann<-urban[[251:306]]
+primf<-brick(paste(getwd(),"/states.nc", sep=""), varname="primf")
+primf<-setZ(primf, date, name="year")
 
-writeRaster(cropn, "Crop_1950.tif")
-writeRaster(primn, "Prim_1950.tif")
-writeRaster(pastn, "Past_1950.tif")
-writeRaster(secdn, "Secd_1950.tif")
-writeRaster(urbann, "Urbn_1950.tif")
+primn<-brick(paste(getwd(),"/states.nc", sep=""), varname="primn")
+primn<-setZ(primn, date, name="year")
 
-cropn<-brick("Crop_1950.tif")
-primn<-brick("Prim_1950.tif")
-pastn<-brick("Past_1950.tif")
-secdn<-brick("Secd_1950.tif")
-urbn<-brick("Urbn_1950.tif")
+secdf<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdf")
+secdf<-setZ(secdf, date, name="year")
+
+secdn<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdn")
+secdn<-setZ(secdn, date, name="year")
+
+primf_cr<-primf[[1091:1166]]
+primn_cr<-primn[[1091:1166]]
+secdf_cr<-secdf[[1091:1166]]
+secdn_cr<-secdn[[1091:1166]]
+
+writeRaster(primf_cr, "primf_1940.tif")
+writeRaster(primn_cr, "primn_1940.tif")
+writeRaster(secdf_cr, "secdf_1940.tif")
+writeRaster(secdn_cr, "secdn_1940.tif")
+
+primf<-brick("primf_1940.tif")
+primn<-brick("primn_1940.tif")
+secdf<-brick("secdf_1940.tif")
+secdn<-brick("secdn_1940.tif")
 
 ```
 
@@ -362,9 +373,9 @@ library(reshape2)
 ```
 
 ```{r}
-layer<-urbn
+layer<-c3nfx
 
-n<-2  #number of cores to use - not sure how many I can go up to
+n<-6  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 
@@ -380,7 +391,7 @@ ptime
 #beep(3)
 stopCluster(cl)
 
-dates<-1950:2005
+dates<-1940:2015
 
 datesr<-rep(dates, each=1078)
 
@@ -389,71 +400,37 @@ dfm<-melt(df)
 lon<-xy[,1]
 lat<-xy[,2]
 
-#dfm2<-cbind(lon,lat,datesr, dfm)
-dfm2<-cbind(lon,lat,dates, dfm)
+dfm2<-cbind(lon,lat,datesr, dfm)
 ```
 
 ```{r}
-#crop2<-dfm2   #do each individually
-#prim2<-dfm2
-#past2<-dfm2
+
+#primf2<-dfm2   #do each individually
+#primn2<-dfm2
+#secdf2<-dfm2
 #secdn2<-dfm2
-#urbn2<-dfm2
 
-land_use<-data.frame(crop2$lon, crop2$lat, crop2$datesr, crop2$value, prim2$value, past2$value, secdn2$value, urbn2$value)
+land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value)
 
-colnames(land_use)<-c("Longitude", "Latitude","Year", "Crop", "Primary", "Pasture", "Secondary", "Urban")
+colnames(land_use_nat)<-c("Longitude", "Latitude", "Year", "Primary_Forest", "Primary_Non_Forest", 
+                          "Secondary_Forest", "Secondary_Non_Forest") 
+
+land_use_nat$total<-land_use$Primary_Forest+land_use$Primary_Non_Forest+land_use$Secondary_Forest+
+  land_use$Secondary_Non_Forest
 
 LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
 LPILU<-merge(LPI_ID,land_use, by=c("Longitude", "Latitude"))
 
-```
 
-Ibex example
-```{r}
-LPILU<-subset(LPILU, Year >=1950 & Year <=1984)
-euc<-numeric(nrow(LPILU-1))
-for (i in 2:nrow(LPILU)){
-  euc[i]<-dist(as.matrix(LPILU[c(i-1,i),c(5:9)]))
-  print(i)
-  }
-  
-years<-1950:1984
+write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv")
 
-plot(years,euc, type="l", ylab="Land Use Change", xlab="Year", main="Annual Land Use Change")
-
-
-```
-
-
-```{r}
-sums<-rowSums(LPILU[,c(5:9)])
-hist(sums)
-
-LPILU$Other<- 1 - rowSums(LPILU[,c(5:9)])  #not all cells add up to 1 - not sure why -water!
- 
-write.csv(LPILU, "Global_Land_Use_All_LPI.csv")
 
 ```
 
 Step 5 - Calculating land use change for each population
 
 ```{r}
-LPILU<-read.csv("Global_Land_Use_All_LPI.csv") 
-#should probablyy get rid of those with high "other" category as may be reflective of crappy data
-
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
-
-LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
-
-LPILU$Anth<-LPILU$Crop + LPILU$Pasture + LPILU$Urban
-LPILU$Nat<-LPILU$Primary + LPILU$Secondary + LPILU$Other
-
-```
-
-```{r}
-  
 library(taRifx)
 
 doDist = function(sp_name) {
@@ -461,54 +438,41 @@ doDist = function(sp_name) {
   spid = spid2[,63:118]                     #subsetting only the dates
   colnames(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
   lu_id=subset(LPILU, ID == sp_name)  #subsetting the climate data by each population
- 
+  
   id<-spid2$ID
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
   
   if (sum(!is.na(spidt)) > 1) {
     Yr<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-    luyr<-as.matrix(subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c(12:13)])   #6:11 for all categories 12:13 for nat vs anth
+    luyr<-as.matrix(subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c(4,17)])   #6:11 for all categories 12:13 for nat vs anth
+    luyr<-luyr[order(luyr[,1]),]
     natdiff<-mean(diff(luyr[,2]))
     
-    lum<-matrix(luyr, ncol=ncol(luyr))
-    m<-dist(lum, method="euclidean")
-    n<-as.matrix(m)
-    lu<-diag(n[c(2:nrow(n)),c(1:ncol(n))])
-    euc<-mean(lu)
-
+    # lum<-matrix(luyr, ncol=ncol(luyr))
+    # m<-dist(lum, method="euclidean")
+    # n<-as.matrix(m)
+    # lu<-diag(n[c(2:nrow(n)),c(1:ncol(n))])
+    # euc<-mean(lu)
+    
   } else{
-    euc<-NA
+   # euc<-NA
     natdiff<-NA
   }
   #euc_df<-data.frame(id,euc)
-  euc_df<-data.frame(id,euc,natdiff)
+ # euc_df<-data.frame(id,euc,natdiff)
+  euc_df<-data.frame(id, natdiff)
   print(euc_df)  
   return(euc_df)
 }
 
 all_df_list <- lapply(unique(LPIsp$ID), doDist)
 
-```
+all_matrix <- matrix(unlist(all_df_list), ncol=2, byrow=TRUE)
+mean_df <- data.frame(all_matrix)
+colnames(mean_df) <- c("ID", "Nat_change")
 
-```{r}
-library(reshape)
-library(ggplot2)
-
-lu_id<- lu_id[ order(lu_id[,5]), ]
-
-lu_id<-subset(lu_id, Year >= 1956 & Year <= 2000)
-
-lu_df<-melt(lu_id[,c(6:11)])
-lu_df2<-cbind(lu_id$Year, lu_df)
-colnames(lu_df2)<-c("Year", "Land_Use_Type", "Percentage_Cover")
-
-ggplot(data=lu_df2, aes(x=Year, y=Percentage_Cover, group=Land_Use_Type)) +
-  geom_line(aes(color=Land_Use_Type))+
-  geom_point(aes(color=Land_Use_Type))+
-  labs(title="Land Use Cover Over Time",x="Year", y = "Percentage Cover")+
-  theme(legend.title=element_blank())
-
+write.csv(mean_df, "LUC_average_annual_change_nat_025.csv")
 
 ```
 
@@ -557,7 +521,7 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=10 & System!="Marine" &Specific_location == 1 & (Class=="Mammalia") & !is.na(Bodymass) )
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) )
 
 nrow(df2)
 
