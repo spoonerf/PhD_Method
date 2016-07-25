@@ -313,11 +313,6 @@ Step 4 - Extracting Land Use Change Data for each population
 ```{r}
 library(raster)
 
-```
-
-```{r}
-library(raster)
-
 yr<-as.character(850:2015)
 date<-as.Date(yr, format="%Y" )
 
