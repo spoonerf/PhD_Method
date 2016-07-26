@@ -516,7 +516,7 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) )
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")
 
 nrow(df2)
 
@@ -583,6 +583,7 @@ colnames(dfus)<-c("change_rate_scale", "mean_slope_scale")
 ```
 
 ```{r}
+library(raster)
 LU<-raster("Glob_LU_plot_1950_2005.tif")
 TM<-raster("Glob_Slop_plot.tif")
 
@@ -608,6 +609,10 @@ source("rsquaredglmm.R")
 
 R=499
 AIC_m0=numeric(R)
+AIC_m0a= numeric(R)
+AIC_m0b= numeric(R)
+AIC_m0c= numeric(R)
+AIC_m0d= numeric(R)
 AIC_m1= numeric(R)
 AIC_m1a= numeric(R)
 AIC_m1b= numeric(R)
@@ -615,12 +620,20 @@ AIC_m1c= numeric(R)
 AIC_mnull= numeric(R)
 
 marg_Rsq_m0 = numeric(R)
+marg_Rsq_m0a = numeric(R)
+marg_Rsq_m0b = numeric(R)
+marg_Rsq_m0c = numeric(R)
+marg_Rsq_m0d = numeric(R)
 marg_Rsq_m1 = numeric(R)
 marg_Rsq_m1a = numeric(R)
 marg_Rsq_m1b = numeric(R)
 marg_Rsq_m1c = numeric(R)
 
 cond_Rsq_m0 = numeric(R)
+cond_Rsq_m0a = numeric(R)
+cond_Rsq_m0b = numeric(R)
+cond_Rsq_m0c = numeric(R)
+cond_Rsq_m0d = numeric(R)
 cond_Rsq_m1 = numeric(R)
 cond_Rsq_m1a = numeric(R)
 cond_Rsq_m1b = numeric(R)
@@ -628,6 +641,10 @@ cond_Rsq_m1c = numeric(R)
 cond_Rsq_mnull = numeric(R)
 
 m0_w = numeric(R)
+m0a_w = numeric(R)
+m0b_w = numeric(R)
+m0c_w = numeric(R)
+m0d_w = numeric(R)
 m1_w = numeric(R)
 m1a_w = numeric(R)
 m1b_w = numeric(R)
@@ -651,31 +668,36 @@ LUC_avus = numeric(R)
 
 for (i in 1:R) {
  dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
- #dt2<-dt[sample(nrow(dt), 150, replace=TRUE), ]
-  
  colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]    #sp_df_scale   #should be dt2
 
  
   m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
   
-  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1T<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
   
-  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale++(1|Binomial),data=sp_dups_df2, REML=F)
-  m1aT<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2)
+  m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  m0d<-lmer(lambda_mean ~ Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
+  
+  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1bT<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial),data=sp_dups_df2)
   
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  m1cT<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2)
-  
+ 
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
-  mnullT<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2)
-
+  
   #AIC
   AIC_m0[i]<-AIC(m0)
+  AIC_m0a[i]<-AIC(m0a)
+  AIC_m0b[i]<-AIC(m0b)
+  AIC_m0c[i]<-AIC(m0c)
+  AIC_m0d[i]<-AIC(m0d)
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
   AIC_m1b[i]<-AIC(m1b)
@@ -684,33 +706,45 @@ for (i in 1:R) {
 
   # #Weights
 
-  msAICc <- model.sel(m0,m1,m1a,m1b,m1c,mnull)
+  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
 
   m0_w[i]<-subset(msAICc, model =="m0")$weight
   m1_w[i]<-subset(msAICc, model=="m1")$weight
+  m0a_w[i]<-subset(msAICc, model=="m0a")$weight
+  m0b_w[i]<-subset(msAICc, model=="m0b")$weight
+  m0c_w[i]<-subset(msAICc, model=="m0c")$weight
+  m0d_w[i]<-subset(msAICc, model=="m0d")$weight
   m1a_w[i]<-subset(msAICc, model=="m1a")$weight
   m1b_w[i]<-subset(msAICc, model=="m1b")$weight
   m1c_w[i]<-subset(msAICc, model=="m1c")$weight
   mnull_w[i]<-subset(msAICc, model=="mnull")$weight
 
   #Rsq
-  models_list<-list(m0,m1,m1a,m1b,m1c,mnull)
+  models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
 
   marg_Rsq_m0[i]<-modelsRsq[1,4]
-  marg_Rsq_m1[i]<-modelsRsq[2,4]
-  marg_Rsq_m1a[i]<-modelsRsq[3,4]
-  marg_Rsq_m1b[i]<-modelsRsq[4,4]
-  marg_Rsq_m1c[i]<-modelsRsq[5,4]
+  marg_Rsq_m0a[i]<-modelsRsq[2,4]
+  marg_Rsq_m0b[i]<-modelsRsq[3,4]
+  marg_Rsq_m0c[i]<-modelsRsq[4,4]
+  marg_Rsq_m0d[i]<-modelsRsq[5,4]
+  marg_Rsq_m1[i]<-modelsRsq[6,4]
+  marg_Rsq_m1a[i]<-modelsRsq[7,4]
+  marg_Rsq_m1b[i]<-modelsRsq[8,4]
+  marg_Rsq_m1c[i]<-modelsRsq[9,4]
   cond_Rsq_m0[i]<-modelsRsq[1,5]
-  cond_Rsq_m1[i]<-modelsRsq[2,5]
-  cond_Rsq_m1a[i]<-modelsRsq[3,5]
-  cond_Rsq_m1b[i]<-modelsRsq[4,5]
-  cond_Rsq_m1c[i]<-modelsRsq[5,5]
-  cond_Rsq_mnull[i]<-modelsRsq[6,5]
+  cond_Rsq_m0a[i]<-modelsRsq[2,5]
+  cond_Rsq_m0b[i]<-modelsRsq[3,5]
+  cond_Rsq_m0c[i]<-modelsRsq[4,5]
+  cond_Rsq_m0d[i]<-modelsRsq[4,5]
+  cond_Rsq_m1[i]<-modelsRsq[5,5]
+  cond_Rsq_m1a[i]<-modelsRsq[6,5]
+  cond_Rsq_m1b[i]<-modelsRsq[7,5]
+  cond_Rsq_m1c[i]<-modelsRsq[8,5]
+  cond_Rsq_mnull[i]<-modelsRsq[9,5]
 
   var_imp<-summary(model.avg(models_list))
   # MTC_i[i]<-var_imp$importance["mean_slope_scale"]
@@ -805,6 +839,9 @@ df2$LUC<-(df2$LUC/sqrt(2))*100
 ```
 
 ```{r}
+
+library(ggplot2)
+
 xydata<-data.frame(df2$LUC, df2$Estimate, df2$WWF_REALM2)
 colnames(xydata)<-c("Land_Use", "Mean_Temp", "Realm")
 
@@ -872,9 +909,9 @@ labs(x="Longitude", y="Latitude", colourbar= "Average Annual Population Change (
 
 
 ```{r}
-AIC_df<-data.frame(cbind(AIC_m0,AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
+AIC_df<-data.frame(cbind(AIC_m0,AIC_m0a,AIC_m0b,AIC_m0c,AIC_m0d,AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
 
-AIC_del<-AIC_df[,c(1:5)] - AIC_df$AIC_mnull
+AIC_del<-AIC_df[,c(1:length(AIC_df)-1)] - AIC_df$AIC_mnull
 
 colMeans(AIC_del)
 
@@ -884,12 +921,20 @@ boxplot(AIC_del, main="Difference in AIC from Null Model")
 
 ```{r}
 mean(marg_Rsq_m0)
+mean(marg_Rsq_m0a)
+mean(marg_Rsq_m0b)
+mean(marg_Rsq_m0c)
+mean(marg_Rsq_m0d)
 mean(marg_Rsq_m1)
 mean(marg_Rsq_m1a)
 mean(marg_Rsq_m1b)
 mean(marg_Rsq_m1c)
 
 mean(cond_Rsq_m0)
+mean(cond_Rsq_m0a)
+mean(cond_Rsq_m0b)
+mean(cond_Rsq_m0c)
+mean(cond_Rsq_m0d)
 mean(cond_Rsq_m1)
 mean(cond_Rsq_m1a)
 mean(cond_Rsq_m1b)
@@ -897,6 +942,10 @@ mean(cond_Rsq_m1c)
 mean(cond_Rsq_mnull)
 
 mean(m0_w)
+mean(m0a_w)
+mean(m0b_w)
+mean(m0c_w)
+mean(m0d_w)
 mean(m1_w)
 mean(m1a_w)
 mean(m1b_w)
@@ -907,6 +956,8 @@ mean(mnull_w)
 
 
 ```{r}
+
+par(mar=c(8,4.5,2,1))
 
 Low<-(R+1)/40
 High<-(R+1)-(R+1)/40 
@@ -929,27 +980,6 @@ plotCI(1:3, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient 
 axis(1, at=1:3, labels=colnames(conf_av), las=2)
 abline(h=0, col="red", lty =2)
 
-```
-
-```{r}
-
-
-AIC_av<- c(mean(AIC_m1),mean(AIC_m1a),mean(AIC_m1b), mean(AIC_m1c), mean(AIC_mnull))
-low_AIC<-c(sort(AIC_m1)[Low], sort(AIC_m1a)[Low], sort(AIC_m1b)[Low], sort(AIC_m1c)[Low], sort(AIC_mnull)[Low])
-high_AIC<-c(sort(AIC_m1)[High], sort(AIC_m1a)[High], sort(AIC_m1b)[High], sort(AIC_m1c)[High], sort(AIC_mnull)[High])
-
-Variable<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null")
-
-conf_av<-data.frame(rbind( AIC_av, low_AIC, high_AIC))
-colnames(conf_av)<-Variable
-conf_av
-
-library(plotrix)
-
-plotCI(1:5, AIC_av, (high_AIC-AIC_av), (AIC_av-low_AIC), ylab="AIC values (95% C.I.)", xlab="" ,xaxt = "n", 
-       main="Distribution of AIC - Non-Migratory Birds", lwd=1, ylim=c(min(low_AIC*1.01), max(high_AIC*0.99)))
-axis(1, at=1:5, labels=colnames(conf_av), las=2)
-abline(h=mean(AIC_mnull), col="red", lty =2)
 ```
 
 ```{r}
