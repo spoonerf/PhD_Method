@@ -942,28 +942,28 @@ abline(h=0, col="red", lty =2)
 ```{r}
 
 #marg r squared
-marg_df<- data.frame(cbind(marg_Rsq_m0,marg_Rsq_m0a,marg_Rsq_m0b,marg_Rsq_m0c,marg_Rsq_m0d,marg_Rsq_m1,marg_Rsq_m1a,marg_Rsq_m1b,marg_Rsq_m1c))
+marg_df<- data.frame(cbind(marg_Rsq_m0,marg_Rsq_m0a,marg_Rsq_m1,marg_Rsq_m1a,marg_Rsq_m0b,marg_Rsq_m0c,marg_Rsq_m0d,marg_Rsq_m1b,marg_Rsq_m1c)*100)
 
-colnames(marg_df)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c")
+colnames(marg_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC")
 
-boxplot(marg_df, main="Marginal R squared value of model")
+boxplot(marg_df, main="", ylab= "Marginal R Squared (%)")
 ```
 
 ```{r}
 #cond r squared
-cond_df<- data.frame(cbind(cond_Rsq_m0,cond_Rsq_m0a,cond_Rsq_m0b,cond_Rsq_m0c,cond_Rsq_m0d,cond_Rsq_m1,cond_Rsq_m1a,cond_Rsq_m1b,cond_Rsq_m1c,cond_Rsq_mnull))
-colnames(cond_df)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c", "mnull")
+cond_df<- data.frame(cbind(cond_Rsq_m0,cond_Rsq_m0a,cond_Rsq_m1,cond_Rsq_m1a,cond_Rsq_m0b,cond_Rsq_m0c,cond_Rsq_m0d,cond_Rsq_m1b,cond_Rsq_m1c,cond_Rsq_mnull)*100)
+colnames(cond_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC", "Null Model")
 
-boxplot(cond_df, main="Conditional R squared value of model")
+boxplot(cond_df, ylab="Conditional R squared (%)")
 ```
 
 ```{r}
 #model weight in averaged model
-weight_df<-data.frame(cbind(m0_w,m0a_w,m0b_w,m0c_w,m0d_w,m1_w,m1a_w,m1b_w,m1c_w,mnull_w))
+weight_df<-data.frame(cbind(m0_w,m0a_w,m1_w,m1a_w,m0b_w,m0c_w,m0d_w,m1b_w,m1c_w,mnull_w)*100)
 
-colnames(weight_df)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c", "mnull")
+colnames(weight_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC", "Null Model")
 
-boxplot(weight_df, main="Weight of model in average model across bootstraps")
+boxplot(weight_df, main="", ylab="Weight of model in averaged model (%)")
 ```
 
 
@@ -971,7 +971,7 @@ boxplot(weight_df, main="Weight of model in average model across bootstraps")
 #variable importance in averaged model
 vi_df<-(data.frame(cbind(MTC_i,LUC_i,BM_i,LUC_MTC_i)))
 
-colnames(vi_df)<-c("MTC", "LUC", "BM", "LUC_MTC")
+colnames(vi_df)<-c("MTC", "LUC", "BM", "LUC*MTC")
 
 boxplot(vi_df)
 
