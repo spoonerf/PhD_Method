@@ -502,7 +502,7 @@ Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-Realm[,c("ID", "WWF_REALM2")]
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
-EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
+#EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 
 temp<-temp[,c("ID", "Estimate")]
 
@@ -516,13 +516,37 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
+<<<<<<< HEAD
 df2<-subset(df, !is.na(Estimate) &r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")
+=======
+df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" )#& WWF_REALM2=="Neotropic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+>>>>>>> 8a12aa34c05c72db72591db16bf086a08fefebb0
 
 nrow(df2)
 
 df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
 
+df2[is.na(df2$lambda_mean),]$lambda_mean<-0
+#####is this a problem - changing NAs for 0 - when the population is stationary across years the lambda mean is calculated
+
+p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=Nat_change*100, colour=lambda_mean))
+p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
+  scale_colour_gradient(low = "red", high="green",name="Average\nLambda")+
+  labs(x="Biogeographic Realm", y="Annual Change in Natural Cover (%)")
+
+
+
 ```
+
+```{r}
+test<-read.csv("birds_for_lme.csv")
+test$ID[!test$ID %in% df2$ID]
+
+
+subset(df, ID == 5458)$r_sq >=0.5
+
+```
+
 
 ```{r}
 library(plyr)
@@ -532,7 +556,7 @@ sp_dups$loc_id<-1:length(sp_dups$Longitude)
 sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 
 library(data.table)
-#dt = as.data.table(sp_dups_df)
+dt = as.data.table(sp_dups_df)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "Nat_loss")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
@@ -554,8 +578,6 @@ sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
 dt<-data.table(sp_df_scale)
 
-length(subset(dt,lambda_mean == NA))
-
 #dt$lambda_mean[is.na(dt$lambda_mean)]<-0
 
 range_lam<-tapply(dt$lambda_mean, dt$loc_id, range)
@@ -564,7 +586,6 @@ rl$diff<-rl[,1] - rl[,2]
 hist(rl$diff)
 #dt<-subset(dt, loc_id!=277)
 
-sp_df_scale[is.na(sp_df_scale$lambda_mean),]$lambda_mean<-0  #####is this a problem?
 
 ```
 
@@ -607,7 +628,7 @@ library(MuMIn)
 library(raster)
 source("rsquaredglmm.R")
 
-R=499
+R=99
 AIC_m0=numeric(R)
 AIC_m0a= numeric(R)
 AIC_m0b= numeric(R)
@@ -653,11 +674,13 @@ mnull_w = numeric(R)
 
 MTC_i = numeric(R)
 LUC_i = numeric(R)
+BM_i = numeric(R)
 LUC_MTC_i = numeric(R)
 
 int_av = numeric(R)
 MTC_av = numeric(R)
 LUC_av = numeric(R)
+BM_av = numeric(R)
 LUC_MTC_av = numeric(R)
 
 MTC_avus = numeric(R)
@@ -725,36 +748,39 @@ for (i in 1:R) {
   models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
+  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
 
-  marg_Rsq_m0[i]<-modelsRsq[1,4]
-  marg_Rsq_m0a[i]<-modelsRsq[2,4]
-  marg_Rsq_m0b[i]<-modelsRsq[3,4]
-  marg_Rsq_m0c[i]<-modelsRsq[4,4]
-  marg_Rsq_m0d[i]<-modelsRsq[5,4]
-  marg_Rsq_m1[i]<-modelsRsq[6,4]
-  marg_Rsq_m1a[i]<-modelsRsq[7,4]
-  marg_Rsq_m1b[i]<-modelsRsq[8,4]
-  marg_Rsq_m1c[i]<-modelsRsq[9,4]
-  cond_Rsq_m0[i]<-modelsRsq[1,5]
-  cond_Rsq_m0a[i]<-modelsRsq[2,5]
-  cond_Rsq_m0b[i]<-modelsRsq[3,5]
-  cond_Rsq_m0c[i]<-modelsRsq[4,5]
-  cond_Rsq_m0d[i]<-modelsRsq[4,5]
-  cond_Rsq_m1[i]<-modelsRsq[5,5]
-  cond_Rsq_m1a[i]<-modelsRsq[6,5]
-  cond_Rsq_m1b[i]<-modelsRsq[7,5]
-  cond_Rsq_m1c[i]<-modelsRsq[8,5]
-  cond_Rsq_mnull[i]<-modelsRsq[9,5]
+  
+  marg_Rsq_m0[i]<-modelsRsq["m0",4]
+  marg_Rsq_m0a[i]<-modelsRsq["m0a",4]
+  marg_Rsq_m0b[i]<-modelsRsq["m0b",4]
+  marg_Rsq_m0c[i]<-modelsRsq["m0c",4]
+  marg_Rsq_m0d[i]<-modelsRsq["m0d",4]
+  marg_Rsq_m1[i]<-modelsRsq["m1",4]
+  marg_Rsq_m1a[i]<-modelsRsq["m1a",4]
+  marg_Rsq_m1b[i]<-modelsRsq["m1b",4]
+  marg_Rsq_m1c[i]<-modelsRsq["m1c",4]
+  cond_Rsq_m0[i]<-modelsRsq["m0",5]
+  cond_Rsq_m0a[i]<-modelsRsq["m0a",5]
+  cond_Rsq_m0b[i]<-modelsRsq["m0b",5]
+  cond_Rsq_m0c[i]<-modelsRsq["m0c",5]
+  cond_Rsq_m0d[i]<-modelsRsq["m0d",5]
+  cond_Rsq_m1[i]<-modelsRsq["m1",5]
+  cond_Rsq_m1a[i]<-modelsRsq["m1a",5]
+  cond_Rsq_m1b[i]<-modelsRsq["m1b",5]
+  cond_Rsq_m1c[i]<-modelsRsq["m1c",5]
+  cond_Rsq_mnull[i]<-modelsRsq["mnull",5]
 
   var_imp<-summary(model.avg(models_list))
-  # MTC_i[i]<-var_imp$importance["mean_slope_scale"]
-  # LUC_i[i]<-var_imp$importance["change_rate_scale"]
-  # LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  # #BM_i[i]<-var_imp$importance["Bodymass"]
+  MTC_i[i]<-var_imp$importance["mean_slope_scale"]
+  LUC_i[i]<-var_imp$importance["change_rate_scale"]
+  LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
+  BM_i[i]<-var_imp$importance["Bodymass"]
 
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
   LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
+  BM_av[i]<-var_imp$coefmat.subset["Bodymass", "Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
   
   #MTC_avus[i]<-(MTC_av[i] * scale_temp) + centre_temp
@@ -909,65 +935,73 @@ labs(x="Longitude", y="Latitude", colourbar= "Average Annual Population Change (
 
 
 ```{r}
-AIC_df<-data.frame(cbind(AIC_m0,AIC_m0a,AIC_m0b,AIC_m0c,AIC_m0d,AIC_m1,AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull))
+AIC_df<-data.frame(cbind(AIC_m0,AIC_m0a,AIC_m1,AIC_m1a,AIC_m0b,AIC_m0c,AIC_m0d, AIC_m1b, AIC_m1c, AIC_mnull))
 
-AIC_del<-AIC_df[,c(1:length(AIC_df)-1)] - AIC_df$AIC_mnull
+colnames(AIC_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC", "Null_Model")
+
+AIC_del<-AIC_df[,c(1:length(AIC_df)-1)] - AIC_df$Null_Model
 
 colMeans(AIC_del)
 
-boxplot(AIC_del, main="Difference in AIC from Null Model")
+
+par(las=2) #make x axis labels perpendicular to axis - model names
+par(mar=c(10,5,1,1))
+boxplot(AIC_del, ylab="Delta AIC from Null Model", xlab="")
+#####mtext("Treatment:Geno", side=1, line=5)
+abline(h=0, col="red", lty =2)
 
 ```
 
 ```{r}
-mean(marg_Rsq_m0)
-mean(marg_Rsq_m0a)
-mean(marg_Rsq_m0b)
-mean(marg_Rsq_m0c)
-mean(marg_Rsq_m0d)
-mean(marg_Rsq_m1)
-mean(marg_Rsq_m1a)
-mean(marg_Rsq_m1b)
-mean(marg_Rsq_m1c)
 
-mean(cond_Rsq_m0)
-mean(cond_Rsq_m0a)
-mean(cond_Rsq_m0b)
-mean(cond_Rsq_m0c)
-mean(cond_Rsq_m0d)
-mean(cond_Rsq_m1)
-mean(cond_Rsq_m1a)
-mean(cond_Rsq_m1b)
-mean(cond_Rsq_m1c)
-mean(cond_Rsq_mnull)
+#marg r squared
+marg_df<- data.frame(cbind(marg_Rsq_m0,marg_Rsq_m0a,marg_Rsq_m1,marg_Rsq_m1a,marg_Rsq_m0b,marg_Rsq_m0c,marg_Rsq_m0d,marg_Rsq_m1b,marg_Rsq_m1c)*100)
 
-mean(m0_w)
-mean(m0a_w)
-mean(m0b_w)
-mean(m0c_w)
-mean(m0d_w)
-mean(m1_w)
-mean(m1a_w)
-mean(m1b_w)
-mean(m1c_w)
-mean(mnull_w)
+colnames(marg_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC")
+
+boxplot(marg_df, main="", ylab= "Marginal R Squared (%)")
+```
+
+```{r}
+#cond r squared
+cond_df<- data.frame(cbind(cond_Rsq_m0,cond_Rsq_m0a,cond_Rsq_m1,cond_Rsq_m1a,cond_Rsq_m0b,cond_Rsq_m0c,cond_Rsq_m0d,cond_Rsq_m1b,cond_Rsq_m1c,cond_Rsq_mnull)*100)
+colnames(cond_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC", "Null Model")
+
+boxplot(cond_df, ylab="Conditional R squared (%)")
+```
+
+```{r}
+#model weight in averaged model
+weight_df<-data.frame(cbind(m0_w,m0a_w,m1_w,m1a_w,m0b_w,m0c_w,m0d_w,m1b_w,m1c_w,mnull_w)*100)
+
+colnames(weight_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC", "Null Model")
+
+boxplot(weight_df, main="", ylab="Weight of model in averaged model (%)")
+```
+
+
+```{r}
+#variable importance in averaged model
+vi_df<-(data.frame(cbind(MTC_i,LUC_i,BM_i,LUC_MTC_i)))
+
+colnames(vi_df)<-c("MTC", "LUC", "BM", "LUC*MTC")
+
+boxplot(vi_df)
 
 ```
 
 
 ```{r}
-
 par(mar=c(8,4.5,2,1))
 
 Low<-(R+1)/40
 High<-(R+1)-(R+1)/40 
 
+mean_av<- c(mean(LUC_av),mean(MTC_av), mean(BM_av),mean(LUC_MTC_av))
+lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low],sort(BM_av)[Low], sort(LUC_MTC_av)[Low])
+highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High],sort(BM_av)[High], sort(LUC_MTC_av)[High])
 
-mean_av<- c(mean(LUC_av),mean(MTC_av),mean(LUC_MTC_av))
-lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low], sort(LUC_MTC_av)[Low])
-highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High], sort(LUC_MTC_av)[High])
-
-Variable<-c("Natural Cover \nLoss", "Mean Temp. \nChange", "Interaction")
+Variable<-c("Natural Cover \nLoss", "Mean Temp. \nChange",  "Bodymass", "Interaction")
 
 conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
 colnames(conf_av)<-Variable
@@ -975,9 +1009,9 @@ conf_av
 
 library(plotrix)
 
-plotCI(1:3, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
-       main="Averaged Model Variable Coefficients - Non-Migratory Birds", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
-axis(1, at=1:3, labels=colnames(conf_av), las=2)
+plotCI(1:4, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
+axis(1, at=1:4, labels=colnames(conf_av), las=2)
 abline(h=0, col="red", lty =2)
 
 ```
@@ -1001,14 +1035,14 @@ library(palettetown)
 library(reshape2)
 
 #AIC_df<-data.frame(AIC_m1, AIC_m1a, AIC_m1b, AIC_m1c, AIC_mnull)
-colnames(AIC_del)<-c("BM+LUC*MTC", "LUC*MTC", "LUC+MTC", "LUC", "MTC")
+colnames(AIC_del)<-c("AIC_m0","AIC_m0a","AIC_m0b","AIC_m0c","AIC_m0d","AIC_m1","AIC_m1a", "AIC_m1b", "AIC_m1c")
 AIC_del2<-melt(AIC_del)
 colnames(AIC_del2)<-c("Model", "AIC")
 
 p<-ggplot(AIC_del2, aes(x=factor(Model), y=AIC, fill=factor(Model)))
 p+geom_violin(trim=TRUE) +
 xlab("Model")+
-scale_fill_poke(pokemon = 'Vaporeon', spread = 5)
+scale_fill_poke(pokemon = 'Vaporeon', spread = 9)
 
 
 ```
@@ -1093,23 +1127,4 @@ p5s<-(10^p4s) - 1
 plot(p5s)
 ```
 
-```{r, eval=FALSE, echo=FALSE}
-
-for (i in 1:R) {
-  dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
-  colnames(dt2)[2]<-"ID"
-  sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]
-
-  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  
-  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  
-  m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  
-  m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
-  
-  mnull<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
-  
-
-```
 
