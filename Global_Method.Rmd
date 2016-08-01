@@ -516,11 +516,21 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" )#& WWF_REALM2=="Neotropic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
 nrow(df2)
 
 df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
+
+df2[is.na(df2$lambda_mean),]$lambda_mean<-0
+#####is this a problem - changing NAs for 0 - when the population is stationary across years the lambda mean is calculated
+
+p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=Nat_change*100, colour=lambda_mean))
+p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
+  scale_colour_gradient(low = "red", high="green",name="Average\nLambda")+
+  labs(x="Biogeographic Realm", y="Annual Change in Natural Cover (%)")
+
+
 
 ```
 
@@ -542,7 +552,7 @@ sp_dups$loc_id<-1:length(sp_dups$Longitude)
 sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 
 library(data.table)
-#dt = as.data.table(sp_dups_df)
+dt = as.data.table(sp_dups_df)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "Nat_loss")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
@@ -572,7 +582,6 @@ rl$diff<-rl[,1] - rl[,2]
 hist(rl$diff)
 #dt<-subset(dt, loc_id!=277)
 
-sp_df_scale[is.na(sp_df_scale$lambda_mean),]$lambda_mean<-0  #####is this a problem - changing NAs for 0 - when the population is stationary across years the lambda mean is calculated
 
 ```
 
@@ -615,7 +624,7 @@ library(MuMIn)
 library(raster)
 source("rsquaredglmm.R")
 
-R=999
+R=99
 AIC_m0=numeric(R)
 AIC_m0a= numeric(R)
 AIC_m0b= numeric(R)
