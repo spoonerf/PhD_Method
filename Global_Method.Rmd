@@ -516,11 +516,8 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-<<<<<<< HEAD
-df2<-subset(df, !is.na(Estimate) &r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")
-=======
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" )#& WWF_REALM2=="Neotropic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
->>>>>>> 8a12aa34c05c72db72591db16bf086a08fefebb0
+df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia")#& WWF_REALM2=="Neotropic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+
 
 nrow(df2)
 
@@ -529,10 +526,26 @@ df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative im
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 #####is this a problem - changing NAs for 0 - when the population is stationary across years the lambda mean is calculated
 
+```
+
+```{r}
+library(ggplot2)
 p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=Nat_change*100, colour=lambda_mean))
 p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
-  scale_colour_gradient(low = "red", high="green",name="Average\nLambda")+
+  scale_colour_gradient(low = "red", high="green",name="Average\nLambda")+    #mid="grey"  #scale_colour_gradient2
   labs(x="Biogeographic Realm", y="Annual Change in Natural Cover (%)")
+
+
+df2$Population_change<-numeric(length(df2$ID))
+
+df2[df2$lambda_mean >= log10(1.02),]$Population_change<- "Increasing"
+df2[df2$lambda_mean <= log10(0.98),]$Population_change<- "Decreasing"
+df2[df2$lambda_mean >= log10(0.98) & df2$lambda_mean <= log10(1.02),]$Population_change<- "Stable"
+
+p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=Nat_change*100, colour=Population_change))
+p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
+  labs(x="Biogeographic Realm", y="Annual Change in Natural Cover (%)")
+
 
 
 
@@ -628,7 +641,7 @@ library(MuMIn)
 library(raster)
 source("rsquaredglmm.R")
 
-R=99
+R=999
 AIC_m0=numeric(R)
 AIC_m0a= numeric(R)
 AIC_m0b= numeric(R)
