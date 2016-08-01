@@ -516,7 +516,7 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")
+df2<-subset(df, !is.na(Estimate) &r_sq >= 0.5  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")
 
 nrow(df2)
 
