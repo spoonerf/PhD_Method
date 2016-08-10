@@ -16,34 +16,41 @@ library(zoo)
 
 ```{r}
 
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+#LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPI_pop<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi")
 
 ID<-LPI_pop$ID
-pop_data<- LPI_pop[,c(1,63:125)]
+#pop_data<- LPI_pop[,c(1,63:125)]
+pop_data<- LPI_pop[,c(1,65:130)]
 
-pop_datab <- (pop_data [,2:64] !="NULL")
+#pop_datab <- (pop_data [,2:64] !="NULL")
+pop_datab <- (pop_data [,2:67] !="NULL")
 points_per_pop1950_2012 = rowSums(pop_datab)
 length_id <- data.frame(ID,points_per_pop1950_2012)
 
 LPI_EU<-merge(length_id, LPI_pop, by = "ID")
 LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=2)
 
-LPI_EU2<-LPI_EU[,c(1:3,64:126)]
+#LPI_EU2<-LPI_EU[,c(1:3,64:126)]
+LPI_EU2<-LPI_EU[,c(1:3,66:131)]
 LPI_EU2[LPI_EU2 == 'NULL'] = NA
+
+nrow(LPI_EU2)
 
 ```
 
 
 ```{r}
 source("gm_mean.R")
-
+library(taRifx)
+library(zoo)
 
 doFit = function(sp_name) {
   spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
-  spid = spid2[,4:66]                     #subsetting only the dates
-  colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
+  spid = spid2[,4:69]                     #subsetting only the dates
+  colnames(spid)<-1950:2015              #renaming the date column names as R doesn't like numbered column names
   
   name<-spid2$Binomial
   id<-spid2$ID
@@ -59,10 +66,14 @@ doFit = function(sp_name) {
   Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 #if a population is zero one year thhis is replaced with 1% of the average population estimate - because you can log zeros
   
   df<-data.frame(Year,Population)
+  
+  if (sum(na.omit(df$Population<1))>0) {
+    df$Population<-df$Population+1
+  } 
     
   
   if (points >=6) {           ###should I be trying GAMs for populations with less than six points and if that doesn't fit then use a linear model - here I am automatically fitting a linear model if there are less than six points
-    PopN = log10(Population)
+    PopN = log10(df$Population)
     if (length(na.omit(PopN)) >=6) {
       SmoothParm = round(length(na.omit(PopN))/2)    ####added na.omit in as was getting " A term has fewer unique covariate combinations than specified maximum degrees of freedom" error
     } else{
@@ -81,7 +92,7 @@ doFit = function(sp_name) {
 
   } else {
     SmoothParm<-NA
-    PopN = log10(Population)
+    PopN = log10(df$Population)
     ml2<-lm(PopN~df$Year)
     R_sq2<-summary(ml2)$r.sq
     model<-0
@@ -108,7 +119,9 @@ all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
 colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
 
-write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
+#write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
+write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_08_16.csv") ##updated LPI
+
 ```
 
 Step 2 - Extracting the Climate data for each population
@@ -138,7 +151,8 @@ plot(CR40s[[11]])
 
 
 ```{r}
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+#LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
@@ -161,7 +175,7 @@ length(xy_df)
 
 ```{r}
 
-n<-3#number of cores to use - not sure how many I can go up to - 6 at UCL
+n<-6#number of cores to use - not sure how many I can go up to - 6 at UCL
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 getDoParWorkers()
@@ -516,7 +530,7 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia")#& WWF_REALM2=="Neotropic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")#& WWF_REALM2=="Neotropic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
 
 nrow(df2)
