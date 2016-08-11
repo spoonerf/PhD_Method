@@ -208,7 +208,7 @@ stopCluster(cl)
 dates<-seq(ymd('1931-01-16'),ymd('2014-12-16'), by = 'months')
 
 
-datesr<-rep(dates, each=1078)
+datesr<-rep(dates, each=length(xy[,1]))   #each number should be number of pops
 
 srm<-melt(sr)
 
@@ -225,7 +225,8 @@ LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
 LPIclim<-merge(srm3, LPI_ID, by=c("Longitude", "Latitude"))
 
-write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff_1931.csv")
+#write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff_1931.csv")
+write.csv(LPIclim, "Global_Mean_Temp_All_LPI_nobuff_1931_moreLPI.csv")
 
 ```
 
@@ -234,13 +235,15 @@ Step 3 - Calculating mean temp change for each population
 ```{r}
 
 #LPIclim<-read.csv("Global_Mean_Temp_All_LPI.csv")
-LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff.csv")
-LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff_1931.csv")
-
+#LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff.csv")
+#LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff_1931.csv")
+LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff_1931_moreLPI.csv")
+  
 LPIclim$Date<-as.Date(LPIclim$Date, "%Y-%m-%d")
 LPIclim$Year<-format(LPIclim$Date, "%Y")
 
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+#LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" & ID !=4438)
 
@@ -253,15 +256,14 @@ library(taRifx)
 ```
 
 ```{r}
-lag<-0 #number of years before start date of pop recordes which i want climate data from
+lag<-0 #number of years before start date of pop records which I want climate data from
 
 doMean = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
-  spid = spid2[,63:125]                     #subsetting only the dates
-  rep ("NULL", 10)
+  spid = spid2[,65:130]                     #subsetting only the dates
   nid<-matrix(rep (NA, 10), nrow=1)                
   colnames(nid)<-1940:1949
-  colnames(spid)<-1950:2012
+  colnames(spid)<-1950:2015
   spid<-cbind(nid, spid)#renaming the date column names as R doesn't like numbered column names
   climid=subset(LPIclim, ID == sp_name)  #subsetting the climate data by each population
   
@@ -318,7 +320,8 @@ mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 
 #write.csv(mean_df, "All_LPI_Mean_Temp_Slope_nobuff.csv")
 #write.csv(mean_df, "All_LPI_All_Years_Nobuff.csv")
-write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931.csv")
+#write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931.csv")
+write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931_moreLPI.csv")#with new version of LPI
 ```
 
 
@@ -360,7 +363,8 @@ secdn<-brick("secdn_1940.tif")
 ```
 
 ```{r}
-LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+#LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
@@ -382,7 +386,7 @@ library(reshape2)
 ```
 
 ```{r}
-layer<-c3nfx
+layer<-secdn
 
 n<-6  #number of cores to use - not sure how many I can go up to
 cl<-makeCluster(n)
@@ -402,7 +406,7 @@ stopCluster(cl)
 
 dates<-1940:2015
 
-datesr<-rep(dates, each=1078)
+datesr<-rep(dates, each=length(xy[,1]))
 
 dfm<-melt(df)
 
@@ -417,23 +421,23 @@ dfm2<-cbind(lon,lat,datesr, dfm)
 #primf2<-dfm2   #do each individually
 #primn2<-dfm2
 #secdf2<-dfm2
-#secdn2<-dfm2
+secdn2<-dfm2
 
 land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value)
 
 colnames(land_use_nat)<-c("Longitude", "Latitude", "Year", "Primary_Forest", "Primary_Non_Forest", 
                           "Secondary_Forest", "Secondary_Non_Forest") 
 
-land_use_nat$total<-land_use$Primary_Forest+land_use$Primary_Non_Forest+land_use$Secondary_Forest+
-  land_use$Secondary_Non_Forest
+land_use_nat$total<-land_use_nat$Primary_Forest+land_use_nat$Primary_Non_Forest+land_use_nat$Secondary_Forest+
+  land_use_nat$Secondary_Non_Forest
 
 LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
-LPILU<-merge(LPI_ID,land_use, by=c("Longitude", "Latitude"))
+LPILU<-merge(LPI_ID,land_use_nat, by=c("Longitude", "Latitude"))
 
 
-write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv")
-
+#write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv", overwrite=FALSE)
+write.csv(LPILU, "LUH2_Land_Use_All_moreLPI.csv")
 
 ```
 
@@ -444,8 +448,8 @@ library(taRifx)
 
 doDist = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
-  spid = spid2[,63:118]                     #subsetting only the dates
-  colnames(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
+  spid = spid2[,65:130]                     #subsetting only the dates
+  colnames(spid)<-1950:2015              #renaming the date column names as R doesn't like numbered column names
   lu_id=subset(LPILU, ID == sp_name)  #subsetting the climate data by each population
   
   id<-spid2$ID
@@ -454,23 +458,23 @@ doDist = function(sp_name) {
   
   if (sum(!is.na(spidt)) > 1) {
     Yr<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-    luyr<-as.matrix(subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c(4,17)])   #6:11 for all categories 12:13 for nat vs anth
+    luyr<-as.matrix(subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c("Year","total")])   #6:11 for all categories 12:13 for nat vs anth
     luyr<-luyr[order(luyr[,1]),]
     natdiff<-mean(diff(luyr[,2]))
     
-    # lum<-matrix(luyr, ncol=ncol(luyr))
+    # lum<-matrix(luyr[,2], ncol=1)
     # m<-dist(lum, method="euclidean")
     # n<-as.matrix(m)
     # lu<-diag(n[c(2:nrow(n)),c(1:ncol(n))])
     # euc<-mean(lu)
     
   } else{
-   # euc<-NA
+   euc<-NA
     natdiff<-NA
   }
   #euc_df<-data.frame(id,euc)
- # euc_df<-data.frame(id,euc,natdiff)
-  euc_df<-data.frame(id, natdiff)
+euc_df<-data.frame(id,euc,natdiff)
+ # euc_df<-data.frame(id, natdiff)
   print(euc_df)  
   return(euc_df)
 }
@@ -481,19 +485,20 @@ all_matrix <- matrix(unlist(all_df_list), ncol=2, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "Nat_change")
 
-write.csv(mean_df, "LUC_average_annual_change_nat_025.csv")
+#write.csv(mean_df, "LUC_average_annual_change_nat_025.csv")
+write.csv(mean_df, "LUC_average_annual_change_nat_025_moreLPI.csv")
 
 ```
 
 ```{r}
-all_matrix <- matrix(unlist(all_df_list), ncol=3, byrow=TRUE)
-mean_df <- data.frame(all_matrix)
-colnames(mean_df) <- c("ID", "LUC_dist", "Nat_change")
-
-
-#write.csv(mean_df, "LUC_average_annual_change.csv")
-
-write.csv(mean_df, "LUC_average_annual_change_nat_anth.csv")
+# all_matrix <- matrix(unlist(all_df_list), ncol=3, byrow=TRUE)
+# mean_df <- data.frame(all_matrix)
+# colnames(mean_df) <- c("ID", "LUC_dist", "Nat_change")
+# 
+# 
+# #write.csv(mean_df, "LUC_average_annual_change.csv")
+# 
+# write.csv(mean_df, "LUC_average_annual_change_nat_anth.csv")
 
 ```
 
@@ -505,13 +510,14 @@ temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 body<-read.csv("bird_and_mammal_traits2.csv")
-luc<-read.csv("LUC_distance_all.csv") #start:end  #total change not just nat_loss
+#luc<-read.csv("LUC_distance_all.csv") #start:end  #total change not just nat_loss
 #luc<-read.csv("LUC_average_annual_change.csv") #annual
 #luc<-read.csv("LUC_average_annual_change_nat_anth.csv") #annual nat vs anth and change in natural cover and with change in natural cover
 
 #luc<-read.csv("LUC_average_annual_change_nat_025.csv")
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
-
+luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
+#LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-Realm[,c("ID", "WWF_REALM2")]
@@ -531,14 +537,10 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 
 nrow(df)
 
-<<<<<<< HEAD
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")#& WWF_REALM2=="Neotropic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
-=======
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+
+df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
 df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
->>>>>>> ff9052cec0ff904f47e2b8ed2ac47fde63d3a049
-
 
 nrow(df2)
 
@@ -593,10 +595,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "Nat_change")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "Nat_change")])       #use the scaling factors at the bottom of these to scale the rasters
 
 centre_temp<-attr(parm_scale, 'scaled:center')[1]
 centre_luc<-attr(parm_scale, 'scaled:center')[2]
@@ -624,7 +626,7 @@ hist(rl$diff)
 
 ```
 
- ```{r}
+```{r}
 land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=100)
 temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
 
@@ -730,16 +732,16 @@ for (i in 1:R) {
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]    #sp_df_scale   #should be dt2
 
  
-#  m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
-  
- # m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
-  
-#  m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
-  
- # m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
-  
-#  m0d<-lmer(lambda_mean ~ Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
-  
+ m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+
+ m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+
+ m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+
+ m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+
+ m0d<-lmer(lambda_mean ~ Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   
   m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
@@ -751,11 +753,11 @@ for (i in 1:R) {
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial),data=sp_dups_df2, REML=F)
   
   #AIC
-  # AIC_m0[i]<-AIC(m0)
-  # AIC_m0a[i]<-AIC(m0a)
-  # AIC_m0b[i]<-AIC(m0b)
-  # AIC_m0c[i]<-AIC(m0c)
-  # AIC_m0d[i]<-AIC(m0d)
+  AIC_m0[i]<-AIC(m0)
+  AIC_m0a[i]<-AIC(m0a)
+  AIC_m0b[i]<-AIC(m0b)
+  AIC_m0c[i]<-AIC(m0c)
+  AIC_m0d[i]<-AIC(m0d)
   AIC_m1[i]<-AIC(m1)
   AIC_m1a[i]<-AIC(m1a)
   AIC_m1b[i]<-AIC(m1b)
@@ -764,45 +766,45 @@ for (i in 1:R) {
 
   # #Weights
 
-  msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
-  #msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
+  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
 
-  # m0_w[i]<-subset(msAICc, model =="m0")$weight
+  m0_w[i]<-subset(msAICc, model =="m0")$weight
   m1_w[i]<-subset(msAICc, model=="m1")$weight
-  # m0a_w[i]<-subset(msAICc, model=="m0a")$weight
-  # m0b_w[i]<-subset(msAICc, model=="m0b")$weight
-  # m0c_w[i]<-subset(msAICc, model=="m0c")$weight
-  # m0d_w[i]<-subset(msAICc, model=="m0d")$weight
+  m0a_w[i]<-subset(msAICc, model=="m0a")$weight
+  m0b_w[i]<-subset(msAICc, model=="m0b")$weight
+  m0c_w[i]<-subset(msAICc, model=="m0c")$weight
+  m0d_w[i]<-subset(msAICc, model=="m0d")$weight
   m1a_w[i]<-subset(msAICc, model=="m1a")$weight
   m1b_w[i]<-subset(msAICc, model=="m1b")$weight
   m1c_w[i]<-subset(msAICc, model=="m1c")$weight
   mnull_w[i]<-subset(msAICc, model=="mnull")$weight
 
   #Rsq
-  models_list<-list(m1,m1a,m1b,m1c,mnull)
-  #models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  #models_list<-list(m1,m1a,m1b,m1c,mnull)
+  models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  rownames(modelsRsq)<-c("m1","m1a","m1b","m1c","mnull")
-  #rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
+  #rownames(modelsRsq)<-c("m1","m1a","m1b","m1c","mnull")
+  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
 
   
-  # marg_Rsq_m0[i]<-modelsRsq["m0",4]
-  # marg_Rsq_m0a[i]<-modelsRsq["m0a",4]
-  # marg_Rsq_m0b[i]<-modelsRsq["m0b",4]
-  # marg_Rsq_m0c[i]<-modelsRsq["m0c",4]
-  # marg_Rsq_m0d[i]<-modelsRsq["m0d",4]
+  marg_Rsq_m0[i]<-modelsRsq["m0",4]
+  marg_Rsq_m0a[i]<-modelsRsq["m0a",4]
+  marg_Rsq_m0b[i]<-modelsRsq["m0b",4]
+  marg_Rsq_m0c[i]<-modelsRsq["m0c",4]
+  marg_Rsq_m0d[i]<-modelsRsq["m0d",4]
   marg_Rsq_m1[i]<-modelsRsq["m1",4]
   marg_Rsq_m1a[i]<-modelsRsq["m1a",4]
   marg_Rsq_m1b[i]<-modelsRsq["m1b",4]
   marg_Rsq_m1c[i]<-modelsRsq["m1c",4]
-  # cond_Rsq_m0[i]<-modelsRsq["m0",5]
-  # cond_Rsq_m0a[i]<-modelsRsq["m0a",5]
-  # cond_Rsq_m0b[i]<-modelsRsq["m0b",5]
-  # cond_Rsq_m0c[i]<-modelsRsq["m0c",5]
-  # cond_Rsq_m0d[i]<-modelsRsq["m0d",5]
+  cond_Rsq_m0[i]<-modelsRsq["m0",5]
+  cond_Rsq_m0a[i]<-modelsRsq["m0a",5]
+  cond_Rsq_m0b[i]<-modelsRsq["m0b",5]
+  cond_Rsq_m0c[i]<-modelsRsq["m0c",5]
+  cond_Rsq_m0d[i]<-modelsRsq["m0d",5]
   cond_Rsq_m1[i]<-modelsRsq["m1",5]
   cond_Rsq_m1a[i]<-modelsRsq["m1a",5]
   cond_Rsq_m1b[i]<-modelsRsq["m1b",5]
@@ -813,12 +815,12 @@ for (i in 1:R) {
   MTC_i[i]<-var_imp$importance["mean_slope_scale"]
   LUC_i[i]<-var_imp$importance["change_rate_scale"]
   LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  #BM_i[i]<-var_imp$importance["Bodymass"]
+  BM_i[i]<-var_imp$importance["Bodymass"]
 
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
   LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
-  #BM_av[i]<-var_imp$coefmat.subset["Bodymass", "Estimate"]
+  BM_av[i]<-var_imp$coefmat.subset["Bodymass", "Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
   
   #MTC_avus[i]<-(MTC_av[i] * scale_temp) + centre_temp
@@ -973,10 +975,10 @@ labs(x="Longitude", y="Latitude", colourbar= "Average Annual Population Change (
 
 
 ```{r}
-#AIC_df<-data.frame(cbind(AIC_m0,AIC_m0a,AIC_m1,AIC_m1a,AIC_m0b,AIC_m0c,AIC_m0d, AIC_m1b, AIC_m1c, AIC_mnull))
-AIC_df<-data.frame((cbind(AIC_m1, AIC_m1a, AIC_m1b,AIC_m1c,AIC_mnull)))
-#colnames(AIC_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC", "Null_Model")
-colnames(AIC_df)<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null_Model")
+AIC_df<-data.frame(cbind(AIC_m0,AIC_m0a,AIC_m1,AIC_m1a,AIC_m0b,AIC_m0c,AIC_m0d, AIC_m1b, AIC_m1c, AIC_mnull))
+#AIC_df<-data.frame((cbind(AIC_m1, AIC_m1a, AIC_m1b,AIC_m1c,AIC_mnull)))
+colnames(AIC_df)<-c("LUC*MTC+BM","LUC+MTC+BM", "LUC*MTC", "LUC+MTC", "LUC+BM","MTC+BM", "BM", "LUC", "MTC", "Null_Model")
+#colnames(AIC_df)<-c("LUC*MTC", "LUC+MTC", "LUC", "MTC", "Null_Model")
 
 
 AIC_del<-AIC_df[,c(1:length(AIC_df)-1)] - AIC_df$Null_Model
