@@ -310,7 +310,7 @@ write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931.csv")
 
 Step 4 - Extracting Land Use Change Data for each population
 
-```{r}
+```{r, eval=FALSE}
 library(raster)
 
 yr<-as.character(850:2015)
@@ -337,6 +337,11 @@ writeRaster(primf_cr, "primf_1940.tif")
 writeRaster(primn_cr, "primn_1940.tif")
 writeRaster(secdf_cr, "secdf_1940.tif")
 writeRaster(secdn_cr, "secdn_1940.tif")
+```
+
+
+```{r}
+library(raster)
 
 primf<-brick("primf_1940.tif")
 primn<-brick("primn_1940.tif")
