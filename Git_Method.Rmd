@@ -188,7 +188,7 @@ plot(pop, years)
 This is an example plot of a logged population trend over time. The fitted GAM shown in red, with two standard errors shown in dashed red.
 
 ```{r Example lambda trend}
-spid2 = subset(LPI_EU2, ID == 10694)
+spid2 = subset(LPI_EU2, ID == 539)  #10694
   spid = spid2[,4:66]                     
   colnames(spid)<-1950:2012             
   name<-spid2$Binomial
