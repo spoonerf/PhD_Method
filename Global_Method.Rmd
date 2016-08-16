@@ -330,30 +330,26 @@ Step 4 - Extracting Land Use Change Data for each population
 ```{r, eval=FALSE}
 library(raster)
 
+#land_use_layers = list(primf, primn, secdf, secdn,pastr,range,urban,c3ann,c3per,c4ann,c4per,c3nfx)
+land_use_layer_names = c("primf", "primn","secdf", "secdn","pastr","range","urban","c3ann","c3per","c4ann","c4per","c3nfx")
+
 yr<-as.character(850:2015)
 date<-as.Date(yr, format="%Y" )
 
-primf<-brick(paste(getwd(),"/states.nc", sep=""), varname="primf")
-primf<-setZ(primf, date, name="year")
+for (i in 1:length(land_use_layer_names)){
 
-primn<-brick(paste(getwd(),"/states.nc", sep=""), varname="primn")
-primn<-setZ(primn, date, name="year")
+layer <-land_use_layer_names[i]  
 
-secdf<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdf")
-secdf<-setZ(secdf, date, name="year")
+layerb<-brick(paste(getwd(),"/states.nc", sep=""), varname=layer)
+layerb<-setZ(layerb, date, name="year")
 
-secdn<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdn")
-secdn<-setZ(secdn, date, name="year")
+layer_cr<-layerb[[1091:1166]]
 
-primf_cr<-primf[[1091:1166]]
-primn_cr<-primn[[1091:1166]]
-secdf_cr<-secdf[[1091:1166]]
-secdn_cr<-secdn[[1091:1166]]
+writeRaster(layer_cr, paste(layer, "_1940.tif", sep=""), overwrite=TRUE)
+print(i)
 
-writeRaster(primf_cr, "primf_1940.tif")
-writeRaster(primn_cr, "primn_1940.tif")
-writeRaster(secdf_cr, "secdf_1940.tif")
-writeRaster(secdn_cr, "secdn_1940.tif")
+}
+
 ```
 
 
@@ -374,48 +370,38 @@ coordinates(xy_df) <- c("lon", "lat")
 head(xy_df)
 ```
 
-```{r}
-library(doParallel)
-library(beepr)
-library(reshape2)
-```
-
 
 ```{r}
 library(raster)
 
-primf<-brick("primf_1940.tif")
-primn<-brick("primn_1940.tif")
-secdf<-brick("secdf_1940.tif")
-secdn<-brick("secdn_1940.tif")
 
-land_use_layers = list(primf, primn, secdf, secdn)
-land_use_result_names = list("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv")
+land_use_layers_tif = c("primf_1940.tif", "primn_1940.tif", "secdf_1940.tif", "secdn_1940.tif","pastr_1940.tif","range_1940.tif","urban_1940.tif","c3ann_1940.tif","c3per_1940.tif","c4ann_1940.tif","c4per_1940.tif","c3nfx_1940.tif")
+land_use_result_names = c("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv","pastr_r.csv","range_r.csv","urban_r.csv","c3ann_r.csv","c3per_r.csv","c4ann_r.csv","c4per_r.csv","c3nfx_r.csv")
 
 ```
 
 
 ```{r}
 
-for (i in 1:length(land_use_layers)) {
-  layer = land_use_layers[[i]]
-  
-  layer<-secdn
+library(doParallel)
+library(reshape2)
+
+for (i in 1:length(land_use_layers_tif)) {
+  layer = brick(land_use_layers_tif[i])
   
   n<-6  #number of cores to use - not sure how many I can go up to
   cl<-makeCluster(n)
   registerDoParallel(cl)  
   
-  days<-nlayers(layer)    #splitting the data evenly between the cores
+  years<-nlayers(layer)    #splitting the data evenly between the cores
   step<-floor(days/n)
   
   ptime <- system.time({   
     df<- foreach(days, .combine=cbind) %dopar%{
-      rasterex <- raster:::extract(layer[[1:days]], xy_df)
+      rasterex <- raster:::extract(layer[[1:years]], xy_df)
     }
   }) 
   ptime 
-  #beep(3)
   stopCluster(cl)
   
   dates<-1940:2015
@@ -428,33 +414,45 @@ for (i in 1:length(land_use_layers)) {
   lat<-xy[,2]
   
   dfm2<-cbind(lon,lat,datesr, dfm)
-  write.csv(dfm2, land_use_result_names[[i]])
+  write.csv(dfm2, land_use_result_names[i])
+  print(land_use_layers_tif[i])
 }
 ```
 
 ```{r}
 
 primf2 <- read.csv("primf_r.csv")
-#primf2<-dfm2   #do each individually
-#primn2<-dfm2
-#secdf2<-dfm2
-secdn2<-dfm2
+primn2<-read.csv("primn_r.csv")
+secdf2<-read.csv("secdf_r.csv")
+secdn2<-read.csv("secdn_r.csv")
+pastr2<-read.csv("pastr_r.csv")
+range2<-read.csv("range_r.csv")
+urban2<-read.csv("urban_r.csv")
+c3ann2<-read.csv("c3ann_r.csv")
+c3per2<-read.csv("c3per_r.csv")
+c4ann2<-read.csv("c4ann_r.csv")
+c4per2<-read.csv("c4per_r.csv")
+c3nfx2<-read.csv("c3nfx_r.csv")
 
-land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value)
+land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value, pastr2$value, range2$value, urban2$value, c3ann2$value, c3per2$value, c4ann2$value, c4per2$value, c3nfx2$value)
 
 colnames(land_use_nat)<-c("Longitude", "Latitude", "Year", "Primary_Forest", "Primary_Non_Forest", 
-                          "Secondary_Forest", "Secondary_Non_Forest") 
+                          "Secondary_Forest", "Secondary_Non_Forest", "Pasture", "Rangeland", "Urban", "C3ann", "C3per", "C4ann", "C4per", "C3nfx") 
 
 land_use_nat$total<-land_use_nat$Primary_Forest+land_use_nat$Primary_Non_Forest+land_use_nat$Secondary_Forest+
-  land_use_nat$Secondary_Non_Forest
+  land_use_nat$Secondary_Non_Forest+ land_use_nat$Pasture+land_use_nat$Rangeland+land_use_nat$Urban+land_use_nat$C3ann+land_use_nat$C3per+land_use_nat$C4ann+land_use_nat$C4per+land_use_nat$C3nfx
+
+land_use_nat$crop<-land_use_nat$C3ann+land_use_nat$C3per+land_use_nat$C4ann+land_use_nat$C4per+land_use_nat$C3nfx
 
 LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
 LPILU<-merge(LPI_ID,land_use_nat, by=c("Longitude", "Latitude"))
 
+hist(LPILU$total)
 
 #write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv", overwrite=FALSE)
-write.csv(LPILU, "LUH2_Land_Use_All_moreLPI.csv")
+#write.csv(LPILU, "LUH2_Land_Use_All_moreLPI.csv")
+write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI.csv")
 
 ```
 
@@ -475,21 +473,22 @@ doDist = function(sp_name) {
   
   if (sum(!is.na(spidt)) > 1) {
     Yr<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-    luyr<-as.matrix(subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c("Year","total")])   #6:11 for all categories 12:13 for nat vs anth
+    luyr<-as.matrix(subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c(4:11,18)])   #6:11 for all categories 12:13 for nat vs anth
     luyr<-luyr[order(luyr[,1]),]
-    natdiff<-mean(diff(luyr[,2]))
+    nat<-luyr[,2]+luyr[,3]+luyr[,4]+luyr[,5]
+    natdiff<-mean(diff(nat))
     
-    # lum<-matrix(luyr[,2], ncol=1)
-    # m<-dist(lum, method="euclidean")
-    # n<-as.matrix(m)
-    # lu<-diag(n[c(2:nrow(n)),c(1:ncol(n))])
-    # euc<-mean(lu)
+    lum<-matrix(luyr[,c(2:9)], nrow=length(Yr))
+    m<-dist(lum, method="euclidean")
+    n<-as.matrix(m)
+    lu<-diag(n[c(2:nrow(n)),c(1:ncol(n))])
+    euc<-mean(lu)
     
   } else{
    euc<-NA
     natdiff<-NA
   }
-  #euc_df<-data.frame(id,euc)
+#  euc_df<-data.frame(id,euc)
 euc_df<-data.frame(id,euc,natdiff)
  # euc_df<-data.frame(id, natdiff)
   print(euc_df)  
@@ -498,12 +497,13 @@ euc_df<-data.frame(id,euc,natdiff)
 
 all_df_list <- lapply(unique(LPIsp$ID), doDist)
 
-all_matrix <- matrix(unlist(all_df_list), ncol=2, byrow=TRUE)
+all_matrix <- matrix(unlist(all_df_list), ncol=3, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
-colnames(mean_df) <- c("ID", "Nat_change")
+colnames(mean_df) <- c("ID", "LUC_dist", "Nat_change")
 
 #write.csv(mean_df, "LUC_average_annual_change_nat_025.csv")
-write.csv(mean_df, "LUC_average_annual_change_nat_025_moreLPI.csv")
+##write.csv(mean_df, "LUC_average_annual_change_nat_025_moreLPI.csv")
+write.csv(mean_df, "LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 
 ```
 
@@ -532,7 +532,8 @@ body<-read.csv("bird_and_mammal_traits2.csv")
 #luc<-read.csv("LUC_average_annual_change_nat_anth.csv") #annual nat vs anth and change in natural cover and with change in natural cover
 
 #luc<-read.csv("LUC_average_annual_change_nat_025.csv")
-luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
+#luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
+luc<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -555,13 +556,13 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 nrow(df)
 
 
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+#df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
 df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
 
 nrow(df2)
 
-df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
+#df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
@@ -571,33 +572,23 @@ df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
 ```{r}
 library(ggplot2)
-p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=Nat_change*100, colour=lambda_mean))
+p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=LUC_dist, colour=lambda_mean))
 p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
   scale_colour_gradient(low = "red", high="green",name="Average\nLambda")+    #mid="grey"  #scale_colour_gradient2
-  labs(x="Biogeographic Realm", y="Annual Change in Natural Cover (%)")
+  labs(x="Biogeographic Realm", y="Annual Change in Land Use")
 
 
 df2$Population_change<-numeric(length(df2$ID))
 
-df2[df2$lambda_mean >= log10(1.02),]$Population_change<- "Increasing"
-df2[df2$lambda_mean <= log10(0.98),]$Population_change<- "Decreasing"
-df2[df2$lambda_mean >= log10(0.98) & df2$lambda_mean <= log10(1.02),]$Population_change<- "Stable"
+df2[df2$lambda_mean >= log10(1.00),]$Population_change<- "Increasing"
+df2[df2$lambda_mean <= log10(1.00),]$Population_change<- "Decreasing"
 
-p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=Nat_change*100, colour=Population_change))
+p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=LUC_dist, colour=Population_change))
 p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
-  labs(x="Biogeographic Realm", y="Annual Change in Natural Cover (%)")
+  labs(x="Biogeographic Realm", y="Annual Change in Land Use")
 
 
 
-
-```
-
-```{r}
-test<-read.csv("birds_for_lme.csv")
-test$ID[!test$ID %in% df2$ID]
-
-
-subset(df, ID == 5458)$r_sq >=0.5
 
 ```
 
@@ -612,10 +603,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "Nat_change")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "Nat_change")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
 
 centre_temp<-attr(parm_scale, 'scaled:center')[1]
 centre_luc<-attr(parm_scale, 'scaled:center')[2]
@@ -637,7 +628,7 @@ dt<-data.table(sp_df_scale)
 range_lam<-tapply(dt$lambda_mean, dt$loc_id, range)
 rl<-data.frame(matrix(unlist(range_lam), ncol=2, byrow=T))
 rl$diff<-rl[,1] - rl[,2]
-hist(rl$diff)
+hist(rl$diff, main="range in lambda_mean within study sites")
 #dt<-subset(dt, loc_id!=277)
 
 
