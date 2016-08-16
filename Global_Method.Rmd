@@ -358,16 +358,6 @@ writeRaster(secdn_cr, "secdn_1940.tif")
 
 
 ```{r}
-library(raster)
-
-primf<-brick("primf_1940.tif")
-primn<-brick("primn_1940.tif")
-secdf<-brick("secdf_1940.tif")
-secdn<-brick("secdn_1940.tif")
-
-```
-
-```{r}
 #LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -390,39 +380,61 @@ library(beepr)
 library(reshape2)
 ```
 
+
 ```{r}
-layer<-secdn
+library(raster)
 
-n<-6  #number of cores to use - not sure how many I can go up to
-cl<-makeCluster(n)
-registerDoParallel(cl)  
+primf<-brick("primf_1940.tif")
+primn<-brick("primn_1940.tif")
+secdf<-brick("secdf_1940.tif")
+secdn<-brick("secdn_1940.tif")
 
-days<-nlayers(layer)    #splitting the data evenly between the cores
-step<-floor(days/n)
+land_use_layers = list(primf, primn, secdf, secdn)
+land_use_result_names = list("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv")
 
-ptime <- system.time({   
-  df<- foreach(days, .combine=cbind) %dopar%{
-    rasterex <- raster:::extract(layer[[1:days]], xy_df)
-  }
-}) 
-ptime 
-#beep(3)
-stopCluster(cl)
+```
 
-dates<-1940:2015
 
-datesr<-rep(dates, each=length(xy[,1]))
+```{r}
 
-dfm<-melt(df)
-
-lon<-xy[,1]
-lat<-xy[,2]
-
-dfm2<-cbind(lon,lat,datesr, dfm)
+for (i in 1:length(land_use_layers)) {
+  layer = land_use_layers[[i]]
+  
+  layer<-secdn
+  
+  n<-6  #number of cores to use - not sure how many I can go up to
+  cl<-makeCluster(n)
+  registerDoParallel(cl)  
+  
+  days<-nlayers(layer)    #splitting the data evenly between the cores
+  step<-floor(days/n)
+  
+  ptime <- system.time({   
+    df<- foreach(days, .combine=cbind) %dopar%{
+      rasterex <- raster:::extract(layer[[1:days]], xy_df)
+    }
+  }) 
+  ptime 
+  #beep(3)
+  stopCluster(cl)
+  
+  dates<-1940:2015
+  
+  datesr<-rep(dates, each=length(xy[,1]))
+  
+  dfm<-melt(df)
+  
+  lon<-xy[,1]
+  lat<-xy[,2]
+  
+  dfm2<-cbind(lon,lat,datesr, dfm)
+  write.csv(dfm2, land_use_result_names[[i]])
+}
 ```
 
 ```{r}
 
+primf2 <- read.csv("primf_r.csv")
 #primf2<-dfm2   #do each individually
 #primn2<-dfm2
 #secdf2<-dfm2
