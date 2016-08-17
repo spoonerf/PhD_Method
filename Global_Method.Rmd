@@ -633,7 +633,7 @@ hist(rl$diff, main="range in lambda_mean within study sites")
 
 
 ```
-
+ignore
 ```{r}
 land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=100)
 temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
@@ -647,7 +647,7 @@ dfus<-expand.grid(landus,tempus)
 colnames(dfus)<-c("change_rate_scale", "mean_slope_scale")
 
 ```
-
+ignore
 ```{r}
 library(raster)
 LU<-raster("Glob_LU_plot_1950_2005.tif")
@@ -857,6 +857,7 @@ for (i in 1:R) {
 }
 ```
 
+ignore
 ```{r}
 land<-seq(min(dt$Nat_loss),max(dt$Nat_loss),length.out=100)
 temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
@@ -874,7 +875,7 @@ p <- ggplot(sp_dups_df2, aes(x = sp_dups_df2$mean_slope_scale, y = sp_dups_df2$l
 print(p)
 
 ```
-
+ignore
 ```{r}
 list<-list.files(path = getwd(), pattern = "predict.*\\.tif$")
 
@@ -890,7 +891,7 @@ br_av<-mean(br)
 #writeRaster(br_av, "Birds_and_Mammals_Prediction_Average_Raster_Lambda_mean_noclimbuff.tif", overwrite=TRUE)
 
 ```
-
+ignore
 ```{r}
 a<-seq(1:100)
 b<-seq(1:100)
@@ -900,7 +901,7 @@ abm<-matrix(ab$c, ncol=length(a), nrow=length(b),byrow=F)
 plot(raster(abm))
 
 ```
-
+ignore
 ```{r}
 library(ggplot2)
 
@@ -911,7 +912,7 @@ colnames(br_av_df) <- c("Land_Use_Change", "Annual_Mean_Temperature_Change", "Po
 
 df2$LUC<-(df2$LUC/sqrt(2))*100
 ```
-
+ignore
 ```{r}
 
 library(ggplot2)
@@ -939,7 +940,7 @@ hist(df2$Estimate, breaks=100, xlab="Annual Mean Temperature " *Change~degree*C,
 
 hist(df2$LUC_dist/sqrt(2), breaks=100, xlab="Percentage Land Use Change", main="")
 ```
-
+ignore
 ```{r}
 plist<-list.files(path = getwd(), pattern = "world_plot.*\\.tif$")
 
@@ -948,7 +949,7 @@ plr<-stack(plist)
 plr_av<-mean(plr)
 
 ```
-
+ignore
 ```{r}
 plr_av2<-(10^plr_av) - 1
 
