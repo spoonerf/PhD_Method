@@ -1,0 +1,76 @@
+---
+title: "RQGIS"
+author: "Fiona Spooner"
+date: "August 17, 2016"
+output: html_document
+---
+
+```{r}
+
+vignette("install_guide", package = "RQGIS")
+
+install.packages("RQGIS")
+library(RQGIS)
+
+```
+
+
+```{r}
+library("raster")
+library("rgdal")
+
+dir_tmp <- tempdir()
+
+ger <- getData(name = "GADM", country = "KE", level = 1)  #website seems to be down at the moment
+
+world <- readOGR(dsn = "C:/Users/Fiona/Downloads/ne_50m_admin_0_countries", layer = "ne_50m_admin_0_countries")  #all countries
+
+my_env <- set_env()
+
+find_algorithms(search_term = "polygon centroid", qgis_env=my_env)
+
+find_algorithms(search_term = "polygon", qgis_env=my_env)
+
+get_usage(alg= "qgis:polygoncentroids", qgis_env=my_env, intern=TRUE)
+
+
+params <- get_args_man(alg = "qgis:polygoncentroids", 
+                       qgis_env = my_env)
+
+params$INPUT_LAYER  <- world
+
+params$OUTPUT_LAYER <- file.path(dir_tmp, "world_coords.shp")
+
+out <- run_qgis(alg = "qgis:polygoncentroids",
+                params = params,
+                load_output = params$OUTPUT_LAYER,
+                qgis_env = my_env)
+```
+
+```{r}
+plot(world)
+
+plot(out, pch=21, add=TRUE, bg="lightblue", col="black")
+
+```
+
+```{r}
+get_usage(alg= "saga:polygondissolveallpolygons", qgis_env=my_env, intern=TRUE)
+
+params <- get_args_man(alg = "saga:polygondissolveallpolygons", 
+                       qgis_env = my_env)
+
+params$POLYGONS<-world
+
+params$BND_KEEP<-TRUE
+
+params$DISSOLVED<- file.path(dir_tmp, "world_dissolved.shp")
+
+out <- run_qgis(alg = "saga:polygondissolveallpolygons",
+                params = params,
+                load_output = params$DISSOLVED,
+                qgis_env = my_env)
+
+plot(out)
+
+```
