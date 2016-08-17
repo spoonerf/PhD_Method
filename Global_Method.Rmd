@@ -857,6 +857,7 @@ for (i in 1:R) {
 }
 ```
 
+ignore
 ```{r}
 land<-seq(min(dt$Nat_loss),max(dt$Nat_loss),length.out=100)
 temp<-seq(min(dt$mean_slope_scale),max(dt$mean_slope_scale),length.out=100)
