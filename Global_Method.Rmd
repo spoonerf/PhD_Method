@@ -519,6 +519,39 @@ write.csv(mean_df, "LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 
 ```
 
+Extracting Realm
+
+```{r}
+
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
+
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
+
+xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
+
+xy<-unique(xy)     #identifying unique locations to extract climate data from 
+
+xy_df<-data.frame(xy)
+colnames(xy_df)<-c("lon", "lat")
+coordinates(xy_df) <- c("lon", "lat")
+
+head(xy_df)
+
+```
+
+```{r}
+
+ecoreg <- readOGR(dsn = "C:/Users/Fiona/Desktop/terr-ecoregions-TNC", layer = "tnc_terr_ecoregions")
+
+my_env <- set_env()
+
+get_usage(alg= "grass:v.sample", qgis_env=my_env, intern=TRUE)
+
+params <- get_args_man(alg = "grass:v.sample", 
+                       qgis_env = my_env)
+
+```
+
 Step 6 - Mixed Effects models exploring the impact of environmental change on population trends
 
 ```{r}
