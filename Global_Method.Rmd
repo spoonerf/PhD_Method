@@ -523,38 +523,6 @@ write.csv(mean_df, "LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 
 ```
 
-Extracting Realm
-
-```{r}
-
-LPI<-read.csv("LPI_pops_20160523_edited.csv")
-
-LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
-
-xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
-
-xy<-unique(xy)     #identifying unique locations to extract climate data from 
-
-xy_df<-data.frame(xy)
-colnames(xy_df)<-c("lon", "lat")
-coordinates(xy_df) <- c("lon", "lat")
-
-head(xy_df)
-
-```
-
-```{r}
-
-ecoreg <- readOGR(dsn = "C:/Users/Fiona/Desktop/terr-ecoregions-TNC", layer = "tnc_terr_ecoregions")
-
-my_env <- set_env()
-
-get_usage(alg= "grass:v.sample", qgis_env=my_env, intern=TRUE)
-
-params <- get_args_man(alg = "grass:v.sample", 
-                       qgis_env = my_env)
-
-```
 
 Step 6 - Mixed Effects models exploring the impact of environmental change on population trends
 
@@ -574,8 +542,9 @@ luc<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
-Realm<-read.csv("selected_pops_Ecoregion.csv")
-Realm<-Realm[,c("ID", "WWF_REALM2")]
+#Realm<-read.csv("selected_pops_Ecoregion.csv")
+Realm<-read.csv("Realm.csv", na.strings="")
+#Realm<-Realm[,c("ID", "WWF_REALM2")]
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
@@ -586,18 +555,18 @@ LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
-df<-merge(df, Realm, by="ID")
+dfa<-merge(df, Realm, by="ID", all=TRUE)
 
-df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+dfb<-merge(dfa, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
 nrow(df)
-
+nrow(dfa)
 
 #df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
+df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" & !is.na(WWF_REALM2) ) #more populations with this?
 
-nrow(df2)
+
 
 #df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
 
