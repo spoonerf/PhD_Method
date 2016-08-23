@@ -545,6 +545,10 @@ LPI<-read.csv("LPI_pops_20160523_edited.csv")
 #Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-read.csv("Realm.csv", na.strings="")
 #Realm<-Realm[,c("ID", "WWF_REALM2")]
+Realm2<-read.csv("hub_realms.csv")
+colnames(Realm2)<-c("ID", "WWF_REALM2")
+
+Realm<-rbind(Realm,Realm2) #sort this has duplicates
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
@@ -564,7 +568,7 @@ nrow(dfa)
 
 #df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
-df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" & !is.na(WWF_REALM2) ) #more populations with this?
+df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)  & !is.na(WWF_REALM2) &Class=="Mammalia" ) #more populations with this?
 
 
 
@@ -573,6 +577,8 @@ df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &lengt
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
 #####is this a problem - changing NAs for 0 - when the population is stationary across years the lambda mean is calculated
+
+nrow(df2)
 
 ```
 
