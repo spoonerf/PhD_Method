@@ -522,33 +522,61 @@ write.csv(mean_df, "LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 Extracting Realm
 
 ```{r}
+library(sp)
 
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
 xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
-
-xy<-unique(xy)     #identifying unique locations to extract climate data from 
+#xy<-data.frame(LPIsp$ID,LPIsp$Longitude, LPIsp$Latitude)
+#xy<-unique(xy)     #identifying unique locations to extract climate data from 
 
 xy_df<-data.frame(xy)
 colnames(xy_df)<-c("lon", "lat")
 coordinates(xy_df) <- c("lon", "lat")
 
 head(xy_df)
+proj4string(xy_df)<-CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+xy_df$ID<-LPIsp$ID
 
 ```
 
 ```{r}
+library(rgdal)
+library(RQGIS)
+library(spatialEco)
 
-ecoreg <- readOGR(dsn = "C:/Users/Fiona/Desktop/terr-ecoregions-TNC", layer = "tnc_terr_ecoregions")
+
+#ecoreg <- readOGR(dsn = "C:/Users/Fiona/Desktop/terr-ecoregions-TNC", layer = "tnc_terr_ecoregions") #desktop
+ecoreg <- readOGR(dsn = "C:/Users/Fiona/Documents/GIS/Ecoregions" , layer = "tnc_terr_ecoregions")
+
+pts.poly <- point.in.poly(xy_df,ecoreg)
+head(pts.poly@data)
+
 
 my_env <- set_env()
 
-get_usage(alg= "grass:v.sample", qgis_env=my_env, intern=TRUE)
+find_algorithms(search_term = "join", 
+                qgis_env = my_env)
 
-params <- get_args_man(alg = "grass:v.sample", 
-                       qgis_env = my_env)
+get_usage(alg= "qgis:joinattributesbylocation", qgis_env=my_env, intern=TRUE)
+
+params <- get_args_man(alg = "qgis:joinattributesbylocation", 
+                       qgis_env = my_env, options=TRUE)
+params
+
+
+params$TARGET<- ecoreg
+
+params$JOIN<-xy_df
+
+params$OUTPUT<-file.path(getwd(), "ecoreg_join.shp")
+
+out <- run_qgis(alg = "qgis:joinattributesbylocation",
+                params = params,
+                load_output = params$OUTPUT,
+                qgis_env = my_env)
 
 ```
 
@@ -564,14 +592,18 @@ body<-read.csv("bird_and_mammal_traits2.csv")
 #luc<-read.csv("LUC_average_annual_change.csv") #annual
 #luc<-read.csv("LUC_average_annual_change_nat_anth.csv") #annual nat vs anth and change in natural cover and with change in natural cover
 
-#luc<-read.csv("LUC_average_annual_change_nat_025.csv")
+luc<-read.csv("LUC_average_annual_change_nat_025.csv")#works/good results
 #luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
-luc<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
+luc2<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
-Realm<-read.csv("selected_pops_Ecoregion.csv")
+###difference between luc and luc2 for same populations
+
+Realm<-read.csv("Ecoregions_coordinates.csv")
 Realm<-Realm[,c("ID", "WWF_REALM2")]
+colnames(Realm)<-c("ID", "Realm")
+#Realm2<-merge(LPI, Realm, by="ID")
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
@@ -589,11 +621,13 @@ df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing f
 nrow(df)
 
 
-#df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+#
+df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
+df3<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
 
 nrow(df2)
+nrow(df3)
 
 #df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
 
@@ -605,7 +639,7 @@ df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
 ```{r}
 library(ggplot2)
-p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=LUC_dist, colour=lambda_mean))
+p<-ggplot(df2, aes(x=factor(Realm), y=Nat_change, colour=lambda_mean))
 p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
   scale_colour_gradient(low = "red", high="green",name="Average\nLambda")+    #mid="grey"  #scale_colour_gradient2
   labs(x="Biogeographic Realm", y="Annual Change in Land Use")
@@ -616,7 +650,7 @@ df2$Population_change<-numeric(length(df2$ID))
 df2[df2$lambda_mean >= log10(1.00),]$Population_change<- "Increasing"
 df2[df2$lambda_mean <= log10(1.00),]$Population_change<- "Decreasing"
 
-p<-ggplot(df2, aes(x=factor(WWF_REALM2), y=LUC_dist, colour=Population_change))
+p<-ggplot(df2, aes(x=factor(Realm), y=Nat_change, colour=Population_change))
 p+geom_jitter(width=0.5, size=2.5, alpha=0.6)+
   labs(x="Biogeographic Realm", y="Annual Change in Land Use")
 
@@ -636,10 +670,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "Nat_change")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "Nat_change")])       #use the scaling factors at the bottom of these to scale the rasters
 
 centre_temp<-attr(parm_scale, 'scaled:center')[1]
 centre_luc<-attr(parm_scale, 'scaled:center')[2]
