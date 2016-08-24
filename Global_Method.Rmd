@@ -352,6 +352,12 @@ print(i)
 
 ```
 
+```{r}
+library(raster)
+water<-raster("staticData_quarterdeg.nc", varname="icwtr")
+writeRaster(water, "water_luh2.tif")
+
+```
 
 ```{r}
 #LPI<-read.csv("D:/Fiona/Git_Method/Git_Method/LPI_populations_IP_fishedit_20140310_nonconf.csv")
@@ -359,13 +365,11 @@ LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
-xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
+xy_df<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
 
-xy<-unique(xy)     #identifying unique locations to extract climate data from 
-
-xy_df<-data.frame(xy)
 colnames(xy_df)<-c("lon", "lat")
 coordinates(xy_df) <- c("lon", "lat")
+proj4string(xy_df)<-("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
 
 head(xy_df)
 ```
@@ -374,9 +378,8 @@ head(xy_df)
 ```{r}
 library(raster)
 
-
-land_use_layers_tif = c("primf_1940.tif", "primn_1940.tif", "secdf_1940.tif", "secdn_1940.tif","pastr_1940.tif","range_1940.tif","urban_1940.tif","c3ann_1940.tif","c3per_1940.tif","c4ann_1940.tif","c4per_1940.tif","c3nfx_1940.tif")
-land_use_result_names = c("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv","pastr_r.csv","range_r.csv","urban_r.csv","c3ann_r.csv","c3per_r.csv","c4ann_r.csv","c4per_r.csv","c3nfx_r.csv")
+land_use_layers_tif = c("primf_1940.tif", "primn_1940.tif", "secdf_1940.tif", "secdn_1940.tif","pastr_1940.tif","range_1940.tif","urban_1940.tif","c3ann_1940.tif","c3per_1940.tif","c4ann_1940.tif","c4per_1940.tif","c3nfx_1940.tif", "water_luh2.tif")
+land_use_result_names = c("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv","pastr_r.csv","range_r.csv","urban_r.csv","c3ann_r.csv","c3per_r.csv","c4ann_r.csv","c4per_r.csv","c3nfx_r.csv", "water_r.csv")
 
 ```
 
@@ -433,14 +436,15 @@ c3per2<-read.csv("c3per_r.csv")
 c4ann2<-read.csv("c4ann_r.csv")
 c4per2<-read.csv("c4per_r.csv")
 c3nfx2<-read.csv("c3nfx_r.csv")
-
-land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value, pastr2$value, range2$value, urban2$value, c3ann2$value, c3per2$value, c4ann2$value, c4per2$value, c3nfx2$value)
+water2<-read.csv("water_r.csv")
+  
+land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value, pastr2$value, range2$value, urban2$value, c3ann2$value, c3per2$value, c4ann2$value, c4per2$value, c3nfx2$value,water2$value)
 
 colnames(land_use_nat)<-c("Longitude", "Latitude", "Year", "Primary_Forest", "Primary_Non_Forest", 
-                          "Secondary_Forest", "Secondary_Non_Forest", "Pasture", "Rangeland", "Urban", "C3ann", "C3per", "C4ann", "C4per", "C3nfx") 
+                          "Secondary_Forest", "Secondary_Non_Forest", "Pasture", "Rangeland", "Urban", "C3ann", "C3per", "C4ann", "C4per", "C3nfx", "Water_Ice") 
 
 land_use_nat$total<-land_use_nat$Primary_Forest+land_use_nat$Primary_Non_Forest+land_use_nat$Secondary_Forest+
-  land_use_nat$Secondary_Non_Forest+ land_use_nat$Pasture+land_use_nat$Rangeland+land_use_nat$Urban+land_use_nat$C3ann+land_use_nat$C3per+land_use_nat$C4ann+land_use_nat$C4per+land_use_nat$C3nfx
+  land_use_nat$Secondary_Non_Forest+ land_use_nat$Pasture+land_use_nat$Rangeland+land_use_nat$Urban+land_use_nat$C3ann+land_use_nat$C3per+land_use_nat$C4ann+land_use_nat$C4per+land_use_nat$C3nfx+land_use_nat$Water_Ice
 
 land_use_nat$crop<-land_use_nat$C3ann+land_use_nat$C3per+land_use_nat$C4ann+land_use_nat$C4per+land_use_nat$C3nfx
 
@@ -452,8 +456,8 @@ hist(LPILU$total)
 
 #write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv", overwrite=FALSE)
 #write.csv(LPILU, "LUH2_Land_Use_All_moreLPI.csv")
-write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI.csv")
-
+#write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI.csv")
+write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI_water.csv")
 ```
 
 Step 5 - Calculating land use change for each population
@@ -519,6 +523,8 @@ write.csv(mean_df, "LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 
 ```
 
+
+
 Extracting Realm
 
 ```{r}
@@ -580,6 +586,7 @@ out <- run_qgis(alg = "qgis:joinattributesbylocation",
 
 ```
 
+
 Step 6 - Mixed Effects models exploring the impact of environmental change on population trends
 
 ```{r}
@@ -598,12 +605,14 @@ luc2<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
-###difference between luc and luc2 for same populations
 
-Realm<-read.csv("Ecoregions_coordinates.csv")
-Realm<-Realm[,c("ID", "WWF_REALM2")]
-colnames(Realm)<-c("ID", "Realm")
-#Realm2<-merge(LPI, Realm, by="ID")
+#Realm<-read.csv("selected_pops_Ecoregion.csv")
+Realm<-read.csv("Realm.csv", na.strings="")
+#Realm<-Realm[,c("ID", "WWF_REALM2")]
+Realm2<-read.csv("hub_realms.csv")
+colnames(Realm2)<-c("ID", "WWF_REALM2")
+
+Realm<-rbind(Realm,Realm2) #sort this has duplicates
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
@@ -614,26 +623,28 @@ LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
-df<-merge(df, Realm, by="ID")
+dfa<-merge(df, Realm, by="ID", all=TRUE)
 
-df<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+dfb<-merge(dfa, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
 nrow(df)
-
+nrow(dfa)
 
 #
 df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
-df3<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
 
-nrow(df2)
-nrow(df3)
+df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)  & !is.na(WWF_REALM2) &Class=="Mammalia" ) #more populations with this?
+
 
 #df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
+
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
 #####is this a problem - changing NAs for 0 - when the population is stationary across years the lambda mean is calculated
+
+nrow(df2)
 
 ```
 

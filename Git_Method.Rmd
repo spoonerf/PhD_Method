@@ -188,7 +188,9 @@ plot(pop, years)
 This is an example plot of a logged population trend over time. The fitted GAM shown in red, with two standard errors shown in dashed red.
 
 ```{r Example lambda trend}
-spid2 = subset(LPI_EU2, ID == 539)  #10694
+
+spid2 = subset(LPI_EU2, ID == 4691)
+
   spid = spid2[,4:66]                     
   colnames(spid)<-1950:2012             
   name<-spid2$Binomial
@@ -208,11 +210,28 @@ spid2 = subset(LPI_EU2, ID == 539)  #10694
   pv$fit[pv$fit <= 0] <- NA
   lambda<-diff(log10(pv$fit))
 
-plot(Year, PopN, type="o", ylab=expression("Log"[10]* " Population"), main=expression(Alpine~ibex~italic((Capra~ibex))), ylim=c(min(PopN*0.975),max(PopN*1.025)))
+  
+df<-data.frame(Year,PopN)  
+plot(Year,PopN, type="o", ylab=expression("Log"[10]* " Population"), main=expression(Alpine~ibex~italic((Capra~ibex))), ylim=c(min(na.omit(PopN*0.975)),max(na.omit(PopN*1.025))))
     lines(Year,pv$fit, col="red", type="l") 
     lines(Year,pv$fit+2*pv$se.fit,lty=2, col="red") 
     lines(Year,pv$fit-2*pv$se.fit,lty=2, col="red") 
 
+    
+ggplot(df)+
+  geom_line(aes(y=PopN))
+
+ggplot(test_data, aes(date)) + 
+  geom_line(aes(y = var0, colour = "var0")) + 
+  geom_line(aes(y = var1, colour = "var1"))
+
+
+ggplot(data=df,
+       aes(x=Year, y=PopN)) +
+      geom_line()+
+       geom_line( y=PopN*0.975, colour="red")+
+        geom_line( y=PopN*1.025, colour="red")+
+      theme_bw()
 ```
 
 
