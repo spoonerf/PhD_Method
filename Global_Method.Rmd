@@ -616,6 +616,7 @@ Realm3<-rbind(Realm,Realm2) #sort this has duplicates
 Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 
 
+#
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 
