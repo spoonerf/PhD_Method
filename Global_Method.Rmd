@@ -608,11 +608,13 @@ LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 #Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-read.csv("Realm.csv", na.strings="")
-#Realm<-Realm[,c("ID", "WWF_REALM2")]
+Realm<-Realm[,c("ID", "WWF_REALM2")]
 Realm2<-read.csv("hub_realms.csv")
 colnames(Realm2)<-c("ID", "WWF_REALM2")
 
-Realm<-rbind(Realm,Realm2) #sort this has duplicates
+Realm3<-rbind(Realm,Realm2) #sort this has duplicates
+Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
+
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
@@ -631,10 +633,12 @@ nrow(df)
 nrow(dfa)
 
 #
-df2<-subset(df, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+
+nrow(df2)
 
 
-df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)  & !is.na(WWF_REALM2) &Class=="Mammalia" ) #more populations with this?
+df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
 
 
 #df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
