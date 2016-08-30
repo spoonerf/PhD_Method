@@ -345,7 +345,7 @@ layerb<-setZ(layerb, date, name="year")
 
 layer_cr<-layerb[[1091:1166]]
 
-writeRaster(layer_cr, paste(layer, "_1940.tif", sep=""), overwrite=TRUE)
+writeRaster(layer_cr, paste(layer, "_1940a.tif", sep=""), overwrite=TRUE)
 print(i)
 
 }
@@ -365,6 +365,7 @@ LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
+xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
 xy_df<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
 
 colnames(xy_df)<-c("lon", "lat")
@@ -378,7 +379,7 @@ head(xy_df)
 ```{r}
 library(raster)
 
-land_use_layers_tif = c("primf_1940.tif", "primn_1940.tif", "secdf_1940.tif", "secdn_1940.tif","pastr_1940.tif","range_1940.tif","urban_1940.tif","c3ann_1940.tif","c3per_1940.tif","c4ann_1940.tif","c4per_1940.tif","c3nfx_1940.tif", "water_luh2.tif")
+land_use_layers_tif = c("primf_1940a.tif", "primn_1940a.tif", "secdf_1940a.tif", "secdn_1940a.tif","pastr_1940a.tif","range_1940a.tif","urban_1940a.tif","c3ann_1940a.tif","c3per_1940a.tif","c4ann_1940a.tif","c4per_1940a.tif","c3nfx_1940a.tif", "water_luh2.tif")
 land_use_result_names = c("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv","pastr_r.csv","range_r.csv","urban_r.csv","c3ann_r.csv","c3per_r.csv","c4ann_r.csv","c4per_r.csv","c3nfx_r.csv", "water_r.csv")
 
 ```
@@ -397,10 +398,10 @@ for (i in 1:length(land_use_layers_tif)) {
   registerDoParallel(cl)  
   
   years<-nlayers(layer)    #splitting the data evenly between the cores
-  step<-floor(days/n)
+  step<-floor(years/n)
   
   ptime <- system.time({   
-    df<- foreach(days, .combine=cbind) %dopar%{
+    df<- foreach(years, .combine=cbind) %dopar%{
       rasterex <- raster:::extract(layer[[1:years]], xy_df)
     }
   }) 
@@ -452,7 +453,7 @@ LPI_ID<-LPIsp[,c("ID", "Longitude", "Latitude")]
 
 LPILU<-merge(LPI_ID,land_use_nat, by=c("Longitude", "Latitude"))
 
-hist(LPILU$total)
+hist(LPILU$total, breaks=100)
 
 #write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv", overwrite=FALSE)
 #write.csv(LPILU, "LUH2_Land_Use_All_moreLPI.csv")
@@ -624,7 +625,7 @@ temp<-temp[,c("ID", "Estimate")]
 
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory")]
 
-df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,luc2, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 dfa<-merge(df, Realm, by="ID", all=TRUE)
 
