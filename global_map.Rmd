@@ -1,15 +1,15 @@
 ---
-title: "Global GGplot Map"
+title: "ggplot2 - Global Map with point data"
 output: html_document
 ---
 
-```{r}
+```{r,warning=FALSE,message=FALSE}
 library(rgdal)
 library(ggplot2)
 
 ```
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
 temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
 luc<-read.csv("LUC_distance_all.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
@@ -26,42 +26,36 @@ locs<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=
 ```
 
 
-```{r, eval=FALSE}
-
+```{r, eval=FALSE,warning=FALSE,message=FALSE}
 locs<-read.csv("my_locations.csv")
-
 ```
 
 
-```{r}
+```{r,warning=FALSE,message=FALSE}
 library(plyr)
 #counting duplicates at each location
 sp_dups<-data.frame(ddply(locs,.(Longitude,Latitude),nrow))
 sp_dups$loc_id<-1:length(sp_dups$Longitude)
 sp_dups_df<-merge(sp_dups, locs, by=c("Longitude","Latitude"))
-
 ```
 
-```{r}
+```{r,warning=FALSE,message=FALSE}
 loc<-data.frame(sp_dups_df$Longitude,sp_dups_df$Latitude,sp_dups_df$V1)
-head(loc)
 loc<-unique(loc)
 colnames(loc)<-c("Longitude", "Latitude", "V1")
 
 coordinates(loc)<-c("Longitude","Latitude")
 proj4string(loc) <- CRS("+proj=longlat")
-
-
 ```
 
-```{r}
+```{r,warning=FALSE,message=FALSE,echo=FALSE,eval=FALSE}
 wmap <- readOGR(dsn="ne_110m_land.shp", layer="ne_110m_land")
 coast<-readOGR(dsn="ne_110m_coastline.shp", layer="ne_110m_coastline")
 bbox<-readOGR("ne_10m_wgs84_bounding_box.shp", layer="ne_10m_wgs84_bounding_box") 
 
 ```
 
-```{r, eval=FALSE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE,warning=FALSE,message=FALSE}
 #wmap <- readOGR(dsn="ne_110m_land.shp", layer="ne_110m_land")
 wmap <- readOGR(dsn="ne_110m_land.shp", layer="ne_110m_coastline")
 #countries <- readOGR("ne_50m_admin_0_countries.shp", layer="ne_50m_admin_0_countries")
@@ -69,7 +63,7 @@ wmap <- readOGR(dsn="ne_110m_land.shp", layer="ne_110m_coastline")
 ```
 
 
-```{r}
+```{r,warning=FALSE,message=FALSE, eval=FALSE, echo=FALSE}
 
 wmap_df<-fortify(wmap)
 coast_df<-fortify(coast)
@@ -79,6 +73,10 @@ bbox_df<-fortify(bbox)
 ```
 
 ```{r}
+loc_df<-data.frame(loc)
+```
+
+```{r,warning=FALSE,message=FALSE}
 
 theme_opts <- list(theme(panel.grid.minor = element_blank(),
                          panel.grid.major = element_blank(),
@@ -94,9 +92,7 @@ theme_opts <- list(theme(panel.grid.minor = element_blank(),
                          plot.title = element_text(size=22)))
 ```
 
-```{r}
-h
-
+```{r,warning=FALSE,message=FALSE}
 
 library(maps)
 library(mapdata)
@@ -105,7 +101,22 @@ ggplot(data=loc_df, aes(Longitude, Latitude, group=NULL,fill=NULL,size=V1))+#, f
   borders(fill="light grey",colour="light grey")+
   geom_point(color="black",alpha=I(7/10))+
   scale_size(range=c(1,7), guide = "legend",labs(size="No. of Populations"))+
-  #scale_fill_manual(values=c("#262626", "#e6e8ed"), guide="none")+
+  coord_equal()+
+  theme_opts
+  
+
+```
+
+```{r,warning=FALSE,message=FALSE}
+
+library(maps)
+library(mapdata)
+
+ggplot(data=loc_df, aes(Longitude, Latitude, group=NULL,fill=NULL,size=V1))+#, fill=hole)) + 
+  borders(fill="black",colour="black")+
+  geom_point(color="orange",alpha=I(7/10))+
+  scale_size(range=c(1,7), guide = "legend",labs(size="No. of Populations"))+
+  coord_equal()+
   theme_opts
   
 
