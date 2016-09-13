@@ -635,12 +635,12 @@ nrow(df)
 nrow(dfa)
 
 #
-df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Mammalia" &(Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution")) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &(Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution")) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
 nrow(df2)
 
 
-#df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves" ) #more populations with this?
+#df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)) #more populations with this?
 
 
 #df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
@@ -653,6 +653,20 @@ df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 nrow(df2)
 
 ```
+
+```{r}
+
+plot(df2$LUC_dist, df2$Nat_change)
+abline(v=0.01, h=0.005, col="red")
+df3<-subset(df2, Primary_threat !="Climate change")
+
+
+luc_threat<-subset(df3, (Nat_change>0.005|Nat_change <(-0.005) | (LUC_dist >0.01)))
+
+write.csv(luc_threat, "Populations_main_threat_land_use_change.csv")
+
+```
+
 
 ```{r}
 library(ggplot2)
@@ -715,8 +729,25 @@ rl$diff<-rl[,1] - rl[,2]
 hist(rl$diff, main="range in lambda_mean within study sites")
 #dt<-subset(dt, loc_id!=277)
 
+range_body<-tapply(dt$Bodymass, dt$loc_id, range)
+rl<-data.frame(matrix(unlist(range_body), ncol=2, byrow=T))
+rl$diff<-rl[,1] - rl[,2]
+hist(rl$diff, main="range in Bodymass within study sites")
+
+rl$loc_id<-rownames(rl)
+rl_bod2<-subset(rl, diff<(-2))
+
+body_big<-dt[dt$loc_id %in% rl_bod2$loc_id,]
+body_big2<-body_big[,c("ID","Bodymass")]
+
+LPI_body<-body_big[body_big$ID%in% LPI$ID ,]
+LPI_body_pop5<-subset(LPI_body, V1 >=5)
+
+
+write.csv(LPI_body_pop5, "Populations_with_bodymass_range_5pops.csv")
 
 ```
+
 ignore
 ```{r}
 land<-seq(min(dt$change_rate_scale),max(dt$change_rate_scale),length.out=100)
@@ -749,6 +780,7 @@ rcm<-as.matrix(rc)
 rcmd<-data.frame(rcm)
 ```
 
+
 ```{r}
 
 
@@ -757,7 +789,7 @@ library(MuMIn)
 library(raster)
 source("rsquaredglmm.R")
 
-R=299
+R=999
 AIC_m0=numeric(R)
 AIC_m0a= numeric(R)
 AIC_m0b= numeric(R)
@@ -819,7 +851,7 @@ LUC_avus = numeric(R)
 # sp_dups_df$change_rate_scale<-sp_dups_df$LUC_dist
 
 for (i in 1:R) {
- dt2<-data.frame(dt[, ID[sample.int(.N, 1, TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
+ dt2<-data.frame(dt[, ID[sample.int(.N, 1, replace=TRUE)], by = loc_id])     #.N     signifies the number of rows when using data.table
  colnames(dt2)[2]<-"ID"
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]    #sp_df_scale   #should be dt2
 
