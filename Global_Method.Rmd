@@ -379,8 +379,8 @@ head(xy_df)
 ```{r}
 library(raster)
 
-land_use_layers_tif = c("primf_1940a.tif", "primn_1940a.tif", "secdf_1940a.tif", "secdn_1940a.tif","pastr_1940a.tif","range_1940a.tif","urban_1940a.tif","c3ann_1940a.tif","c3per_1940a.tif","c4ann_1940a.tif","c4per_1940a.tif","c3nfx_1940a.tif", "water_luh2.tif")
-land_use_result_names = c("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv","pastr_r.csv","range_r.csv","urban_r.csv","c3ann_r.csv","c3per_r.csv","c4ann_r.csv","c4per_r.csv","c3nfx_r.csv", "water_r.csv")
+land_use_layers_tif = c("primf_1940a.tif", "primn_1940a.tif", "secdf_1940a.tif", "secdn_1940a.tif","pastr_1940a.tif","range_1940a.tif","urban_1940a.tif","c3ann_1940a.tif","c3per_1940a.tif","c4ann_1940a.tif","c4per_1940a.tif","c3nfx_1940a.tif")
+land_use_result_names = c("primf_r.csv", "primn_r.csv","secdf_r.csv", "secdn_r.csv","pastr_r.csv","range_r.csv","urban_r.csv","c3ann_r.csv","c3per_r.csv","c4ann_r.csv","c4per_r.csv","c3nfx_r.csv")
 
 ```
 
@@ -393,7 +393,7 @@ library(reshape2)
 for (i in 1:length(land_use_layers_tif)) {
   layer = brick(land_use_layers_tif[i])
   
-  n<-6  #number of cores to use - not sure how many I can go up to
+  n<-2  #number of cores to use - not sure how many I can go up to
   cl<-makeCluster(n)
   registerDoParallel(cl)  
   
@@ -437,12 +437,12 @@ c3per2<-read.csv("c3per_r.csv")
 c4ann2<-read.csv("c4ann_r.csv")
 c4per2<-read.csv("c4per_r.csv")
 c3nfx2<-read.csv("c3nfx_r.csv")
-water2<-read.csv("water_r.csv")
+#water2<-read.csv("water_r.csv")
   
-land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value, pastr2$value, range2$value, urban2$value, c3ann2$value, c3per2$value, c4ann2$value, c4per2$value, c3nfx2$value,water2$value)
+land_use_nat<-data.frame(primf2$lon, primf2$lat, primf2$datesr, primf2$value, primn2$value,secdf2$value, secdn2$value, pastr2$value, range2$value, urban2$value, c3ann2$value, c3per2$value, c4ann2$value, c4per2$value, c3nfx2$value)
 
 colnames(land_use_nat)<-c("Longitude", "Latitude", "Year", "Primary_Forest", "Primary_Non_Forest", 
-                          "Secondary_Forest", "Secondary_Non_Forest", "Pasture", "Rangeland", "Urban", "C3ann", "C3per", "C4ann", "C4per", "C3nfx", "Water_Ice") 
+                          "Secondary_Forest", "Secondary_Non_Forest", "Pasture", "Rangeland", "Urban", "C3ann", "C3per", "C4ann", "C4per", "C3nfx") 
 
 land_use_nat$total<-land_use_nat$Primary_Forest+land_use_nat$Primary_Non_Forest+land_use_nat$Secondary_Forest+
   land_use_nat$Secondary_Non_Forest+ land_use_nat$Pasture+land_use_nat$Rangeland+land_use_nat$Urban+land_use_nat$C3ann+land_use_nat$C3per+land_use_nat$C4ann+land_use_nat$C4per+land_use_nat$C3nfx+land_use_nat$Water_Ice
@@ -457,14 +457,16 @@ hist(LPILU$total, breaks=100)
 
 #write.csv(LPILU, "LUH2_Land_Use_All_LPI.csv", overwrite=FALSE)
 #write.csv(LPILU, "LUH2_Land_Use_All_moreLPI.csv")
-#write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI.csv")
-write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI_water.csv")
+write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI.csv")
+#write.csv(LPILU, "LUH2_Land_Use_All_cats_moreLPI_water.csv")
 ```
 
 Step 5 - Calculating land use change for each population
 
 ```{r}
 library(taRifx)
+
+LPILU<-read.csv("LUH2_Land_Use_All_cats_moreLPI.csv")
 
 doDist = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
