@@ -366,8 +366,9 @@ LPI<-read.csv("LPI_pops_20160523_edited.csv")
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
 
 xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
-xy_df<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
-xy_df<-unique(xy_df)
+xy<-unique(xy)
+xy_df<-data.frame(xy)
+
 
 colnames(xy_df)<-c("lon", "lat")
 coordinates(xy_df) <- c("lon", "lat")
@@ -482,7 +483,7 @@ dup<-ddply(primf2,. (lat,lon),nrow)
 ```{r}
 library(taRifx)
 
-LPILU<-read.csv("LUH2_Land_Use_All_cats_moreLPI_16_09_13.csv")
+#LPILU<-read.csv("LUH2_Land_Use_All_cats_moreLPI_16_09_13.csv")
 
 doDist = function(sp_name) {
   spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
@@ -501,7 +502,7 @@ doDist = function(sp_name) {
     nat<-luyr$Primary_Forest+luyr$Primary_Non_Forest+luyr$Secondary_Forest+luyr$Secondary_Non_Forest
     natdiff<-mean(diff(nat))
     
-    lum<-as.matrix(luyr[,c(3:14)], nrow=length(Yr))
+    lum<-as.matrix(luyr[,c(2:13)], nrow=length(Yr))
     m<-dist(lum, method="euclidean")
     n<-as.matrix(m)
     lu<-diag(n[c(2:nrow(n)),c(1:ncol(n))])
@@ -622,6 +623,7 @@ body<-read.csv("bird_and_mammal_traits2.csv")
 luc<-read.csv("LUC_average_annual_change_nat_025.csv")#works/good results
 #luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
 luc2<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
+luc2a<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_13.csv")
 luc3<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_15.csv")
 LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 #LPI<-read.csv("LPI_pops_20160523_edited.csv")
@@ -657,7 +659,11 @@ nrow(dfa)
 ```
 
 ```{r}
-df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")# &(Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution")) #& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
+df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass) &Class=="Aves")# & ((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+
+# & (Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution")) 
+
+#& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
 
 nrow(df2)
 
@@ -723,10 +729,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "Nat_change")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "Nat_change")])       #use the scaling factors at the bottom of these to scale the rasters
 
 centre_temp<-attr(parm_scale, 'scaled:center')[1]
 centre_luc<-attr(parm_scale, 'scaled:center')[2]
@@ -811,7 +817,7 @@ library(MuMIn)
 library(raster)
 source("rsquaredglmm.R")
 
-R=999
+R=299
 AIC_m0=numeric(R)
 AIC_m0a= numeric(R)
 AIC_m0b= numeric(R)
