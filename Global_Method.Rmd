@@ -777,6 +777,7 @@ LPI_body<-body_big[body_big$ID%in% LPI$ID ,]
 LPI_body_pop5<-subset(LPI_body, V1 >=5)
 
 
+
 #write.csv(LPI_body_pop5, "Populations_with_bodymass_range_5pops.csv")
 
 ```
