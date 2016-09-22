@@ -581,6 +581,54 @@ colnames(mean_df) <- c("ID", "Forest_Change")
 #write.csv(mean_df, "Forest_mean_change_025_moreLPI_16_09_19.csv")
 ```
 
+Primary Forest Only
+
+```{r}
+library(taRifx)
+
+LPILU<-read.csv("LUH2_Land_Use_All_cats_moreLPI_16_09_19.csv")
+
+doForest = function(sp_name) {
+  spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,65:130]                     #subsetting only the dates
+  colnames(spid)<-1950:2015              #renaming the date column names as R doesn't like numbered column names
+  lu_id=subset(LPILU, ID == sp_name)  #subsetting the climate data by each population
+  
+  id<-spid2$ID
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  if (sum(!is.na(spidt)) > 1) {
+    Yr<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+    luyr<-subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c(4:17)]   #6:11 for all categories 12:13 for nat vs anth
+    luyr<-luyr[order(luyr$Year),]
+    pforest<-luyr$Primary_Forest+luyr
+    pfordiff<-mean(diff(pforest))
+    psforest<-luyr$Primary_Forest+luyr$Secondary_Forest+luyr
+    psfordiff<-mean(diff(psforest))
+    
+  } else{
+    pfordiff<-NA
+    psfordiff<-NA
+  }
+#  euc_df<-data.frame(id,euc)
+euc_df<-data.frame(id,pfordiff,psfordiff)
+ # euc_df<-data.frame(id, natdiff)
+  print(euc_df)  
+  return(euc_df)
+}
+
+all_df_list <- lapply(unique(LPIsp$ID), doForest)
+
+all_matrix <- matrix(unlist(all_df_list), ncol=3, byrow=TRUE)
+mean_df <- data.frame(all_matrix)
+colnames(mean_df) <- c("ID", "Prim_Forest_Change", "Prim_Secnd_Forest_Change")
+
+#write.csv(mean_df, "Prim_Forest_mean_change_025_moreLPI_16_09_19.csv")
+```
+
+
+
 ```{r}
 # all_matrix <- matrix(unlist(all_df_list), ncol=3, byrow=TRUE)
 # mean_df <- data.frame(all_matrix)
@@ -713,7 +761,16 @@ nrow(dfc)
 ```
 
 ```{r}
-df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves" & Forest ==1)
+df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Forest==1&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+
+            
+#            &((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
+
+            
+            #&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+
+           
+#& ((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
   
 nrow(df2)
             
@@ -721,7 +778,7 @@ nrow(df2)
 
               
               
-#((Primary_threat=="Disease"| Primary_threat=="Exploitation"|Primary_threat=="Invasive spp/genes"|Primary_threat=="Pollution") | (Secondary_threat=="Disease"| Secondary_threat=="Exploitation"|Secondary_threat=="Invasive spp/genes"|Secondary_threat=="Pollution") | (Tertiary_threat=="Disease"| Tertiary_threat=="Exploitation"|Tertiary_threat=="Invasive spp/genes"|Tertiary_threat=="Pollution")))
+#((Primary_threat!="Disease"| Primary_threat!="Exploitation"|Primary_threat!="Invasive spp/genes"|Primary_threat!="Pollution") | (Secondary_threat!="Disease"| Secondary_threat!="Exploitation"|Secondary_threat!="Invasive spp/genes"|Secondary_threat!="Pollution") | (Tertiary_threat!="Disease"| Tertiary_threat!="Exploitation"|Tertiary_threat!="Invasive spp/genes"|Tertiary_threat!="Pollution")))
             
 #((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
 
@@ -885,7 +942,6 @@ rcmd<-data.frame(rcm)
 
 
 ```{r}
-
 
 library(lme4)
 library(MuMIn)
@@ -1223,6 +1279,40 @@ abline(h=0, col="red", lty =2)
 ```
 
 ```{r}
+par(mar=c(8,4.5,2,1))
+
+Low<-(R+1)/40
+High<-(R+1)-(R+1)/40 
+
+mean_av<- c(mean(LUC_av),mean(MTC_av), mean(BM_av),mean(LUC_MTC_av))
+lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low],sort(BM_av)[Low], sort(LUC_MTC_av)[Low])
+highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High],sort(BM_av)[High], sort(LUC_MTC_av)[High])
+
+Variable<-c("Natural Cover \nLoss", "Mean Temp. \nChange",  "Bodymass", "Interaction")
+
+conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
+colnames(conf_av)<-Variable
+conf_av
+
+library(plotrix)
+
+plotCI(1:4, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
+       main="", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
+axis(1, at=1:4, labels=colnames(conf_av), las=2)
+abline(h=0, col="red", lty =2)
+
+coef_pcnt<-((10^conf_av) - 1)*100
+plotCI(1:4, coef_pcnt[2,], (coef_pcnt[3,]-coef_pcnt[2,]), (coef_pcnt[2,]-coef_pcnt[1,]), ylab="Annual Population Change", xlab="" ,xaxt = "n", main="", lwd=1, ylim=c(min(coef_pcnt[1,]*1.1), max(coef_pcnt[3,]*1.1)))
+axis(1, at=1:4, labels=colnames(conf_av), las=2)
+abline(h=0, col="red", lty =2)
+
+
+
+
+```
+
+
+```{r}
 
 #marg r squared
 marg_df<- data.frame(cbind(marg_Rsq_m0,marg_Rsq_m0a,marg_Rsq_m1,marg_Rsq_m1a,marg_Rsq_m0b,marg_Rsq_m0c,marg_Rsq_m0d,marg_Rsq_m1b,marg_Rsq_m1c)*100)
@@ -1261,38 +1351,6 @@ boxplot(vi_df)
 ```
 
 
-```{r}
-par(mar=c(8,4.5,2,1))
-
-Low<-(R+1)/40
-High<-(R+1)-(R+1)/40 
-
-mean_av<- c(mean(LUC_av),mean(MTC_av), mean(BM_av),mean(LUC_MTC_av))
-lowCI_av<-c(sort(LUC_av)[Low], sort(MTC_av)[Low],sort(BM_av)[Low], sort(LUC_MTC_av)[Low])
-highCI_av<-c(sort(LUC_av)[High], sort(MTC_av)[High],sort(BM_av)[High], sort(LUC_MTC_av)[High])
-
-Variable<-c("Natural Cover \nLoss", "Mean Temp. \nChange",  "Bodymass", "Interaction")
-
-conf_av<-data.frame(rbind( lowCI_av, mean_av, highCI_av))
-colnames(conf_av)<-Variable
-conf_av
-
-library(plotrix)
-
-plotCI(1:4, mean_av, (highCI_av-mean_av), (mean_av-lowCI_av), ylab="Coefficient (95% C.I.)", xlab="" ,xaxt = "n", 
-       main="", lwd=1, ylim=c(min(lowCI_av*1.1), max(highCI_av*1.1)))
-axis(1, at=1:4, labels=colnames(conf_av), las=2)
-abline(h=0, col="red", lty =2)
-
-coef_pcnt<-((10^conf_av) - 1)*100
-plotCI(1:4, coef_pcnt[2,], (coef_pcnt[3,]-coef_pcnt[2,]), (coef_pcnt[2,]-coef_pcnt[1,]), ylab="Annual Population Change", xlab="" ,xaxt = "n", main="", lwd=1, ylim=c(min(coef_pcnt[1,]*1.1), max(coef_pcnt[3,]*1.1)))
-axis(1, at=1:4, labels=colnames(conf_av), las=2)
-abline(h=0, col="red", lty =2)
-
-
-
-
-```
 
 ```{r}
 ###plotting difference between interaction and null 
