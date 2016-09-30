@@ -602,9 +602,9 @@ doForest = function(sp_name) {
     Yr<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
     luyr<-subset(lu_id, Year>=min(Yr) & Year<= max(Yr))[,c(4:17)]   #6:11 for all categories 12:13 for nat vs anth
     luyr<-luyr[order(luyr$Year),]
-    pforest<-luyr$Primary_Forest+luyr
+    pforest<-luyr$Primary_Forest
     pfordiff<-mean(diff(pforest))
-    psforest<-luyr$Primary_Forest+luyr$Secondary_Forest+luyr
+    psforest<-luyr$Primary_Forest+luyr$Secondary_Forest
     psfordiff<-mean(diff(psforest))
     
   } else{
@@ -625,6 +625,8 @@ mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "Prim_Forest_Change", "Prim_Secnd_Forest_Change")
 
 #write.csv(mean_df, "Prim_Forest_mean_change_025_moreLPI_16_09_19.csv")
+#write.csv(mean_df, "Prim_Secnd_Forest_mean_change_025_moreLPI_16_09_19.csv")
+
 ```
 
 
@@ -722,7 +724,8 @@ luc<-read.csv("LUC_average_annual_change_nat_025.csv")#works/good results
 luc2<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
 luc2a<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_13.csv")
 luc3<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_15.csv")
-forest<-read.csv("Forest_mean_change_025_moreLPI_16_09_19.csv")
+#forest<-read.csv("Forest_mean_change_025_moreLPI_16_09_19.csv")
+forest<-read.csv("Prim_Secnd_Forest_mean_change_025_moreLPI_16_09_19.csv")
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
@@ -761,7 +764,7 @@ nrow(dfc)
 ```
 
 ```{r}
-df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Forest==1&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves")#&Forest==1&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
 
             
 #            &((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
@@ -796,8 +799,8 @@ nrow(df2)
 
 
 df2$Nat_loss<-(0-df2$Nat_change)   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
-df2$Forest_Loss<-(0-df2$Forest_Change)
-
+df2$Prim_Forest_Loss<-(0-df2$Prim_Forest_Change)
+df2$Prim_Secnd_Forest_Loss<-(0-df2$Prim_Secnd_Forest_Change)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
@@ -854,10 +857,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "Forest_Loss")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_loss" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_loss" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "Forest_Loss")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
 
 centre_temp<-attr(parm_scale, 'scaled:center')[1]
 centre_luc<-attr(parm_scale, 'scaled:center')[2]
