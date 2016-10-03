@@ -54,22 +54,24 @@ nrow(dfa)
 nrow(dfd)     #41 pops bodysizes missing for birds
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" 
-            &Specific_location == 1 & !is.na(Bodymass) &!is.na(both_change)& Class=="Aves" &((Primary_threat =="Habitat degradation/change"| 
-            Primary_threat=="Habitat loss"|Primary_threat=="Climate change")| 
-            (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")| 
-            (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-                                                                                                     # #   
-                                                                                                     #   
-            
-            
-            # &((Primary_threat!="Disease"
-            #  & Primary_threat!="Exploitation"
-            #   &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-            #   Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-            #   & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-            #   &Tertiary_threat!="Pollution")))
+            &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change))
 
-# 
+#               &((Primary_threat =="Habitat degradation/change"|
+#               Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
+#               (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
+#               (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+#               
+              
+            #   ((Primary_threat!="Disease"
+            # & Primary_threat!="Exploitation"
+            # &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
+            # Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
+            # & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
+            # &Tertiary_threat!="Pollution")))
+            #                                                                                          #   
+
+
+
             
 #((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change")| 
 #(Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")| 
@@ -165,7 +167,7 @@ length(unique(dt$loc_id))
   coef_df
   coef_pcnt<-data.frame(((10^coef_df) - 1)*100)
   
-  cnames<-c("Climate Change", "Land Use Change", "Interaction", "Bodymass")
+  cnames<-c("MTC", "LUC", "Interaction", "Bodymass")
   
   rownames(coef_pcnt)<-cnames
   library(plotrix)
@@ -186,6 +188,7 @@ length(unique(dt$loc_id))
   
 
 
+  
   
   
   
