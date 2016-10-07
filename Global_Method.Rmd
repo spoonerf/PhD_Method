@@ -81,7 +81,7 @@ doFit = function(sp_name) {
     }
 #     mg1<-mgcv:::gam(Population ~ s(Year))
 #     mg2<-mgcv:::gam(PopN ~ s(Year))
-    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm, fx=TRUE))
     pv2 <- predict(mg2,df,type="response",se=TRUE) 
     R_sq2<-summary(mg2)$r.sq
     model<-1
@@ -726,6 +726,7 @@ luc2a<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_13.csv"
 luc3<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_15.csv")
 #forest<-read.csv("Forest_mean_change_025_moreLPI_16_09_19.csv")
 forest<-read.csv("Prim_Secnd_Forest_mean_change_025_moreLPI_16_09_19.csv")
+hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
@@ -755,22 +756,21 @@ dfa<-merge(df, Realm, by="ID", all=TRUE)
 
 dfb<-merge(dfa, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
-dfc<-merge(dfb, forest, by="ID", all=TRUE)
+#dfc<-merge(dfb, forest, by="ID", all=TRUE)
+
+dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
 
 nrow(df)
 nrow(dfa)
-nrow(dfc)
+#nrow(dfc)
 
 ```
 
 ```{r}
-<<<<<<< HEAD
-df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves"&Migratory==0&((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)& !is.na(both_change)&Class=="Aves"&((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
 
 #&Forest==1&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-=======
-df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves")#&Forest==1&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
->>>>>>> 81beb6fdc311b4613ae9f3aea2be9b06fba6490c
+
 
             
 #            &((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
@@ -805,8 +805,8 @@ nrow(df2)
 
 
 df2$Nat_loss<-(0-df2$Nat_change)   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
-df2$Prim_Forest_Loss<-(0-df2$Prim_Forest_Change)
-df2$Prim_Secnd_Forest_Loss<-(0-df2$Prim_Secnd_Forest_Change)
+#df2$Prim_Forest_Loss<-(0-df2$Prim_Forest_Change)
+#df2$Prim_Secnd_Forest_Loss<-(0-df2$Prim_Secnd_Forest_Change)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
@@ -863,10 +863,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_loss" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_loss" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass")])       #use the scaling factors at the bottom of these to scale the rasters
 
 centre_temp<-attr(parm_scale, 'scaled:center')[1]
 centre_luc<-attr(parm_scale, 'scaled:center')[2]
@@ -877,7 +877,7 @@ parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale)
 
-colnames(parm_df_scale)<-c("ID","mean_slope_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID","mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
@@ -1024,15 +1024,15 @@ for (i in 1:R) {
   sp_dups_df2<-sp_df_scale[sp_df_scale$ID %in% dt2$ID,]    #sp_df_scale   #should be dt2
 
  
- m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+ m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
- m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+ m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
- m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+ m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
- m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+ m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
- m0d<-lmer(lambda_mean ~ Bodymass+(1|Binomial),data=sp_dups_df2, REML=F)
+ m0d<-lmer(lambda_mean ~ Bodymass_scale+(1|Binomial),data=sp_dups_df2, REML=F)
 
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial),data=sp_dups_df2, REML=F)
   
@@ -1107,12 +1107,12 @@ for (i in 1:R) {
   MTC_i[i]<-var_imp$importance["mean_slope_scale"]
   LUC_i[i]<-var_imp$importance["change_rate_scale"]
   LUC_MTC_i[i]<-var_imp$importance["change_rate_scale:mean_slope_scale"]
-  BM_i[i]<-var_imp$importance["Bodymass"]
+  BM_i[i]<-var_imp$importance["Bodymass_scale"]
 
   int_av[i]<-var_imp$coefmat.subset["(Intercept)","Estimate"]
   MTC_av[i]<-var_imp$coefmat.subset["mean_slope_scale","Estimate"]
   LUC_av[i]<-var_imp$coefmat.subset["change_rate_scale","Estimate"]
-  BM_av[i]<-var_imp$coefmat.subset["Bodymass", "Estimate"]
+  BM_av[i]<-var_imp$coefmat.subset["Bodymass_scale", "Estimate"]
   LUC_MTC_av[i]<-var_imp$coefmat.subset["change_rate_scale:mean_slope_scale","Estimate"]
   
   #MTC_avus[i]<-(MTC_av[i] * scale_temp) + centre_temp
