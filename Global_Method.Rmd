@@ -26,12 +26,12 @@ ID<-LPI_pop$ID
 pop_data<- LPI_pop[,c(1,65:130)]
 
 #pop_datab <- (pop_data [,2:64] !="NULL")
-pop_datab <- (pop_data [,2:67] !="NULL")
-points_per_pop1950_2012 = rowSums(pop_datab)
-length_id <- data.frame(ID,points_per_pop1950_2012)
+pop_datab <- (pop_data [,2:57] !="NULL")
+points_per_pop1950_2005 = rowSums(pop_datab)
+length_id <- data.frame(ID,points_per_pop1950_2005)
 
 LPI_EU<-merge(length_id, LPI_pop, by = "ID")
-LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=2)
+LPI_EU<-subset(LPI_EU, points_per_pop1950_2005 >=2)
 
 #LPI_EU2<-LPI_EU[,c(1:3,64:126)]
 LPI_EU2<-LPI_EU[,c(1:3,66:131)]
@@ -49,12 +49,12 @@ library(zoo)
 
 doFit = function(sp_name) {
   spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
-  spid = spid2[,4:69]                     #subsetting only the dates
-  colnames(spid)<-1950:2015              #renaming the date column names as R doesn't like numbered column names
+  spid = spid2[,4:59]                     #subsetting only the dates
+  colnames(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
   
   name<-spid2$Binomial
   id<-spid2$ID
-  points<-spid2$points_per_pop1950_2012
+  points<-spid2$points_per_pop1950_2005
   name_id<-paste(name, id, sep="_") #creating id for naming files of plots
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
@@ -120,8 +120,8 @@ all_df <- data.frame(all_matrix)
 colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
 
 #write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
-write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_08_16.csv") ##updated LPI
-
+#write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_08_16.csv") ##updated LPI
+write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_07_10_16.csv") ##updated LPI only til 2005
 ```
 
 Step 2 - Extracting the Climate data for each population
@@ -743,7 +743,9 @@ Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 
 
 #
-pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
+#pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
+pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
+
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 
 temp<-temp[,c("ID", "Estimate")]
