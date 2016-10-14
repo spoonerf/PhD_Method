@@ -26,12 +26,12 @@ ID<-LPI_pop$ID
 pop_data<- LPI_pop[,c(1,65:130)]
 
 #pop_datab <- (pop_data [,2:64] !="NULL")
-pop_datab <- (pop_data [,2:67] !="NULL")
-points_per_pop1950_2012 = rowSums(pop_datab)
-length_id <- data.frame(ID,points_per_pop1950_2012)
+pop_datab <- (pop_data [,2:57] !="NULL")
+points_per_pop1950_2005 = rowSums(pop_datab)
+length_id <- data.frame(ID,points_per_pop1950_2005)
 
 LPI_EU<-merge(length_id, LPI_pop, by = "ID")
-LPI_EU<-subset(LPI_EU, points_per_pop1950_2012 >=2)
+LPI_EU<-subset(LPI_EU, points_per_pop1950_2005 >=2)
 
 #LPI_EU2<-LPI_EU[,c(1:3,64:126)]
 LPI_EU2<-LPI_EU[,c(1:3,66:131)]
@@ -43,18 +43,18 @@ nrow(LPI_EU2)
 
 
 ```{r}
-source("gm_mean.R")
+
 library(taRifx)
 library(zoo)
 
 doFit = function(sp_name) {
   spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population 
-  spid = spid2[,4:69]                     #subsetting only the dates
-  colnames(spid)<-1950:2015              #renaming the date column names as R doesn't like numbered column names
+  spid = spid2[,4:59]                     #subsetting only the dates
+  colnames(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
   
   name<-spid2$Binomial
   id<-spid2$ID
-  points<-spid2$points_per_pop1950_2012
+  points<-spid2$points_per_pop1950_2005
   name_id<-paste(name, id, sep="_") #creating id for naming files of plots
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
@@ -72,15 +72,14 @@ doFit = function(sp_name) {
   } 
     
   
-  if (points >=6) {           ###should I be trying GAMs for populations with less than six points and if that doesn't fit then use a linear model - here I am automatically fitting a linear model if there are less than six points
+  if (points >=6) {           
     PopN = log10(df$Population)
     if (length(na.omit(PopN)) >=6) {
-      SmoothParm = round(length(na.omit(PopN))/2)    ####added na.omit in as was getting " A term has fewer unique covariate combinations than specified maximum degrees of freedom" error
-    } else{
+      SmoothParm = round(length(na.omit(PopN))/2)    
+    } else {
       SmoothParm=3
     }
-#     mg1<-mgcv:::gam(Population ~ s(Year))
-#     mg2<-mgcv:::gam(PopN ~ s(Year))
+
     mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
     pv2 <- predict(mg2,df,type="response",se=TRUE) 
     R_sq2<-summary(mg2)$r.sq
@@ -122,6 +121,9 @@ colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum"
 #write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 write.csv(all_df, "Global_Population_Trends_Rsq_Lambda_16_08_16.csv") ##updated LPI
 
+#write.csv(all_df, "global_pops_2005.csv")
+
+
 ```
 
 Step 2 - Extracting the Climate data for each population
@@ -146,7 +148,7 @@ CR90s<-brick("cru_ts3.23.1991.2000.tmp.dat.nc")
 CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 CR10s<-brick("cru_ts3.23.2011.2014.tmp.dat.nc")
 
-plot(CR40s[[11]])
+plot(CR50s[[11]], main="Mean Temperature, Novermber 1951")
 ```
 
 
@@ -726,6 +728,8 @@ luc2a<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_13.csv"
 luc3<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_15.csv")
 #forest<-read.csv("Forest_mean_change_025_moreLPI_16_09_19.csv")
 forest<-read.csv("Prim_Secnd_Forest_mean_change_025_moreLPI_16_09_19.csv")
+hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
+
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
@@ -755,58 +759,32 @@ dfa<-merge(df, Realm, by="ID", all=TRUE)
 
 dfb<-merge(dfa, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
-dfc<-merge(dfb, forest, by="ID", all=TRUE)
+#dfc<-merge(dfb, forest, by="ID", all=TRUE)
+
+dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
 
 nrow(df)
 nrow(dfa)
-nrow(dfc)
+nrow(dfd)
 
 ```
 
 ```{r}
-<<<<<<< HEAD
-df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves"&Migratory==0&((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
+
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &!is.na(both_change)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass))#& Class=="Mammalia"&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+
+              
+              #((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
 
 #&Forest==1&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-=======
-df2<-subset(dfc, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves")#&Forest==1&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
->>>>>>> 81beb6fdc311b4613ae9f3aea2be9b06fba6490c
+
 
             
 #            &((Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"& Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution") & (Tertiary_threat!="Disease"& Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"&Tertiary_threat!="Pollution")))
 
-            
-            #&((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-
-           
-#& ((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-  
-nrow(df2)
-            
-#((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-
-              
-              
-#((Primary_threat!="Disease"| Primary_threat!="Exploitation"|Primary_threat!="Invasive spp/genes"|Primary_threat!="Pollution") | (Secondary_threat!="Disease"| Secondary_threat!="Exploitation"|Secondary_threat!="Invasive spp/genes"|Secondary_threat!="Pollution") | (Tertiary_threat!="Disease"| Tertiary_threat!="Exploitation"|Tertiary_threat!="Invasive spp/genes"|Tertiary_threat!="Pollution")))
-            
-#((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change") | (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change") | (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-
-#& (Primary_threat != "Habitat degradation/change" &Primary_threat != "Habitat loss" & Primary_threat != "Climate change" & Primary_threat !="NULL") & (Secondary_threat != "Habitat degradation/change" &Secondary_threat != "Habitat loss" & Secondary_threat != "Climate change" & Secondary_threat != "NULL")& (Tertiary_threat != "Habitat degradation/change" & Tertiary_threat != "Habitat loss" & Tertiary_threat != "Climate change" & Tertiary_threat != "NULL" ))
-
-
-# & (Primary_threat!="Disease"& Primary_threat!="Exploitation"&Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution")) 
-
-#& WWF_REALM2!="Palearctic")# & Migratory!=0)    #subset of r_sq >=0.5 not including a population where the value is 0.5 because of a rounding error - population 5458
-
-nrow(df2)
-
-
-#df2<-subset(dfb, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(LUC_dist) &length_time >=5 & System!="Marine" &Specific_location == 1 & !is.na(Bodymass)) #more populations with this?
-
-
-df2$Nat_loss<-(0-df2$Nat_change)   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
-df2$Prim_Forest_Loss<-(0-df2$Prim_Forest_Change)
-df2$Prim_Secnd_Forest_Loss<-(0-df2$Prim_Secnd_Forest_Change)
+# df2$Nat_loss<-(0-df2$Nat_change)   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
+# df2$Prim_Forest_Loss<-(0-df2$Prim_Forest_Change)
+# df2$Prim_Secnd_Forest_Loss<-(0-df2$Prim_Secnd_Forest_Change)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
@@ -863,10 +841,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "LUC_dist")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_loss" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_loss" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "LUC_dist")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass")])       #use the scaling factors at the bottom of these to scale the rasters
 
 centre_temp<-attr(parm_scale, 'scaled:center')[1]
 centre_luc<-attr(parm_scale, 'scaled:center')[2]
@@ -877,7 +855,7 @@ parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale)
 
-colnames(parm_df_scale)<-c("ID","mean_slope_scale", "change_rate_scale")
+colnames(parm_df_scale)<-c("ID","mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 
 sp_df_scale<-merge(sp_dups_df, parm_df_scale, by="ID")
 
@@ -1284,6 +1262,8 @@ par(mar=c(10,5,1,1))
 boxplot(AIC_del, ylab="Delta AIC from Null Model", xlab="")
 #####mtext("Treatment:Geno", side=1, line=5)
 abline(h=0, col="red", lty =2)
+
+sum(AIC_del$MTC < 0)/length(AIC_del$MTC)
 
 ```
 

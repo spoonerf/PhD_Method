@@ -3,23 +3,12 @@ temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 body<-read.csv("bird_and_mammal_traits2.csv")
-#luc<-read.csv("LUC_distance_all.csv") #start:end  #total change not just nat_loss
-#luc<-read.csv("LUC_average_annual_change.csv") #annual
-#luc<-read.csv("LUC_average_annual_change_nat_anth.csv") #annual nat vs anth and change in natural cover and with change in natural cover
 
-luc<-read.csv("LUC_average_annual_change_nat_025.csv")#works/good results
-#luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
-luc2<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
-luc2a<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_13.csv")
-luc3<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_15.csv")
-#forest<-read.csv("Forest_mean_change_025_moreLPI_16_09_19.csv")
-#forest<-read.csv("Prim_Secnd_Forest_mean_change_025_moreLPI_16_09_19.csv")
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
-
 
 #Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-read.csv("Realm.csv", na.strings="")
@@ -33,17 +22,16 @@ Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 
 #
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
+#pop<-read.csv("global_pops_2005.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 
 temp<-temp[,c("ID", "Estimate")]
 
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
-df<-merge(merge(temp,luc3, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,Realm, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
-dfa<-merge(df, Realm, by="ID", all=TRUE)
-
-dfb<-merge(dfa, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+dfb<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
@@ -51,24 +39,33 @@ dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
 
 nrow(df)
 nrow(dfa)
-nrow(dfd)     #41 pops bodysizes missing for birds
+nrow(dfd) 
 
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&length_time >=5 & System!="Marine" 
-            &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change))
+df2<-subset(dfd, !is.na(Estimate) &length_time >=5 & System!="Marine"&
+              Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) & r_sq >= 0.4999999 )
 
-#               &((Primary_threat =="Habitat degradation/change"|
-#               Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
-#               (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
-#               (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-#               
+nrow(df2)
+
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+            &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change)&((Primary_threat!="Disease"
+            & Primary_threat!="Exploitation"
+            &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
+            Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
+            & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
+            &Tertiary_threat!="Pollution")))
+                    
+            
+            
+            #  &((Primary_threat =="Habitat degradation/change"|
+            # Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
+            # (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
+            # (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+            # 
+nrow(df2)                                                                       #           
+
+#                   
               
-            #   ((Primary_threat!="Disease"
-            # & Primary_threat!="Exploitation"
-            # &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-            # Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-            # & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-            # &Tertiary_threat!="Pollution")))
-            #                                                                                          #   
+                                                                                     #   
 
 
 
@@ -77,7 +74,7 @@ df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  & !is.na(Nat_change)&leng
 #(Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")| 
 #(Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
 
-df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
+#df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
@@ -132,6 +129,7 @@ length(unique(dt$loc_id))
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1c2<-lmer(lambda_mean ~ mean_slope_scale+(1|loc_id),data=dt, REML=F)
   
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
@@ -186,7 +184,7 @@ length(unique(dt$loc_id))
   del_AIC_df<-del_AIC_df[order(del_AIC_df$AIC_diff),]
   del_AIC_df
   
-
+  
 
   
   
