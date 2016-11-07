@@ -5,23 +5,12 @@ temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 body<-read.csv("bird_and_mammal_traits2.csv")
-#luc<-read.csv("LUC_distance_all.csv") #start:end  #total change not just nat_loss
-#luc<-read.csv("LUC_average_annual_change.csv") #annual
-#luc<-read.csv("LUC_average_annual_change_nat_anth.csv") #annual nat vs anth and change in natural cover and with change in natural cover
 
-luc<-read.csv("LUC_average_annual_change_nat_025.csv")#works/good results
-#luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
-luc2<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
-luc2a<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_13.csv")
-luc3<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI_16_09_15.csv")
-#forest<-read.csv("Forest_mean_change_025_moreLPI_16_09_19.csv")
-#forest<-read.csv("Prim_Secnd_Forest_mean_change_025_moreLPI_16_09_19.csv")
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
-
+###
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
-
 
 #Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-read.csv("Realm.csv", na.strings="")
@@ -32,9 +21,6 @@ colnames(Realm2)<-c("ID", "WWF_REALM2")
 Realm3<-rbind(Realm,Realm2) #sort this has duplicates
 Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 
-
-#
-#pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
@@ -42,11 +28,9 @@ temp<-temp[,c("ID", "Estimate")]
 
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
-df<-merge(merge(temp,luc3, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,Realm, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
-dfa<-merge(df, Realm, by="ID", all=TRUE)
-
-dfb<-merge(dfa, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+dfb<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
@@ -54,10 +38,10 @@ dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
 
 nrow(df)
 nrow(dfa)
-nrow(dfd)     #41 pops bodysizes missing for birds
+nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change))
+            &Specific_location == 1 &!is.na(both_change) )
 
 nrow(df2)
 
@@ -92,10 +76,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
@@ -130,21 +114,25 @@ source("rsquaredglmm.R")
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1c2<-lmer(lambda_mean ~ mean_slope_scale+(1|loc_id),data=dt, REML=F)
   
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
  
   
   # #Weights
+  library(MuMIn)
   
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   msAICc
   
   #Rsq
   models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  #models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
   rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
@@ -185,7 +173,7 @@ source("rsquaredglmm.R")
   del_AIC_df<-del_AIC_df[order(del_AIC_df$AIC_diff),]
   del_AIC_df
   
-
+  
 
 # centre_temp<-attr(parm_scale, 'scaled:center')[1]
 # scale_temp<-attr(parm_scale, 'scaled:scale')[1]
