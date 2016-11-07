@@ -1,10 +1,11 @@
+install.packages("devtools")
 library(devtools)
 install_github("timnewbold/GISOperations")
 library(GISOperations)
 
-cellareas <- DegreeCellAreaKM(lat=coordinates(crop1940)[,2],height=res(crop1940)[2],width=res(crop1940)[1])
+#cellareas <- DegreeCellAreaKM(lat=coordinates(crop1940)[,2],height=res(crop1940)[2],width=res(crop1940)[1])
 
-crop_pcnt_1940<-values(crop1940)/cellareas
+#crop_pcnt_1940<-values(crop1940)/cellareas
 
 library(raster)
 crop1940<-raster("crop1940AD.asc")
@@ -33,8 +34,8 @@ gras2005<-raster("gras2005AD.asc")
 
 
 rlist<-list(crop1940,crop1950,crop1960,crop1970,crop1980,crop1990,crop2000,crop2005,gras1940,gras1950,gras1960,gras1970,gras1980,gras1990,gras2000,gras2005)
-cellareas <- DegreeCellAreaKM(lat=coordinates(map)[,2],height=res(map)[2],width=res(map)[1])
-e<-extent(crop1940)
+cellareas <- DegreeCellAreaKM(lat=coordinates(crop1940)[,2],height=res(crop1940)[2],width=res(crop1940)[1])
+
 
 
 for (map in rlist){
@@ -51,9 +52,26 @@ crop_s<-stack(list.files(path = getwd(), pattern = "^.*crop*.*.tif$"))
 gras_s<-stack(list.files(path = getwd(), pattern = "^.*gras*.*.tif$"))
 
 
+nat_1940<-(1 - (crop_s[[1]] + gras_s[[1]]))
+nat_2005<-(1 - (crop_s[[7]] + gras_s[[7]]))
+plot(nat_2005 - nat_1940)
+
 ###########LPI data
 
 LPI_LUC<-read.csv("LPI_pops_20160523_edited.csv")
+
+LPI_pop<-subset(LPI_LUC, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi")
+
+ID<-LPI_pop$ID
+pop_data<- LPI_pop[,c(1,65:130)]
+
+pop_datab <- (pop_data [,2:67] !="NULL")
+points_per_pop1950_2012 = rowSums(pop_datab)
+length_id <- data.frame(ID,points_per_pop1950_2012)
+
+LPI_LUC<-merge(length_id, LPI_pop, by = "ID")
+LPI_LUC<-subset(LPI_pop, points_per_pop1950_2012 >=2)
+
 
 id<-LPI_LUC$ID
 latlong<-cbind(LPI_LUC$Longitude,LPI_LUC$Latitude)
@@ -91,8 +109,8 @@ for (i in 1:length(grid_crop2$ID)){
   
   ID<-grid_crop2[i,1]
   Binomial<-as.character(grid_crop2[i,6])
-  spid = grid_crop2[i,69:124]                     #subsetting only the dates
-  colnames(spid)<-1950:2005
+  spid = grid_crop2[i,69:134]                     #subsetting only the dates
+  colnames(spid)<-1950:2015
   
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
@@ -134,20 +152,32 @@ for (i in 1:length(grid_crop2$ID)){
     
     Yr_intrp_crop$mean_crop_int<-na.approx(Yr_intrp_crop$mean_crop)
     Yr_intrp_gras$mean_gras_int<-na.approx(Yr_intrp_gras$mean_grass)
+    Yr_intrp_crop$both<-Yr_intrp_crop$mean_crop_int + Yr_intrp_gras$mean_gras_int
     
     crop_change<-mean(diff(subset(Yr_intrp_crop, Year >= min_yr & Year <= max_yr)$mean_crop_int))
     gras_change<-mean(diff(subset(Yr_intrp_gras, Year >= min_yr & Year <= max_yr)$mean_gras_int))
-
+    both_change<-mean(diff(subset(Yr_intrp_crop, Year >= min_yr & Year <= max_yr)$both))
+    
   }else{
     crop_change<-NA
     gras_change<-NA
+    both_change<-NA
   }
   
-  final<-cbind(ID,Binomial,crop_change, gras_change) 
+  final<-cbind(ID,Binomial,crop_change, gras_change, both_change) 
   result<-rbind(final,result)
   print(final)
   
 }
 
+write.csv(result, "Hyde_crop_pasture_annual_change.csv")
+
+
+
+head(result)
+
+hist(result$both_change)
+
+hist(as.numeric(as.character(result$crop_change)))
 
 

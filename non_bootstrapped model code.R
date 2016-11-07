@@ -61,23 +61,23 @@ df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System
 
 nrow(df2)
 
-# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
 #             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
 #             Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
 #             (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
 #             (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-# 
+# # 
 # nrow(df2)
 # 
-# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-#             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
-#             & Primary_threat!="Exploitation"
-#             &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-#             Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-#             & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-#             &Tertiary_threat!="Pollution")))
-# 
-# nrow(df2)
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
+            &Specific_location == 1 &!is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
+            & Primary_threat!="Exploitation"
+            &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
+            Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
+            & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
+            &Tertiary_threat!="Pollution")))
+
+nrow(df2)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
@@ -187,7 +187,11 @@ source("rsquaredglmm.R")
   
 
 
-  
-  
+# centre_temp<-attr(parm_scale, 'scaled:center')[1]
+# scale_temp<-attr(parm_scale, 'scaled:scale')[1]
+# 
+# 
+# (fixef(m1c)[2] * scale_temp)
+#   
   
   
