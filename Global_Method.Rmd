@@ -177,7 +177,7 @@ length(xy_df)
 
 ```{r}
 
-n<-6#number of cores to use - not sure how many I can go up to - 6 at UCL
+n<-2#number of cores to use - not sure how many I can go up to - 6 at UCL
 cl<-makeCluster(n)
 registerDoParallel(cl)  
 getDoParWorkers()
@@ -270,7 +270,7 @@ doMean = function(sp_name) {
   climid=subset(LPIclim, ID == sp_name)  #subsetting the climate data by each population
   
   year_temp <- ddply(climid, "Year", summarise,          #calculating the annual mean for max temp, min temp and precipitation
-                     mean_mean = mean(na.omit(Mean_T)))
+                     mean_mean = min(na.omit(Mean_T)))
   name<-spid2$Binomial
   id<-spid2$ID
   points<-spid2$points_per_pop1950_2012

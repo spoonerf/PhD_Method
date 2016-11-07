@@ -2,9 +2,10 @@ library(devtools)
 install_github("timnewbold/GISOperations")
 library(GISOperations)
 
-cellareas <- DegreeCellAreaKM(lat=coordinates(crop1940)[,2],height=res(crop1940)[2],width=res(crop1940)[1])
+#cellareas <- DegreeCellAreaKM(lat=coordinates(crop1940)[,2],height=res(crop1940)[2],width=res(crop1940)[1])
 
-crop_pcnt_1940<-values(crop1940)/cellareas
+
+#crop_pcnt_1940<-values(crop1940)/cellareas
 
 library(raster)
 crop1940<-raster("crop1940AD.asc")

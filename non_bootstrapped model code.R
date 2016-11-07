@@ -1,11 +1,13 @@
 #temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
-temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+#temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
+#temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_min_mean_temp.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 body<-read.csv("bird_and_mammal_traits2.csv")
 
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
-
+###
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
@@ -19,11 +21,8 @@ colnames(Realm2)<-c("ID", "WWF_REALM2")
 Realm3<-rbind(Realm,Realm2) #sort this has duplicates
 Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 
-
-#
-pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
-#pop<-read.csv("global_pops_2005.csv")
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
+pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
 temp<-temp[,c("ID", "Estimate")]
 
@@ -41,46 +40,31 @@ nrow(df)
 nrow(dfa)
 nrow(dfd) 
 
-df2<-subset(dfd, !is.na(Estimate) &length_time >=5 & System!="Marine"&
-              Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) & r_sq >= 0.4999999 )
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) )
 
 nrow(df2)
 
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change)&((Primary_threat!="Disease"
-            & Primary_threat!="Exploitation"
-            &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-            Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-            & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-            &Tertiary_threat!="Pollution")))
-                    
-            
-            
-            #  &((Primary_threat =="Habitat degradation/change"|
-            # Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
-            # (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
-            # (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-            # 
-nrow(df2)                                                                       #           
-
-#                   
-              
-                                                                                     #   
-
-
-
-            
-#((Primary_threat =="Habitat degradation/change"| Primary_threat=="Habitat loss"|Primary_threat=="Climate change")| 
-#(Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")| 
-#(Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-
-#df2$Nat_loss<-0-df2$Nat_change   #so that higher numbers equate to a negative impact highervalue for nat loss = greater amount of'natural' habitat loss
+# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+#             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
+#             Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
+#             (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
+#             (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
+# 
+# nrow(df2)
+# 
+# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+#             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
+#             & Primary_threat!="Exploitation"
+#             &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
+#             Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
+#             & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
+#             &Tertiary_threat!="Pollution")))
+# 
+# nrow(df2)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
-#df2$Forest_Loss<-0-df2$Prim_Secnd_Forest_Change
-
-#df2$Forest_Change<-df2$Prim_Secnd_Forest_Change
 nrow(df2)
 
 library(plyr)
@@ -92,10 +76,10 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
@@ -109,6 +93,7 @@ dt<-data.table(sp_df_scale)
 
 length(unique(dt$loc_id))
 
+source("rsquaredglmm.R")
 
   library(lme4) 
   
@@ -136,15 +121,18 @@ length(unique(dt$loc_id))
  
   
   # #Weights
+  library(MuMIn)
   
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   msAICc
   
   #Rsq
   models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  #models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
   rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
@@ -165,13 +153,14 @@ length(unique(dt$loc_id))
   coef_df
   coef_pcnt<-data.frame(((10^coef_df) - 1)*100)
   
-  cnames<-c("MTC", "LUC", "Interaction", "Bodymass")
+  
+  cnames<-c("MTC", "LUC", "LUC*MTC", "Bodymass")
   
   rownames(coef_pcnt)<-cnames
   library(plotrix)
   
-  plotCI(1:4, y=coef_pcnt$coef_av, ui=coef_pcnt$highCI, li=coef_pcnt$lowCI, ylab="Annual Percentage Change (95% C.I.)", xlab="" ,xaxt = "n", 
-         main="", lwd=1, ylim=c(min(coef_pcnt$lowCI*1.1), max(coef_pcnt$highCI*1.2)))
+  plotCI(1:4, y=coef_pcnt$coef_av, ui=coef_pcnt$highCI, li=coef_pcnt$lowCI, ylab="Annual Population Change (%)", xlab="" ,xaxt = "n", 
+         main="Birds and Mammals", lwd=1, ylim=c(min(coef_pcnt$lowCI*1.1), max(coef_pcnt$highCI*1.2)))
   axis(1, at=1:4, labels=rownames(coef_pcnt), las=2)
   abline(h=0, col="red", lty =2)
 
