@@ -5,6 +5,11 @@ temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 body<-read.csv("bird_and_mammal_traits2.csv")
+body2<-read.csv("LPI_traits.csv")
+
+body3<-rbind(body, body2)
+
+body4<-unique(body3[,c(2:5)])
 
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 ###
@@ -30,7 +35,7 @@ LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country
 
 df<-merge(merge(temp,Realm, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
-dfb<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+dfb<-merge(df, body4[,c(2:4)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
@@ -41,9 +46,17 @@ nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) )
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
 
-nrow(df2)
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
+
+# select_bm<-!df_nb$ID %in% df2$ID
+# 
+# df_nb[select_bm,]$Binomial
+# 
+# nrow(df_nb)
+# nrow(df2)
 
 # df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
 #             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
