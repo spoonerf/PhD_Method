@@ -41,7 +41,7 @@ nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) )
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
 
 nrow(df2)
 
@@ -142,7 +142,7 @@ source("rsquaredglmm.R")
   library(MuMIn)
   var_imp<-summary(model.avg(models_list))
 
-  mav<-model.avg(models_list, subset = delta < 10)
+  mav<-model.avg(models_list, subset = cumsum <= 0.95)
   
   smav<-summary(mav)
   
@@ -157,6 +157,8 @@ source("rsquaredglmm.R")
   cnames<-c("MTC", "LUC", "LUC*MTC", "Bodymass")
   
   rownames(coef_pcnt)<-cnames
+  
+  coef_pcnt$Var_name<-cnames
   library(plotrix)
   
   plotCI(1:4, y=coef_pcnt$coef_av, ui=coef_pcnt$highCI, li=coef_pcnt$lowCI, ylab="Annual Population Change (%)", xlab="" ,xaxt = "n", 
@@ -174,8 +176,34 @@ source("rsquaredglmm.R")
   del_AIC_df
   
   
+library(coefplot)
+library(ggplot2)
 
+coef_pcnt$val<-1:4
+coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[order(coef_pcnt$val)])
+  
+  p1<-ggplot(coef_pcnt)
+  p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
+  p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=1.5, position = position_dodge(width=1/2))
+  p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
+  p1<- p1 + coord_flip()+ scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+  print(p1)
   
   
+#write.csv(coefs_both, "Model_Average_coefs.csv")
+coefs_both<-read.csv("Model_Average_coefs.csv")
+
+coefs_both$Var_name<-c("MTC", "LUC", "MTC*LUC", "BM")
+
+p1<-ggplot(coefs_both, aes(colour=Class))
+p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
+p1<- p1 + geom_linerange(aes(x=Var_name, ymin=LowCI, ymax=HighCI), lwd=1.5, position = position_dodge(width=1/2))
+p1<- p1 + geom_pointrange(aes(x= Var_name, y=Coef, ymin=LowCI, ymax=HighCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
+p1<- p1 + coord_flip()+ scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+print(p1)
+
+
+
+
   
   
