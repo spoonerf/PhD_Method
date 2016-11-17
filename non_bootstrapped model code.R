@@ -5,6 +5,12 @@ temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 body<-read.csv("bird_and_mammal_traits2.csv")
+# body2<-read.csv("LPI_traits.csv")
+# body<-read.csv("LPI_traits.csv")
+# body3<-rbind(body, body2)
+# 
+# 
+# body4<-subset(body3, !duplicated(ID))
 
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 ###
@@ -43,25 +49,36 @@ nrow(dfd)
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
 
-nrow(df2)
 
-# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
+
+select_bm<-!df2$ID %in% df2bm$ID
+
+df_nobm<-df2[select_bm,]
+unique(df_nobm$Binomial.x)
+
+nrow(df2bm) -nrow(df2)
+
+write.csv(df2, "bodymass_missing.csv")
+ 
+# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
 #             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
 #             Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
 #             (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
 #             (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-# 
+# # 
 # nrow(df2)
 # 
-# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-#             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
-#             & Primary_threat!="Exploitation"
-#             &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-#             Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-#             & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-#             &Tertiary_threat!="Pollution")))
-# 
-# nrow(df2)
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
+            &Specific_location == 1 &!is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
+            & Primary_threat!="Exploitation"
+            &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
+            Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
+            & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
+            &Tertiary_threat!="Pollution")))
+
+nrow(df2)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
@@ -205,5 +222,5 @@ print(p1)
 
 
 
-  
+
   
