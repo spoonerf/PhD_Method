@@ -47,7 +47,7 @@ nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g)&Class=="Mammalia")
 
 
 df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
@@ -60,7 +60,7 @@ unique(df_nobm$Binomial.x)
 
 nrow(df2bm) -nrow(df2)
 
-write.csv(df2, "bodymass_missing.csv")
+#write.csv(df2, "bodymass_missing.csv")
  
 # df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
 #             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
