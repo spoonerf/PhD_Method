@@ -5,12 +5,15 @@ temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff_1931.csv")
 #temp<-read.csv("All_LPI_All_Years_Nobuff.csv")
 body<-read.csv("bird_and_mammal_traits2.csv")
+body2<-read.csv("Bird_and_Mammal_BM.csv")
 # body2<-read.csv("LPI_traits.csv")
 # body<-read.csv("LPI_traits.csv")
 # body3<-rbind(body, body2)
 # 
 # 
 # body4<-subset(body3, !duplicated(ID))
+
+body3<-rbind(body, body2)
 
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 ###
@@ -36,7 +39,7 @@ LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country
 
 df<-merge(merge(temp,Realm, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
-dfb<-merge(df, body[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+dfb<-merge(df, body3[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
@@ -47,21 +50,21 @@ nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) &Class=="Mammalia" )
 
 
 df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
             &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
 
-select_bm<-!df2$ID %in% df2bm$ID
-
-df_nobm<-df2[select_bm,]
-unique(df_nobm$Binomial.x)
-
-nrow(df2bm) -nrow(df2)
-
-write.csv(df2, "bodymass_missing.csv")
- 
+# select_bm<-!df2$ID %in% df2bm$ID
+# 
+# df_nobm<-df2[select_bm,]
+# unique(df_nobm$Binomial.x)
+# 
+# nrow(df2bm) -nrow(df2)
+# 
+# write.csv(df2, "bodymass_missing.csv")
+#  
 # df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
 #             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
 #             Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
@@ -169,13 +172,13 @@ source("rsquaredglmm.R")
   coef_df$highCI<-confint(mav)[2:5,2]
   coef_df
   coef_pcnt<-data.frame(((10^coef_df) - 1)*100)
+  coef_pcnt
   
-  
-  cnames<-c("MTC", "LUC", "LUC*MTC", "Bodymass")
-  
-  rownames(coef_pcnt)<-cnames
-  
-  coef_pcnt$Var_name<-cnames
+  # cnames<-c("MTC", "LUC", "LUC*MTC", "Bodymass")
+  # 
+  # rownames(coef_pcnt)<-cnames
+  # 
+  coef_pcnt$Var_name<-rownames(coef_pcnt)
   library(plotrix)
   
   plotCI(1:4, y=coef_pcnt$coef_av, ui=coef_pcnt$highCI, li=coef_pcnt$lowCI, ylab="Annual Population Change (%)", xlab="" ,xaxt = "n", 
@@ -207,19 +210,33 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
   print(p1)
   
   
-#write.csv(coefs_both, "Model_Average_coefs.csv")
-coefs_both<-read.csv("Model_Average_coefs.csv")
+coef_pcnt$Class<-"Birds"  
+#coef_pcnt$Class<-"Mammals"  
 
-coefs_both$Var_name<-c("MTC", "LUC", "MTC*LUC", "BM")
+coef_pcntb<-coef_pcnt
+#coef_pcntm<-coef_pcnt  
+
+
+
+coef_both<-rbind(coef_pcntb[,c(1,2,3,4,7)], coef_pcntm[,c(1,2,3,4,7)])
+
+coef_both$Var_name
+coef_both$Var_name[coef_both$Var_name == "mean_slope_scale"] <- "MTC"
+coef_both$Var_name[coef_both$Var_name == "change_rate_scale"] <- "LUC"
+coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <- "MTC*LUC"
+coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "BM"
+
+#write.csv(coef_both, "Model_Average_coefs3.csv")
+coefs_both<-read.csv("Model_Average_coefs3.csv")
 
 p1<-ggplot(coefs_both, aes(colour=Class))
 p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
-p1<- p1 + geom_linerange(aes(x=Var_name, ymin=LowCI, ymax=HighCI), lwd=1.5, position = position_dodge(width=1/2))
-p1<- p1 + geom_pointrange(aes(x= Var_name, y=Coef, ymin=LowCI, ymax=HighCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
+p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=1.5, position = position_dodge(width=1/2))
+p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
 p1<- p1 + coord_flip()+ scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
 print(p1)
 
-
+((10^msAICc[,2:5])-1)*100
 
 
 
