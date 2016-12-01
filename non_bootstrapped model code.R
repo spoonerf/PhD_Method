@@ -51,11 +51,13 @@ nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) )
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g)&Class=="Aves")
+
 
 
 #df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
 #            &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
+
 
 # select_bm<-!df2$ID %in% df2bm$ID
 # 
@@ -66,6 +68,7 @@ df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System
 # 
 # write.csv(df2, "bodymass_missing.csv")
 #  
+
 # df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
 #             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
 #             Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
@@ -74,13 +77,13 @@ df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System
 # # 
 # nrow(df2)
 # 
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
-            &Specific_location == 1 &!is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
-            & Primary_threat!="Exploitation"
-            &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-            Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-            & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-            &Tertiary_threat!="Pollution")))
+# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
+#             &Specific_location == 1 &!is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
+#             & Primary_threat!="Exploitation"
+#             &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
+#             Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
+#             & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
+#             &Tertiary_threat!="Pollution")))
 
 nrow(df2)
 
