@@ -11,8 +11,8 @@ library(ggplot2)
 
 ```{r,echo=FALSE,warning=FALSE,message=FALSE}
 temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
-luc<-read.csv("LUC_distance_all.csv")
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+luc<-read.csv("Hyde_crop_pasture_annual_change.csv")
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
 
@@ -22,12 +22,14 @@ LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class",
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
-locs<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 &(Class=="Mammalia"|Class=="Aves"))
+locs<-subset(df, !is.na(Estimate)&r_sq >= 0.49999999  & !is.na(both_change)&length_time >=5 & System!="Marine" &Specific_location == 1 &(Class=="Mammalia"|Class=="Aves"))
+
+nrow(locs)
 ```
 
 
 ```{r, eval=FALSE,warning=FALSE,message=FALSE}
-locs<-read.csv("my_locations.csv")
+#locs<-read.csv("LPI_locations.csv")
 ```
 
 
