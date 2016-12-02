@@ -50,7 +50,7 @@ nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g)&Class=="Mammalia")
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
 
 
 
