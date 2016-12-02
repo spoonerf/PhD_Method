@@ -9,17 +9,18 @@ CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 obs<-stack(CR40s[[109:120]], CR50s, CR60s, CR70s, CR80s, CR90s,CR00s[[1:48]] )
 
 
-###85 rcp
+###60 rcp
 
-ts85_05_30<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_200512-203011.nc")
-ts85_30_55<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_203012-205511.nc")
-ts85_55_80<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_205512-208011.nc")
-ts85_80_00<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_208012-210011.nc")
+ts60_05_11<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp60_r1i1p1_200512-201111.nc")
+ts60_11_36<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp60_r1i1p1_201112-203611.nc")
+ts60_36_61<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp60_r1i1p1_203612-206111.nc")
+ts60_61_86<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp60_r1i1p1_206112-208611.nc")
+ts60_86_99<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp60_r1i1p1_208612-209911.nc")
 
-ts85_05_00<-stack(ts85_05_30[[2:300]],ts85_30_55,ts85_55_80,ts85_80_00[[1:229]])
+ts60_05_99<-stack(ts60_05_11,ts60_11_36,ts60_36_61,ts60_61_86,ts60_86_99)
 #ts_05_00<-brick(ts_05_00)
 
-modelcc<-rotate(ts85_05_00)
+modelcc<-rotate(ts60_05_99)
 
 obs_r<-resample(obs, modelcc)
 
@@ -62,8 +63,7 @@ centre_tempm<-0.01479149
 scale_tempm<-0.0793229
 
 
-
-gam_diff<-scale(d, center=centre_tempb, scale=scale_tempb)
+gam_diff<-scale(d, center=centre_tempm, scale=scale_tempm)
 plot(gam_diff)
 
 ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
@@ -84,45 +84,10 @@ lines(pop_pred$fit - 1.96*pop_pred$se.fit)
 pop_pred$fit<-c(0, pop_pred$fit)
 pop_pred$se.fit<-c(0, pop_pred$se.fit)
 
-plot(y=10^cumsum(pop_pred$fit), x=2006:2099, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 85")
+plot(y=10^cumsum(pop_pred$fit), x=2006:2099, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 60")
 lines(y=10^cumsum(pop_pred$fit - 1.96*pop_pred$se.fit), x=2006:2099, lty=2, col="Red")
 lines(y=10^cumsum(pop_pred$fit + 1.96*pop_pred$se.fit), x=2006:2099, lty=2, col="Red")
 
-x = c(1:149)
-
-fun<-function(y){
-  
-  z<-matrix(y)
-  if (sum(is.na(z))<1){
-    g<-mgcv:::gam(matrix(z) ~ s(x, k=8), fx=TRUE)
-    g_pred<-predict(g)
-    g_pred<-g_pred[55:100]
-    d<-diff(g_pred)
-    gam_diff<-scale(d, center = centre_tempb, scale = scale_tempb)
-    ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
-    colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
-    pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
-  } else{
-    
-    pop_pred$fit<-rep(NA,94)
-  }
-  return(pop_pred$fit)
-}
-
-gam_pred_rast_2050<-calc(obs_mod_ann, fun)
-
-gam_pred_rast_2100<-gam_pred_rast
-
-pop_2100<-function(x){10^sum(x)}
-
-pred_2100<-calc(gam_pred_rast_2100, pop_2100)
-
-pred_2100<-calc(gam_pred_rast_2050, pop_2100)
-
-plot(pred_2100)
-brk <- c(-100,-95,-90,-85,-80,-70,-60,-40,-20, -10, 0, 50,100)
-
-plot((pred_2100 - 1)*100,col=terrain.colors(12), breaks=brk)
 
 
 
