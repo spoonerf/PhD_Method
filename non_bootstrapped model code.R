@@ -1,3 +1,4 @@
+
 #temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
 #temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
 temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
@@ -50,12 +51,12 @@ nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g)&Class=="Aves")
 
 
 
-df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
+#df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+#            &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
 
 
 # select_bm<-!df2$ID %in% df2bm$ID
@@ -76,13 +77,13 @@ df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & Syst
 # # 
 # nrow(df2)
 # 
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
-            &Specific_location == 1 &!is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
-            & Primary_threat!="Exploitation"
-            &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-            Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-            & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-            &Tertiary_threat!="Pollution")))
+# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
+#             &Specific_location == 1 &!is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
+#             & Primary_threat!="Exploitation"
+#             &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
+#             Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
+#             & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
+#             &Tertiary_threat!="Pollution")))
 
 nrow(df2)
 
@@ -137,7 +138,6 @@ source("rsquaredglmm.R")
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1c2<-lmer(lambda_mean ~ mean_slope_scale+(1|loc_id),data=dt, REML=F)
   
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
@@ -209,7 +209,7 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
   p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
   p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=1.5, position = position_dodge(width=1/2))
   p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
-  p1<- p1 + coord_flip()+ scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+  p1<- p1 + scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
   print(p1)
   
   
