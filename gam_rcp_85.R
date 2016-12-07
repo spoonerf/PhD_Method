@@ -96,7 +96,8 @@ fun<-function(y){
   if (sum(is.na(z))<1){
     g<-mgcv:::gam(matrix(z) ~ s(x, k=8), fx=TRUE)
     g_pred<-predict(g)
-    g_pred<-g_pred[55:100]
+    g_pred<-g_pred[55:148]
+    #g_pred<-g_pred[55:100] #2050
     d<-diff(g_pred)
     gam_diff<-scale(d, center = centre_tempb, scale = scale_tempb)
     ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
@@ -104,6 +105,7 @@ fun<-function(y){
     pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
   } else{
     
+    #pop_pred$fit<-rep(NA,45) #2050
     pop_pred$fit<-rep(NA,94)
   }
   return(pop_pred$fit)
@@ -117,10 +119,70 @@ pop_2100<-function(x){10^sum(x)}
 
 pred_2100<-calc(gam_pred_rast_2100, pop_2100)
 
-pred_2100<-calc(gam_pred_rast_2050, pop_2100)
+pred_2050<-calc(gam_pred_rast_2050, pop_2100)
 
-plot(pred_2100)
-brk <- c(-100,-95,-90,-85,-80,-70,-60,-40,-20, -10, 0, 50,100)
+library(RColorBrewer)
+library(rgdal)
+library(ggplot2)
+world<-readOGR(dsn="C:/Users/Fiona/Documents/GIS/ne_10m_land", layer="ne_10m_land")
+e<-c(-180, 180, -63, 83.6341)
+world_c<-crop(world, e)
+plot(world_c)
+world_df<-fortify(world_c)
+colnames(world_df)[c(1:2)]<-c("Longitude", "Latitude")
+
+
+pred_2100_df<-rasterToPoints(pred_2100)
+pred_2100_df<-rasterToPoints(log10(pred_2100))
+pred_2100_df2<-data.frame(pred_2100_df)
+colnames(pred_2100_df2)<-c("Longitude", "Latitude", "Population_Decline")
+
+
+theme_opts<-list(theme(panel.grid.minor = element_blank(),
+                       panel.grid.major = element_blank(),
+                       panel.background = element_rect(fill = 'white', colour = NA),
+                       plot.background = element_rect(),
+                       axis.line = element_blank(),
+                       axis.text.x = element_blank(),
+                       axis.text.y = element_blank(),
+                       axis.ticks = element_blank(),
+                       axis.title.x = element_blank(),
+                       axis.title.y = element_blank(),
+                       plot.title = element_text()))
+
+ggplot(data=pred_2100_df2, aes(Longitude, Latitude))+
+   geom_raster(aes(fill=Population_Decline))+
+  scale_fill_gradientn(colors=brewer.pal(7, "RdYlGn"), guide=guide_colourbar(title="Bird Population Change"), 
+  #labels=c("-99%", "-50%", "0%", "+50%", "+100%"), breaks=c(0.01,0.5, 1, 1.5, 2))+   
+  labels=c("-99.9999%", "-99.99%", "-99%","0%"))+
+  geom_path(data=world_df, aes(Longitude, Latitude, group=group))+
+  coord_fixed(ratio = 1)+
+  theme_opts
+  
+
+
+
+
+  brk <- c(1, 0, -1, -2, -3, -4)
+plot(log10(pred_2100), col=brewer.pal(7, "RdYlGn"))
+
+#plot(world, lwd=0.1, add=T)
+
+legend("right",inset=F, title="Predicted Population Decline",
+       c("0%","90%","99%", "99.9%", "99.99%", "99.999%", "99.9999%"), fill=terrain.colors(7))
+
+
+
+
+
+
+
+
+
+plot(log10(pred_2050))
+hist(pred_2050)
+
+
 
 plot((pred_2100 - 1)*100,col=terrain.colors(12), breaks=brk)
 
