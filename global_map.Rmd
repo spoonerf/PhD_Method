@@ -10,7 +10,9 @@ library(ggplot2)
 ```
 
 ```{r,echo=FALSE,warning=FALSE,message=FALSE}
-temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
+#temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
+#temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+
 luc<-read.csv("Hyde_crop_pasture_annual_change.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -34,11 +36,13 @@ df<-merge(df, body4, by="ID")
 locs<-subset(df, !is.na(Estimate)&r_sq >= 0.499999  & !is.na(both_change) & !is.na(Bodymass_g) &
             length_time >=5 & System!="Marine" &Specific_location == 1 &(Class=="Mammalia"|Class=="Aves"))
 write.csv(locs, "my_locations2.csv")
+
 ```
 
 
 ```{r, eval=FALSE,warning=FALSE,message=FALSE}
 locs<-read.csv("my_locations2.csv")
+
 ```
 
 

@@ -14,10 +14,12 @@ body2<-read.csv("Bird_and_Mammal_BM.csv")
 # 
 # body4<-subset(body3, !duplicated(ID))
 
+
 body3<-rbind(body, body2)
 
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 ###
+#hyde<-read.csv("Sensitivity_Land_Use_morepop.csv")
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
@@ -47,13 +49,14 @@ dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
 
 
 nrow(df)
-nrow(dfa)
+#nrow(dfa)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g)&Class=="Aves")
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
 
-
+#df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &!is.na(change_rate_49)&length_time >=5 & 
+#             System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves")#& Class=="Mammalia"&((Primary_threat =="Habitat 
 
 #df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
 #            &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
@@ -85,6 +88,11 @@ df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System
 #             & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
 #             &Tertiary_threat!="Pollution")))
 
+
+df2$Estimate_sum<-df2$Estimate * df2$length_time
+df2$both_change_sum<-df2$both_change * df2$length_time
+
+
 nrow(df2)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
@@ -100,10 +108,14 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
-parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other 
+parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
+parm_df<-sp_dups_df[,c("ID","Estimate_sum", "both_change_sum", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
+#parm_df<-sp_dups_df[,c("ID","Estimate", "change_rate_49", "Bodymass_g")]
 
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale<-scale(parm_mat[,c("Estimate_sum", "both_change_sum", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+#parm_scale<-scale(parm_mat[,c("Estimate", "change_rate_49", "Bodymass_g")])  
 
 parm_id<-parm_mat[,"ID"]
 
@@ -121,25 +133,25 @@ source("rsquaredglmm.R")
 
   library(lme4) 
   
-  m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 
-  m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0b<-lmer(lambda_sum ~ change_rate_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0c<-lmer(lambda_sum ~ mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m0d<-lmer(lambda_mean ~ Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0d<-lmer(lambda_sum ~ Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1b<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  mnull<-lmer(lambda_sum ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
  
   

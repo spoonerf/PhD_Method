@@ -1,4 +1,4 @@
-install.packages("devtools")
+#install.packages("devtools")
 library(devtools)
 install_github("timnewbold/GISOperations")
 library(GISOperations)
@@ -158,21 +158,23 @@ for (i in 1:length(grid_crop2$ID)){
     crop_change<-mean(diff(subset(Yr_intrp_crop, Year >= min_yr & Year <= max_yr)$mean_crop_int))
     gras_change<-mean(diff(subset(Yr_intrp_gras, Year >= min_yr & Year <= max_yr)$mean_gras_int))
     both_change<-mean(diff(subset(Yr_intrp_crop, Year >= min_yr & Year <= max_yr)$both))
-    
+    both_sum<-sum(diff(subset(Yr_intrp_crop, Year >= min_yr & Year <= max_yr)$both))
   }else{
     crop_change<-NA
     gras_change<-NA
     both_change<-NA
+    both_sum<-NA
   }
   
-  final<-cbind(ID,Binomial,crop_change, gras_change, both_change) 
+  years<-max(Year)-min(Year)
+  final<-cbind(ID,Binomial,crop_change, gras_change, both_change, both_sum, years) 
   result<-rbind(final,result)
   print(final)
   
 }
 
-write.csv(result, "Hyde_crop_pasture_annual_change.csv")
-
+#write.csv(result, "Hyde_crop_pasture_annual_change.csv")
+write.csv(result, "Hyde_crop_pasture_annual_change_sum.csv")
 
 
 head(result)

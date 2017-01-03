@@ -9,84 +9,87 @@ CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 obs<-stack(CR40s[[109:120]], CR50s, CR60s, CR70s, CR80s, CR90s,CR00s[[1:48]] )
 
 
-###85 rcp
+###26 rcp
 
-ts85_05_30<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_200512-203011.nc")
-ts85_30_55<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_203012-205511.nc")
-ts85_55_80<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_205512-208011.nc")
-ts85_80_00<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_208012-210011.nc")
+ts26_05_30<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp26_r1i1p1_200512-203011.nc")
+ts26_30_55<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp26_r1i1p1_203012-205511.nc")
+ts26_55_80<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp26_r1i1p1_205512-208011.nc")
+ts26_80_99<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp26_r1i1p1_208012-209911.nc")
+ts26_99_24<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/HadGEM2_ES_RCP26/ts_Amon_HadGEM2-ES_rcp26_r1i1p1_209912-212411.nc")
 
-ts85_05_00<-stack(ts85_05_30[[2:300]],ts85_30_55,ts85_55_80,ts85_80_00[[1:229]])
-#ts_05_00<-brick(ts_05_00)
+ts26_05_00<-stack(ts26_05_30[[2:300]],ts26_30_55,ts26_55_80,ts26_80_99,ts26_99_24[[1]])
 
-modelcc<-rotate(ts85_05_00)
+modelcc_26<-rotate(ts26_05_00)
 
-obs_r<-resample(obs, modelcc)
+obs_r_26<-resample(obs, modelcc_26)
 
-obs_rk<-obs_r+273.15
+obs_rk_26<-obs_r_26+273.15
 
-mask_mod<-mask(modelcc, obs_rk[[1]])
+mask_mod_26<-mask(modelcc_26, obs_rk_26[[1]])
 
 #obs_mod<-stack(obs_rk, modelcc)
 
-obs_mod<-stack(obs_rk, mask_mod)
+obs_mod_26<-stack(obs_rk_26, mask_mod_26)
 
-obs_mod_mon_mean<-matrix(cellStats(obs_mod, mean))
+obs_mod_mon_mean_26<-matrix(cellStats(obs_mod_26, mean))
 
-plot(obs_mod_mon_mean)
+plot(obs_mod_mon_mean_26)
 ##################################################
-year_mon<-rep(1:(nlayers(obs_mod)/12), each=12)
+year_mon<-rep(1:(nlayers(obs_mod_26)/12), each=12)
 
 #changing from monthly to annual data
-obs_mod_ann<-stackApply(obs_mod, indices=year_mon, fun=mean, na.rm=TRUE)
+obs_mod_ann_26<-stackApply(obs_mod_26, indices=year_mon, fun=mean, na.rm=TRUE)
 
-obs_mat_ann<-matrix(cellStats(obs_mod_ann, mean))
-plot(obs_mat_ann)
+
+obs_mat_ann_26<-matrix(cellStats(obs_mod_ann_26, mean))
+plot(obs_mat_ann_26)
 
 x = c(1:149)
-g = mgcv:::gam(obs_mat_ann~s(x, k=8), fx=TRUE)
+g = mgcv:::gam(obs_mat_ann_26~s(x, k=8), fx=TRUE)
 plot(g)
+
 
 g_pred = predict(g)
 g_pred = g_pred[55:148]
 d = diff(g_pred)
-plot(g_pred)
 plot(d)
 
 #bird values
 centre_tempb<-0.04526127
 scale_tempb<-0.07075669
 
+
 #mammal values
 centre_tempm<-0.01479149
 scale_tempm<-0.0793229
 
 
-
 gam_diff<-scale(d, center=centre_tempb, scale=scale_tempb)
-plot(gam_diff)
 
 ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
 colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
 
-
-
-plot(pop_pred$fit, ylim=c(-0.045, 0.005))
+plot(pop_pred$fit, ylim=c(-0.04, 0.01))
 lines(pop_pred$fit + 1.96*pop_pred$se.fit)
 lines(pop_pred$fit - 1.96*pop_pred$se.fit)
-#abline(h=0)
-
 10^sum(pop_pred$fit + 1.96*pop_pred$se.fit)
 10^sum(pop_pred$fit - 1.96*pop_pred$se.fit)
 10^sum(pop_pred$fit)
 
-pop_pred$fit<-c(0, pop_pred$fit)
-pop_pred$se.fit<-c(0, pop_pred$se.fit)
+# pop_pred$fit<-c(0, pop_pred$fit)
+# pop_pred$se.fit<-c(0, pop_pred$se.fit)
 
-plot(y=10^cumsum(pop_pred$fit), x=2006:2099, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 85")
-lines(y=10^cumsum(pop_pred$fit - 1.96*pop_pred$se.fit), x=2006:2099, lty=2, col="Red")
-lines(y=10^cumsum(pop_pred$fit + 1.96*pop_pred$se.fit), x=2006:2099, lty=2, col="Red")
+plot(y=10^cumsum(pop_pred$fit), x=2006:2098, ylim=c(0, 4.5), type="l", ylab="Bird Population Index", xlab="Year", main="Predicted Bird Population Trends Under RCP 26")
+lines(y=10^cumsum(pop_pred$fit - 1.96*pop_pred$se.fit), x=2006:2098, lty=2, col="red")
+lines(y=10^cumsum(pop_pred$fit + 1.96*pop_pred$se.fit), x=2006:2098, lty=2, col="red")
+
+
+
+#install.packages("merTools")
+library(merTools)
+preds <- predictInterval(m1c, newdata = ave_mod, n.sims = 999)
+
 
 x = c(1:149)
 
@@ -96,8 +99,8 @@ fun<-function(y){
   if (sum(is.na(z))<1){
     g<-mgcv:::gam(matrix(z) ~ s(x, k=8), fx=TRUE)
     g_pred<-predict(g)
-    g_pred<-g_pred[55:148]
-    #g_pred<-g_pred[55:100] #2050
+    #g_pred<-g_pred[55:148]
+    g_pred<-g_pred[55:100] #2050
     d<-diff(g_pred)
     gam_diff<-scale(d, center = centre_tempb, scale = scale_tempb)
     ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
@@ -105,21 +108,33 @@ fun<-function(y){
     pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
   } else{
     
-    #pop_pred$fit<-rep(NA,45) #2050
-    pop_pred$fit<-rep(NA,94)
+    pop_pred$fit<-rep(NA,45) #2050
+    #pop_pred$fit<-rep(NA,94)
   }
   return(pop_pred$fit)
 }
 
-gam_pred_rast_2050<-calc(obs_mod_ann, fun)
-
-gam_pred_rast_2100<-gam_pred_rast
+gam_pred_rast_2050<-calc(obs_mod_ann_26, fun)
 
 pop_2100<-function(x){10^sum(x)}
 
-pred_2100<-calc(gam_pred_rast_2100, pop_2100)
+pop_2050<-function(x){10^sum(x)}
+# year<-2007:2099
+# png(file="%04d_pop_prod_rcp26.png", width=1440, height=720)
+# for (i in 2:nlayers(gam_pred_rast)){
+#   
+#   gam_stack<-10^prod(gam_pred_rast[[1:i]])
+#   plot(gam_stack,axes=FALSE,legend=FALSE, main=year[i])
+#   #writeRaster(gam_stack,paste(year[i], "pop_product_rcp26.tif", sep = "_") )
+#   print(i)
+# }
+# dev.off()
 
-pred_2050<-calc(gam_pred_rast_2050, pop_2100)
+pred_2100<-calc(gam_pred_rast, pop_2100)
+
+pred_2050<-calc(gam_pred_rast_2050, pop_2050)
+
+plot(pred_2100)
 
 library(RColorBrewer)
 library(rgdal)
@@ -132,8 +147,8 @@ world_df<-fortify(world_c)
 colnames(world_df)[c(1:2)]<-c("Longitude", "Latitude")
 
 
-pred_2100_df<-rasterToPoints(pred_2100)
-pred_2100_df<-rasterToPoints(log10(pred_2100))
+pred_2100_df<-rasterToPoints(pred_2050)
+pred_2100_df<-rasterToPoints(log10(pred_2050))
 pred_2100_df2<-data.frame(pred_2100_df)
 colnames(pred_2100_df2)<-c("Longitude", "Latitude", "Population_Decline")
 
@@ -151,46 +166,14 @@ theme_opts<-list(theme(panel.grid.minor = element_blank(),
                        plot.title = element_text()))
 
 ggplot(data=pred_2100_df2, aes(Longitude, Latitude))+
-   geom_raster(aes(fill=Population_Decline))+
-  scale_fill_gradientn(colors=brewer.pal(7, "RdYlGn"), guide=guide_colourbar(title="Bird Population Change"), 
-  #labels=c("-99%", "-50%", "0%", "+50%", "+100%"), breaks=c(0.01,0.5, 1, 1.5, 2))+   
-  labels=c("-99.9999%", "-99.99%", "-99%","0%"))+
+  geom_raster(aes(fill=Population_Decline))+
+  scale_fill_gradientn(colors=brewer.pal(7, "RdYlGn"), guide=guide_colourbar(title="Bird Population Change"))+#,
+                       #labels=c("-99%", "-50%", "0%", "+50%", "+100%"), breaks=c(0.01,0.5, 1, 1.5, 2))+   
+                      #labels=c("-99.9%", "-99%", "-90%","0%"), breaks=c(-3, -2, -1, 0))+
   geom_path(data=world_df, aes(Longitude, Latitude, group=group))+
   coord_fixed(ratio = 1)+
   theme_opts
-  
 
-
-
-
-  brk <- c(1, 0, -1, -2, -3, -4)
-plot(log10(pred_2100), col=brewer.pal(7, "RdYlGn"))
-
-#plot(world, lwd=0.1, add=T)
-
-legend("right",inset=F, title="Predicted Population Decline",
-       c("0%","90%","99%", "99.9%", "99.99%", "99.999%", "99.9999%"), fill=terrain.colors(7))
-
-
-
-
-
-
-
-
-
-plot(log10(pred_2050))
-hist(pred_2050)
-
-
-
-plot((pred_2100 - 1)*100,col=terrain.colors(12), breaks=brk)
-
-
-
-#install.packages("merTools")
-library(merTools)
-preds <- predictInterval(m1c, newdata = ave_mod, n.sims = 999)
 
 
 
