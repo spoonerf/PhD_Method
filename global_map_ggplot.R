@@ -5,23 +5,31 @@ wmap <- readOGR(dsn="ne_110m_land.shp", layer="ne_110m_land")
 #countries <- readOGR("ne_50m_admin_0_countries.shp", layer="ne_50m_admin_0_countries")
 bbox<-readOGR("ne_10m_wgs84_bounding_box.shp", layer="ne_10m_wgs84_bounding_box") 
 
-temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
-luc<-read.csv("LUC_distance_all.csv")
-LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
+temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
+luc<-read.csv("Hyde_crop_pasture_annual_change.csv")
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
-pop<-read.csv("Global_Population_Trends_Rsq_Lambda_16_03_18.csv")
-EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
+body<-read.csv("bird_and_mammal_traits2.csv")
+body2<-read.csv("LPI_traits.csv")
+
+body3<-rbind(body, body2)
+
+body4<-unique(body3[,c(2:5)])
+
+pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
 temp<-temp[,c("ID", "Estimate")]
-
 
 LPI<-LPI[,c("ID","Binomial","Common_name","Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat")]
 
 df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
+df<-merge(df, body4, by="ID")
+
 nrow(df)
 
-df2<-subset(df, !is.na(Estimate)&r_sq >= 0.5  & !is.na(LUC_dist)&length_time >=5 & System!="Marine" &Specific_location == 1 &(Class=="Mammalia"|Class=="Aves"))
+df2<-subset(df, !is.na(Estimate)&r_sq >= 0.499999  & !is.na(both_change) & !is.na(Bodymass_g) &
+            length_time >=5 & System!="Marine" &Specific_location == 1 &(Class=="Mammalia"|Class=="Aves"))
 
 nrow(df2)
 
@@ -90,7 +98,7 @@ ggplot(data=wmap_df, aes(long,lat, group=group, fill=hole)) +       #bbox_df, ae
   scale_fill_manual(values=c("#262626", "#e6e8ed"), guide="none")+
   theme_opts
 
-data=wmap_df, aes(long,lat,group=group), fill="black"
+#data=wmap_df, aes(long,lat,group=group), fill="black"
 ###web mercator projection
 # ggplot() + 
 #   geom_polygon(data=wmap_wmerc_df, aes(long,lat,group=group), fill="white")+
