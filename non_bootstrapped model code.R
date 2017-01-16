@@ -42,7 +42,9 @@ LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country
 
 df<-merge(merge(temp,Realm, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
+
 dfb<-merge(df, body3[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+     #41 pops bodysizes missing for birds
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
@@ -53,24 +55,16 @@ nrow(df)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g))
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
-#df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &!is.na(change_rate_49)&length_time >=5 & 
-#             System!="Marine" &Specific_location == 1 & !is.na(Bodymass)&Class=="Aves")#& Class=="Mammalia"&((Primary_threat =="Habitat 
+df_bird<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves")
 
-#df2bm<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-#            &Specific_location == 1 &!is.na(both_change)& !is.na(Bodymass_g)&(Class=="Aves"|Class=="Mammalia"))
+df_mammal<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+                &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
-
-# select_bm<-!df2$ID %in% df2bm$ID
-# 
-# df_nobm<-df2[select_bm,]
-# unique(df_nobm$Binomial.x)
-# 
-# nrow(df2bm) -nrow(df2)
-# 
-# write.csv(df2, "bodymass_missing.csv")
-#  
+#write.csv(df_bird, "bird_data_for_prediction.csv")
+#write.csv(df_mammal, "mammal_data_for_prediction.csv")
 
 # df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
 #             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
@@ -89,8 +83,8 @@ df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System
 #             &Tertiary_threat!="Pollution")))
 
 
-df2$Estimate_sum<-df2$Estimate * df2$length_time
-df2$both_change_sum<-df2$both_change * df2$length_time
+#df2$Estimate_sum<-df2$Estimate * df2$length_time#
+#df2$both_change_sum<-df2$both_change * df2$length_time
 
 
 nrow(df2)
@@ -109,12 +103,12 @@ library(data.table)
 dt = as.data.table(sp_dups_df)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
-parm_df<-sp_dups_df[,c("ID","Estimate_sum", "both_change_sum", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
+#parm_df<-sp_dups_df[,c("ID","Estimate_sum", "both_change_sum", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
 #parm_df<-sp_dups_df[,c("ID","Estimate", "change_rate_49", "Bodymass_g")]
 
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
-parm_scale<-scale(parm_mat[,c("Estimate_sum", "both_change_sum", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+#parm_scale<-scale(parm_mat[,c("Estimate_sum", "both_change_sum", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
 #parm_scale<-scale(parm_mat[,c("Estimate", "change_rate_49", "Bodymass_g")])  
 
 parm_id<-parm_mat[,"ID"]
@@ -133,25 +127,25 @@ source("rsquaredglmm.R")
 
   library(lme4) 
   
-  m0<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 
-  m0a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m0b<-lmer(lambda_sum ~ change_rate_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m0c<-lmer(lambda_sum ~ mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m0d<-lmer(lambda_sum ~ Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0d<-lmer(lambda_mean ~ Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1a<-lmer(lambda_sum ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1b<-lmer(lambda_sum ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  m1c<-lmer(lambda_sum ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
-  mnull<-lmer(lambda_sum ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
  
   
@@ -221,15 +215,15 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
   p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
   p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=1.5, position = position_dodge(width=1/2))
   p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
-  p1<- p1 + scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+  p1<- p1 + scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 5, 0, 0), "mm")))
   print(p1)
   
   
-coef_pcnt$Class<-"Birds"  
-#coef_pcnt$Class<-"Mammals"  
+#coef_pcnt$Class<-"Birds"  
+coef_pcnt$Class<-"Mammals"  
 
-coef_pcntb<-coef_pcnt
-#coef_pcntm<-coef_pcnt  
+#coef_pcntb<-coef_pcnt
+coef_pcntm<-coef_pcnt  
 
 
 
@@ -241,14 +235,16 @@ coef_both$Var_name[coef_both$Var_name == "change_rate_scale"] <- "LUC"
 coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <- "MTC*LUC"
 coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "BM"
 
-#write.csv(coef_both, "Model_Average_coefs3.csv")
+write.csv(coef_both, "Model_Average_coefs3.csv")
 coefs_both<-read.csv("Model_Average_coefs3.csv")
 
 p1<-ggplot(coefs_both, aes(colour=Class))
 p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
-p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=1.5, position = position_dodge(width=1/2))
-p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
-p1<- p1 + coord_flip()+ scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
+p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
+p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw() + labs(y = "Population Change (%)", x = "Variable") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+p1<- p1 + scale_color_manual(values=c("black", "black"))
+
 print(p1)
 
 ((10^msAICc[,2:5])-1)*100
