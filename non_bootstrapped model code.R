@@ -55,13 +55,19 @@ nrow(df)
 nrow(dfd) 
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g)& Class=="Mammalia")
+nrow(df2)
+
 
 df_bird<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves")
 
+nrow(df_bird)
+
 df_mammal<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-                &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
+                                &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
+
+nrow(df_mammal)
 
 #write.csv(df_bird, "bird_data_for_prediction.csv")
 #write.csv(df_mammal, "mammal_data_for_prediction.csv")
