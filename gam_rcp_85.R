@@ -43,27 +43,44 @@ obs_mod_ann<-stackApply(obs_mod, indices=year_mon, fun=mean, na.rm=TRUE)
 obs_mat_ann<-matrix(cellStats(obs_mod_ann, mean))
 plot(obs_mat_ann)
 
-x = c(1:149)
-g = mgcv:::gam(obs_mat_ann~s(x, k=8), fx=TRUE)
-plot(g)
+#for lambda_mean
+# x = c(1:149)
+# g = mgcv:::gam(obs_mat_ann~s(x, k=8), fx=TRUE)
+# plot(g)
+# 
+# g_pred = predict(g)
+# g_pred = g_pred[55:148]
+# d = diff(g_pred)
+# plot(g_pred)
+# plot(d)
 
-g_pred = predict(g)
-g_pred = g_pred[55:148]
-d = diff(g_pred)
-plot(g_pred)
-plot(d)
+#for lambda sum
+d<-cumsum(diff(obs_mat_ann[55:148]))
 
 #bird values
-centre_tempb<-0.04526127
-scale_tempb<-0.07075669
+# centre_tempb<-0.04526127
+# scale_tempb<-0.07075669
+# 
+# #mammal values
+# centre_tempm<-0.01479149
+# scale_tempm<-0.0793229
+
+###with lambda sum
+
+#bird values
+centre_tempb<-
+scale_tempb<-
 
 #mammal values
-centre_tempm<-0.01479149
-scale_tempm<-0.0793229
+centre_tempm<-
+scale_tempm<-
 
+#both values
 
+centre_temp<-0.3605663
+scale_temp<-0.6856779
 
-gam_diff<-scale(d, center=centre_tempb, scale=scale_tempb)
+gam_diff<-scale(d, center=centre_temp, scale=scale_temp)
 plot(gam_diff)
 
 ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
@@ -72,10 +89,52 @@ pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
 
 
 
-plot(pop_pred$fit, ylim=c(-0.045, 0.005))
-lines(pop_pred$fit + 1.96*pop_pred$se.fit)
-lines(pop_pred$fit - 1.96*pop_pred$se.fit)
+plot(pop_pred$fit*100, type="l", ylim=c(-100, 10))
+#plot(pop_pred$fit, ylim=c(-0.045, 0.005))
+lines(pop_pred$fit*100 + 1.96*pop_pred$se.fit*100, col="red", lty=2)
+lines(pop_pred$fit*100 - 1.96*pop_pred$se.fit*100, col="red", lty=2)
 #abline(h=0)
+
+
+fun<-function(y){
+  
+  z<-matrix(y)
+  if (sum(is.na(z))<1){
+
+    d<-cumsum(diff(z[56:149]))
+    gam_diff<-scale(d, center = centre_temp, scale = scale_temp)
+    ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
+    colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
+    pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
+  } else{
+    
+    #pop_pred$fit<-rep(NA,45) #2050
+    pop_pred$fit<-rep(NA,93)
+  }
+  return(pop_pred$fit)
+}
+
+#
+
+pred_rast_2100<-calc(obs_mod_ann, fun)
+
+pred_rast_2100[[93]][pred_rast_2100[[93]] < -1] <- -1
+
+plot(pred_rast_2100[[93]])
+pred_rast_2100_mean<-matrix(cellStats(pred_rast_2100, mean))
+
+plot(pred_rast_2100_mean, type="l")
+
+
+
+
+
+
+
+
+##########################################
+
+
 
 10^sum(pop_pred$fit + 1.96*pop_pred$se.fit)
 10^sum(pop_pred$fit - 1.96*pop_pred$se.fit)
@@ -113,7 +172,7 @@ fun<-function(y){
 
 gam_pred_rast_2050<-calc(obs_mod_ann, fun)
 
-gam_pred_rast_2100<-gam_pred_rast
+gam_pred_rast_2100<-calc(obs_mod_ann, fun)
 
 pop_2100<-function(x){10^sum(x)}
 
