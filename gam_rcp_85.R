@@ -151,6 +151,7 @@ obs_mod_ann_tsl<-stackApply(obs_mod_tsl, indices=year_mon_tsl, fun=mean, na.rm=T
 obs_mat_ann<-matrix(cellStats(obs_mod_ann, mean))
 obs_mat_ann_g<-matrix(cellStats(obs_mod_ann_g, mean))
 obs_mat_ann_tsl<-matrix(cellStats(obs_mod_ann_tsl, mean))
+plot(obs_mat_ann_tsl)
 
 
 ########################################
@@ -164,7 +165,6 @@ d = diff(g_pred)
 plot(g_pred)
 plot(d)
 ####################################
-plot(obs_mat_ann_tsl)
 
 x<-c(1:150)
 gg = mgcv:::gam(obs_mat_ann_g~s(x, k=8), fx=TRUE)
@@ -230,7 +230,6 @@ ave_mod_m<-data.frame(gam_diff_m, rep(0, length(gam_diff_m)), rep(0, length(gam_
 colnames(ave_mod_m)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 pop_pred_m<-predict(m1_m, ave_mod_m, re.form=NA, se.fit=T)
 
-
 ######################################
 ave_mod_bg<-data.frame(gam_diff_bg, rep(0, length(gam_diff_b)), rep(0, length(gam_diff_b)))
 colnames(ave_mod_bg)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
@@ -273,9 +272,9 @@ plot(pop_pred_bt$fit, ylim=c(-0.045, 0.005), main="Birds", type="l")
 lines(pop_pred_bt$fit + 1.96*pop_pred_bt$se.fit, col="red", lty=2)
 lines(pop_pred_bt$fit - 1.96*pop_pred_bt$se.fit, col="red", lty=2)
 
-plot(pop_pred_m$fit, ylim=c(-0.015, 0.01), main="Mammals",  type="l")
-lines(pop_pred_m$fit + 1.96*pop_pred_m$se.fit, col="red", lty=2)
-lines(pop_pred_m$fit - 1.96*pop_pred_m$se.fit, col="red", lty=2)
+plot(pop_pred_mt$fit, ylim=c(-0.015, 0.01), main="Mammals",  type="l")
+lines(pop_pred_mt$fit + 1.96*pop_pred_mt$se.fit, col="red", lty=2)
+lines(pop_pred_mt$fit - 1.96*pop_pred_mt$se.fit, col="red", lty=2)
 
 #######################################
 10^sum(pop_pred_b$fit + 1.96*pop_pred_b$se.fit)
@@ -368,7 +367,7 @@ ggplot(dfg, aes(x,y))+
   theme_bw()+
   theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
 
-##########################################
+##########################################tsl
 
 plot(y=10^cumsum(pop_pred_bt$fit2), x=2006:2099, ylim=c(0, 1.5), type="l", ylab="Bird Population Index", xlab="Year", main="Predicted Bird Population Index Under Scenario RCP 8.5")
 lines(y=10^cumsum(pop_pred_bt$fit2 - 1.96*pop_pred_bt$se.fit2), x=2006:2099, lty=2, col="Red")
@@ -388,7 +387,32 @@ ggplot(dft, aes(x,y))+
   scale_y_continuous(breaks=seq(0, 1, 0.25))+
   theme_bw()+
   theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+###########################################tsl mammals
+
+
+plot(y=10^cumsum(pop_pred_mt$fit2), x=2006:2099, ylim=c(0, 1.5), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Index Under Scenario RCP 8.5")
+lines(y=10^cumsum(pop_pred_mt$fit2 - 1.96*pop_pred_mt$se.fit2), x=2006:2099, lty=2, col="Red")
+lines(y=10^cumsum(pop_pred_mt$fit2 + 1.96*pop_pred_mt$se.fit2), x=2006:2099, lty=2, col="Red")
+
+y<-10^cumsum(pop_pred_mt$fit2)
+x<-2006:2099
+lci<-10^cumsum(pop_pred_mt$fit2 - 1.96*pop_pred_mt$se.fit2)
+uci<-10^cumsum(pop_pred_mt$fit2 + 1.96*pop_pred_mt$se.fit2)
+
+dft<-data.frame(x,y, lci, uci)
+
+library(ggplot2)
+ggplot(dft, aes(x,y))+
+  geom_line(size=2)+
+  geom_ribbon(aes(ymin=lci, ymax=uci), alpha=0.3, colour=NA)+
+  labs(y = "Mammal Population Index", x = "")+
+  scale_y_continuous(breaks=seq(0, 2, 0.25))+
+  theme_bw()+
+  theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
 ###########################################
+
+
+
 
 
 
@@ -396,9 +420,6 @@ ggplot(dft, aes(x,y))+
 plot(y=10^cumsum(pop_pred_m$fit2), x=2006:2099, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 8.5")
 lines(y=10^cumsum(pop_pred_m$fit2 - 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
 lines(y=10^cumsum(pop_pred_m$fit2 + 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
-
-
-
 
 x = c(1:149)
 
@@ -411,10 +432,10 @@ fun<-function(y){
     g_pred<-g_pred[55:148]
     #g_pred<-g_pred[55:100] #2050
     d<-diff(g_pred)
-    gam_diff<-scale(d, center = centre_tempb, scale = scale_tempb)
+    gam_diff<-scale(d, center = centre_tempm, scale = scale_tempm)
     ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
     colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
-    pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
+    pop_pred<-predict(m1_m, ave_mod, re.form=NA, se.fit=T)
   } else{
     
     #pop_pred$fit<-rep(NA,45) #2050
@@ -424,7 +445,7 @@ fun<-function(y){
 }
 
 #gam_pred_rast_2050<-calc(obs_mod_ann, fun)
-gam_pred_rast<-calc(obs_mod_ann, fun)
+#gam_pred_rast<-calc(obs_mod_ann, fun)
 
 gam_pred_rast_tsl<-calc(obs_mod_ann_tsl, fun)
 
@@ -432,26 +453,27 @@ plot(gam_pred_rast_tsl[[93]])
 
 gam_pred_rast_2100<-calc(obs_mod_ann, fun)
 
-plot(gam_pred_rast_2100[[93]])
+
+#plot(gam_pred_rast_2100[[93]])
 
 pop_index_2100<-function(x){10^cumsum(x)}
 
 
 index_2100_tsl<-calc(gam_pred_rast_tsl, pop_index_2100)
 
-index_2100<-index_2100_tsl[[93]]
+#index_2100<-index_2100_tsl[[93]]
 
 plot(index_2100_tsl[[93]])
 
 
 
-pop_2100<-function(x){10^sum(x)}
-
-
-
-pred_2100<-calc(gam_pred_rast_2100, pop_2100)
-
-pred_2050<-calc(gam_pred_rast_2050, pop_2100)
+# pop_2100<-function(x){10^sum(x)}
+# 
+# 
+# 
+# pred_2100<-calc(gam_pred_rast_2100, pop_2100)
+# 
+# pred_2050<-calc(gam_pred_rast_2050, pop_2100)
 
 library(RColorBrewer)
 library(rgdal)
@@ -465,7 +487,7 @@ world_df<-fortify(world_c)
 colnames(world_df)[c(1:2)]<-c("Longitude", "Latitude")
 
 
-pred_2100_df<-rasterToPoints(index_2100)
+pred_2100_df<-rasterToPoints(index_2100_tsl[[93]])
 #pred_2100_df<-rasterToPoints(log10(pred_2100))
 pred_2100_df2<-data.frame(pred_2100_df)
 colnames(pred_2100_df2)<-c("Longitude", "Latitude", "Population_Decline")
@@ -490,23 +512,23 @@ ggplot(data=pred_2100_df2, aes(Longitude, Latitude))+
   geom_path(data=world_df, aes(Longitude, Latitude, group=group))+
   coord_fixed(ratio = 1)+
   theme_bw()+
-  labs(title="Bird Population Index 2100 - (2005 = 1)")+
+  labs(title="Mammal Population Index 2100 - (2005 = 1)")+
   theme(text = element_text(size=20))
   
 
 
 
 
-  brk <- c(1, 0, -1, -2, -3, -4)
-plot(log10(pred_2100), col=brewer.pal(7, "RdYlGn"))
-
-#plot(world, lwd=0.1, add=T)
-
-legend("right",inset=F, title="Predicted Population Decline",
-       c("0%","90%","99%", "99.9%", "99.99%", "99.999%", "99.9999%"), fill=terrain.colors(7))
-
-
-
+#   brk <- c(1, 0, -1, -2, -3, -4)
+# plot(log10(pred_2100), col=brewer.pal(7, "RdYlGn"))
+# 
+# #plot(world, lwd=0.1, add=T)
+# 
+# legend("right",inset=F, title="Predicted Population Decline",
+#        c("0%","90%","99%", "99.9%", "99.99%", "99.999%", "99.9999%"), fill=terrain.colors(7))
+# 
+# 
+# 
 
 
 
