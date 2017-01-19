@@ -34,6 +34,12 @@ Yr<-cbind(Year_all, Year_na)
 colnames(Yr)<-c("Year", "Year_NA")
 
 Year<-c(seq(1950,2000,by=10),2005)
+
+
+
+
+
+
 fun_interp<-function(x){
   
   x<-matrix(x)
@@ -42,6 +48,8 @@ fun_interp<-function(x){
   year_merge<-merge(year_x,Yr, by="Year", all=TRUE)
   LUv<-na.approx(year_merge$LU)
   LUC<-mean(diff(LUv))
+
+  
   return(LUC)
 }
 
