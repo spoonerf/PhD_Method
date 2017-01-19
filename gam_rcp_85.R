@@ -153,6 +153,7 @@ obs_mat_ann_g<-matrix(cellStats(obs_mod_ann_g, mean))
 obs_mat_ann_tsl<-matrix(cellStats(obs_mod_ann_tsl, mean))
 plot(obs_mat_ann_tsl)
 
+
 ########################################
 x = c(1:149)
 g = mgcv:::gam(obs_mat_ann~s(x, k=8), fx=TRUE)
@@ -192,9 +193,13 @@ centre_tempb<-0.04526127
 scale_tempb<-0.07006285
 
 #mammal values
-centre_tempm<-0.01479149
-scale_tempm<-0.0793229
+centre_tempm<-
+scale_tempm<-
 
+#both values
+
+centre_temp<-0.3605663
+scale_temp<-0.6856779
 
 
 gam_diff_b<-scale(d, center=centre_tempb, scale=scale_tempb)
@@ -416,8 +421,6 @@ plot(y=10^cumsum(pop_pred_m$fit2), x=2006:2099, ylim=c(0, 3), type="l", ylab="Ma
 lines(y=10^cumsum(pop_pred_m$fit2 - 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
 lines(y=10^cumsum(pop_pred_m$fit2 + 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
 
-
-
 x = c(1:149)
 
 fun<-function(y){
@@ -448,7 +451,8 @@ gam_pred_rast_tsl<-calc(obs_mod_ann_tsl, fun)
 
 plot(gam_pred_rast_tsl[[93]])
 
-#gam_pred_rast_2100<-gam_pred_rast
+gam_pred_rast_2100<-calc(obs_mod_ann, fun)
+
 
 #plot(gam_pred_rast_2100[[93]])
 
