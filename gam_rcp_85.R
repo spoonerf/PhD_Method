@@ -153,35 +153,6 @@ obs_mat_ann_g<-matrix(cellStats(obs_mod_ann_g, mean))
 obs_mat_ann_tsl<-matrix(cellStats(obs_mod_ann_tsl, mean))
 
 
-<<<<<<< HEAD
-#for lambda_mean
-# x = c(1:149)
-# g = mgcv:::gam(obs_mat_ann~s(x, k=8), fx=TRUE)
-# plot(g)
-# 
-# g_pred = predict(g)
-# g_pred = g_pred[55:148]
-# d = diff(g_pred)
-# plot(g_pred)
-# plot(d)
-
-#for lambda sum
-d<-cumsum(diff(obs_mat_ann[55:148]))
-
-#bird values
-# centre_tempb<-0.04526127
-# scale_tempb<-0.07075669
-# 
-# #mammal values
-# centre_tempm<-0.01479149
-# scale_tempm<-0.0793229
-
-###with lambda sum
-
-#bird values
-centre_tempb<-
-scale_tempb<-
-=======
 ########################################
 x = c(1:149)
 g = mgcv:::gam(obs_mat_ann~s(x, k=8), fx=TRUE)
@@ -220,7 +191,6 @@ plot(dt)
 #bird values
 centre_tempb<-0.04526127
 scale_tempb<-0.07006285
->>>>>>> 6785f4ad2b797cd18722e2650890aa4b8183caf5
 
 #mammal values
 centre_tempm<-
@@ -231,10 +201,7 @@ scale_tempm<-
 centre_temp<-0.3605663
 scale_temp<-0.6856779
 
-<<<<<<< HEAD
-gam_diff<-scale(d, center=centre_temp, scale=scale_temp)
-plot(gam_diff)
-=======
+
 gam_diff_b<-scale(d, center=centre_tempb, scale=scale_tempb)
 plot(gam_diff_b)
 
@@ -252,7 +219,6 @@ plot(gam_diff_bt)
 
 gam_diff_mt<-scale(dt, center=centre_tempm, scale=scale_tempm)
 plot(gam_diff_mt)
->>>>>>> 6785f4ad2b797cd18722e2650890aa4b8183caf5
 
 
 ######################################
@@ -264,58 +230,7 @@ ave_mod_m<-data.frame(gam_diff_m, rep(0, length(gam_diff_m)), rep(0, length(gam_
 colnames(ave_mod_m)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 pop_pred_m<-predict(m1_m, ave_mod_m, re.form=NA, se.fit=T)
 
-<<<<<<< HEAD
-plot(pop_pred$fit*100, type="l", ylim=c(-100, 10))
-#plot(pop_pred$fit, ylim=c(-0.045, 0.005))
-lines(pop_pred$fit*100 + 1.96*pop_pred$se.fit*100, col="red", lty=2)
-lines(pop_pred$fit*100 - 1.96*pop_pred$se.fit*100, col="red", lty=2)
-#abline(h=0)
 
-
-fun<-function(y){
-  
-  z<-matrix(y)
-  if (sum(is.na(z))<1){
-
-    d<-cumsum(diff(z[56:149]))
-    gam_diff<-scale(d, center = centre_temp, scale = scale_temp)
-    ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
-    colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
-    pop_pred<-predict(m1c, ave_mod, re.form=NA, se.fit=T)
-  } else{
-    
-    #pop_pred$fit<-rep(NA,45) #2050
-    pop_pred$fit<-rep(NA,93)
-  }
-  return(pop_pred$fit)
-}
-
-#
-
-pred_rast_2100<-calc(obs_mod_ann, fun)
-
-pred_rast_2100[[93]][pred_rast_2100[[93]] < -1] <- -1
-
-plot(pred_rast_2100[[93]])
-pred_rast_2100_mean<-matrix(cellStats(pred_rast_2100, mean))
-
-plot(pred_rast_2100_mean, type="l")
-
-
-
-
-
-
-
-
-##########################################
-
-
-
-10^sum(pop_pred$fit + 1.96*pop_pred$se.fit)
-10^sum(pop_pred$fit - 1.96*pop_pred$se.fit)
-10^sum(pop_pred$fit)
-=======
 ######################################
 ave_mod_bg<-data.frame(gam_diff_bg, rep(0, length(gam_diff_b)), rep(0, length(gam_diff_b)))
 colnames(ave_mod_bg)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
@@ -481,7 +396,7 @@ ggplot(dft, aes(x,y))+
 plot(y=10^cumsum(pop_pred_m$fit2), x=2006:2099, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 8.5")
 lines(y=10^cumsum(pop_pred_m$fit2 - 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
 lines(y=10^cumsum(pop_pred_m$fit2 + 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
->>>>>>> 6785f4ad2b797cd18722e2650890aa4b8183caf5
+
 
 
 
