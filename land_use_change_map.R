@@ -55,7 +55,8 @@ fun_interp<-function(x){
 
 LUC_cell<-calc(both_s, fun_interp)
 
+writeRaster(LUC_cell, "Global_Rate_Land_Use_Change.tif")
 
-
+plot(LUC_cell)
 
 
