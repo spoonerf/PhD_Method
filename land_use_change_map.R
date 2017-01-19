@@ -35,11 +35,6 @@ colnames(Yr)<-c("Year", "Year_NA")
 
 Year<-c(seq(1950,2000,by=10),2005)
 
-
-
-
-
-
 fun_interp<-function(x){
   
   x<-matrix(x)
