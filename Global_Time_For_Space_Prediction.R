@@ -22,18 +22,24 @@ stack_pred<-stack(mtc_s, luc_sr, body)
 
 names(stack_pred)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 
-pred_rast<-predict(stack_pred,mav, re.form=NA)
+pred_rast<-predict(stack_pred,m1c, re.form=NA)
+
+
+
 
 plot(pred_rast)
 
 pred_pcnt<-(((10^pred_rast) - 1))
+
+
+
 
 plot(pred_pcnt)        
 #plot(mtc)
 
 #Year 2100 rates
 #1.5
-rate_1.5<-0.000895 #based on 2005 anomaly of 0.65
+rate_1.5<-0.000895 #based on 2005 anomaly of 0.65, so annual rate of increase to reach 1.5 deg by 2100
 rate_2.0<-0.01421
 model_rate<-0.0701
 
@@ -42,13 +48,18 @@ rate_x2<-rate_2.0/model_rate
 
 extrap<-function(x){
   
-  percent<-rate_x2*x
+  percent<-rate_x*x
   pop_perc_rem<-(1 + percent)^95
   return(pop_perc_rem)
   }
 
 perc_change<-calc(pred_pcnt,extrap)
 plot(perc_change)
+
+
+
+check_stack<-stack(perc_change, pred_pcnt,pred_rast, stack_pred)
+
 cellStats(perc_change, mean)
 writeRaster(pred_pcnt, "Predicted_Population_Declines.tif")
 
