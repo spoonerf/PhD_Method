@@ -1,3 +1,5 @@
+library(raster)
+
 CR40s<-brick("cru_ts3.23.1941.1950.tmp.dat.nc")
 CR50s<-brick("cru_ts3.23.1951.1960.tmp.dat.nc")
 CR60s<-brick("cru_ts3.23.1961.1970.tmp.dat.nc")
@@ -50,5 +52,20 @@ for (i in 1:ncell(year_test)){
   year_row<-rbind(slope, year_row)
   
 }
+
+cell_val<-numeric(ncell(year_s))
+
+for (i in 1:ncell(year_s)){
+  
+  cell_na<-!is.na(year_s[[1]][i])
+  cell_val<-rbind(cell_na,cell_val)
+  
+}
+
+
+
+
+
+
 
 
