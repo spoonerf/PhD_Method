@@ -36,19 +36,20 @@ plot(pred_pcnt)
 rate_1.5<-0.000895 #based on 2005 anomaly of 0.65
 rate_2.0<-0.01421
 model_rate<-0.0701
+
 rate_x<-rate_1.5/model_rate
 rate_x2<-rate_2.0/model_rate
 
 extrap<-function(x){
   
-  percent<-rate_x*x
+  percent<-rate_x2*x
   pop_perc_rem<-(1 + percent)^95
   return(pop_perc_rem)
   }
 
 perc_change<-calc(pred_pcnt,extrap)
-
-
+plot(perc_change)
+cellStats(perc_change, mean)
 writeRaster(pred_pcnt, "Predicted_Population_Declines.tif")
 
 
