@@ -31,47 +31,6 @@ writeRaster(x4, "Global_Rate_Mean_Temp_Change.tif")
 
 
 
-##plotting each year
-# for (i in 1:nlayers(year_s)){
-#   
-#   plot(year_s[[i]], main=i+1949)
-# }
-# 
-
-year_test<-year_s[10000:11000]
-
-year_row<-matrix()
-
-for (i in 1:ncell(year_test)){
-  
-  cell<-as.vector(year_s[i])
-  
-  if ((sum(is.na(cell))) != length(cell)){
-    
-  slope<-summary(lm(cell~years))$coefficients[2]
-  
-  } else {
-    
-    slope<-NA
-  }
-  
-  year_row<-rbind(slope, year_row)
-  
-}
-
-cell_val<-numeric(ncell(year_s))
-
-for (i in 1:ncell(year_s)){
-  
-  cell_na<-!is.na(year_s[[1]][i])
-  cell_val<-rbind(cell_na,cell_val)
-  
-}
-
-
-
-
-
 
 
 
