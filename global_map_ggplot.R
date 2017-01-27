@@ -5,6 +5,9 @@ wmap <- readOGR(dsn="ne_110m_land.shp", layer="ne_110m_land")
 #countries <- readOGR("ne_50m_admin_0_countries.shp", layer="ne_50m_admin_0_countries")
 bbox<-readOGR("ne_10m_wgs84_bounding_box.shp", layer="ne_10m_wgs84_bounding_box") 
 
+clim<-raster("Global_Rate_Mean_Temp_Change.tif")
+
+
 temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 luc<-read.csv("Hyde_crop_pasture_annual_change.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
