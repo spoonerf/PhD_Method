@@ -8,47 +8,37 @@ CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 
 CR<-stack(CR40s[[109:120]],CR50s,CR60s,CR70s,CR80s,CR90s,CR00s[[c(1:60)]])
 
-Jan<-seq(1, nlayers(CR), 12)
-Dec<-Jan+11
+year_mon<-rep(1:(nlayers(CR)/12), each=12)
+CR_year<-stackApply(CR, indices=year_mon, fun=mean, na.rm=TRUE)
 
-year_s<-stack()
+time<-1:nlayers(CR_year)
+X <- cbind(1, time)
 
-for (i in 1:length(Jan)){
-  
-  year<-mean(CR[[Jan[i]:Dec[i]]])
-  year_s<-stack(year, year_s)
-   
-}
+## pre-computing constant part of least squares
+invXtX <- solve(t(X) %*% X) %*% t(X)
 
-years<-1950:2005
-names(year_s)<-years
+## much reduced regression model; [2] is to get the slope
+quickfun <- function(y) (invXtX %*% y)[2]
+x4 <- calc(CR_year, quickfun) 
 
-##plotting each year
-# for (i in 1:nlayers(year_s)){
-#   
-#   plot(year_s[[i]], main=i+1949)
-# }
-# 
+writeRaster(x4, "Global_Rate_Mean_Temp_Change.tif", overwrite=TRUE)
+#
+cellStats(x4, mean)
 
-year_test<-year_s[10000:11000]
+plot(x4)
 
-year_row<-matrix()
 
-for (i in 1:ncell(year_test)){
-  
-  cell<-as.vector(year_s[i])
-  
-  if ((sum(is.na(cell))) != length(cell)){
-    
-  slope<-summary(lm(cell~years))$coefficients[2]
-  
-  } else {
-    
-    slope<-NA
-  }
-  
-  year_row<-rbind(slope, year_row)
-  
-}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
