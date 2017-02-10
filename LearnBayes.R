@@ -1,5 +1,32 @@
+##Chapter 1
 install.packages("LearnBayes")
 library(LearnBayes)
+
+
+data(studentdata)
+studentdata[1,]
+table(studentdata$Drink)
+barplot(table(studentdata$Drink), xlab="Drink", ylab="Count")
+
+hours.of.sleep<-studentdata$WakeUp - studentdata$ToSleep
+
+summary(hours.of.sleep)
+
+hist(hours.of.sleep, main="")
+
+boxplot(hours.of.sleep ~ studentdata$Gender, ylab="Hours of Sleep")
+
+female.Haircut<- studentdata$Haircut[studentdata$Gender =="female"]
+male.Haircut<- studentdata$Haircut[studentdata$Gender =="male"]
+
+summary(female.Haircut)
+summary(male.Haircut)
+
+plot(jitter(studentdata$ToSleep), jitter(hours.of.sleep))
+
+fit<-lm(hours.of.sleep ~ studentdata$ToSleep)
+abline(fit)
+
 
 tstatistic=function(x,y){
   m=length(x)

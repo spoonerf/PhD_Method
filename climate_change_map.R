@@ -27,16 +27,9 @@ invXtX <- solve(t(X) %*% X) %*% t(X)
 ## much reduced regression model; [2] is to get the slope
 quickfun <- function(y) (invXtX %*% y)[2]
 
-x4 <- calc(CR_year, quickfun) 
+x4 <- calc(year_s, quickfun) 
 
-writeRaster(x4, "Global_Rate_Mean_Temp_Change.tif", overwrite=TRUE)
-#
-cellStats(x4, mean)
-
-plot(x4)
-
-
-
+writeRaster(x4, "Global_Rate_Mean_Temp_Change.tif")
 
 
 
