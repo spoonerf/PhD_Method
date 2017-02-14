@@ -11,6 +11,7 @@ model_pop_mammals<- -0.0207
 model_pop_mammals_lci<- -0.0066
 model_pop_mammals_uci<- -0.0346  
 
+
 pop_extrap<-function(year,temp, class){
   year_diff<-year - 2005
   temp_diff<-temp - ipcc_ar5_1986_2005#betts_2005
@@ -27,7 +28,8 @@ pop_extrap<-function(year,temp, class){
    pop_decline_uci<-(1 + lambda_mean_uci)^year_diff
   
    pop_decline_int<-c(pop_decline_lci, pop_decline, pop_decline_uci) 
-    } else {
+    } 
+  if (class=="Mammals") {
       rate_mammals<-rate/model_rate_mammals  
       lambda_mean<-rate_mammals*model_pop_mammals
       lambda_mean_lci<-rate_mammals*model_pop_mammals_lci
@@ -38,7 +40,7 @@ pop_extrap<-function(year,temp, class){
       pop_decline_uci<-(1 + lambda_mean_uci)^year_diff
       
       pop_decline_int<-c(pop_decline_lci, pop_decline, pop_decline_uci) 
-      }
+  }
 
   return(pop_decline_int)
 }
