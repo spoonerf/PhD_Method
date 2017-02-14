@@ -49,47 +49,59 @@ pop_extrap<-function(year,temp, class){
 
 
 RCP2.6_blci<-pop_extrap(2100,0.3, "Birds")
+RCP2.6_bm<-pop_extrap(2100,1, "Birds")
 RCP2.6_buci<-pop_extrap(2100,1.7, "Birds")
 
 RCP4.5_blci<-pop_extrap(2100,1.1, "Birds")
+RCP4.5_bm<-pop_extrap(2100,1.8, "Birds")
 RCP4.5_buci<-pop_extrap(2100,2.6, "Birds")
 
 RCP6.0_blci<-pop_extrap(2100,1.4, "Birds")
+RCP6.0_bm<-pop_extrap(2100,2.2, "Birds")
 RCP6.0_buci<-pop_extrap(2100,3.1, "Birds")
 
 RCP8.5_blci<-pop_extrap(2100,2.6, "Birds")
+RCP8.5_bm<-pop_extrap(2100,3.7, "Birds")
 RCP8.5_buci<-pop_extrap(2100,4.8, "Birds")
 
 
 RCP2.6_mlci<-pop_extrap(2100,0.3, "Mammals")
+RCP2.6_mm<-pop_extrap(2100,1.0, "Mammals")
 RCP2.6_muci<-pop_extrap(2100,1.7, "Mammals")
 
 RCP4.5_mlci<-pop_extrap(2100,1.1, "Mammals")
+RCP4.5_mm<-pop_extrap(2100,1.8, "Mammals")
 RCP4.5_muci<-pop_extrap(2100,2.6, "Mammals")
 
 RCP6.0_mlci<-pop_extrap(2100,1.4, "Mammals")
+RCP6.0_mm<-pop_extrap(2100,2.2, "Mammals")
 RCP6.0_muci<-pop_extrap(2100,3.1, "Mammals")
 
 RCP8.5_mlci<-pop_extrap(2100,2.6, "Mammals")
+RCP8.5_mm<-pop_extrap(2100,3.7, "Mammals")
 RCP8.5_muci<-pop_extrap(2100,4.8, "Mammals")
 
 Class<-rep(c("Bird", "Mammal"), each=4)
 rcp<-rep(c("RCP 2.6", "RCP 4.5", "RCP 6.0", "RCP 8.5"),2)
 lci<-c(RCP2.6_blci[2],RCP4.5_blci[2],RCP6.0_blci[2],RCP8.5_blci[2],RCP2.6_mlci[2],RCP4.5_mlci[2],RCP6.0_mlci[2],RCP8.5_mlci[2] )
+mean<-c(RCP2.6_bm[2],RCP4.5_bm[2],RCP6.0_bm[2],RCP8.5_bm[2],RCP2.6_mm[2],RCP4.5_mm[2],RCP6.0_mm[2],RCP8.5_mm[2] )
 uci<-c(RCP2.6_buci[2],RCP4.5_buci[2],RCP6.0_buci[2],RCP8.5_buci[2],RCP2.6_muci[2],RCP4.5_muci[2],RCP6.0_muci[2],RCP8.5_muci[2] )
 
 
-df<-data.frame(Class,rcp,lci,uci)
+df<-data.frame(Class,rcp,lci, mean,uci)
 df$lci<-df$lci*100
+df$mean<-df$mean*100
 df$uci<-df$uci*100
 
 library(ggplot2)
 q1<-ggplot(df, aes(colour=Class))
 q1<- q1 + geom_linerange(aes(x=rcp, ymin=lci, ymax=uci), lwd=2.5, position = position_dodge(width=2/3))
+q1<- q1 + geom_pointrange(aes(x= rcp, y=mean, ymin=lci, ymax=uci), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
 q1<- q1 + theme_bw() + labs(y = "Remaining Population in 2100 (%)", x = "") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
 q1<- q1 + scale_y_continuous(limits=(c(0,100)))
 q1<- q1 + scale_color_manual(values=c("black", "black"))
 q1
+
 
 
 
