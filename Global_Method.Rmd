@@ -749,6 +749,7 @@ body<-read.csv("bird_and_mammal_traits2.csv")
 #luc<-read.csv("LUC_average_annual_change.csv") #annual
 #luc<-read.csv("LUC_average_annual_change_nat_anth.csv") #annual nat vs anth and change in natural cover and with change in natural cover
 
+
 luc<-read.csv("LUC_average_annual_change_nat_025.csv")#works/good results
 #luc<-read.csv("LUC_average_annual_change_nat_025_moreLPI.csv")
 luc2<-read.csv("LUC_average_mean_euc_dist_all_cat_nat_025_moreLPI.csv")
@@ -782,6 +783,7 @@ temp<-temp[,c("ID", "Estimate")]
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
 df<-merge(merge(temp,luc3, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,luc, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 dfa<-merge(df, Realm, by="ID", all=TRUE)
 
