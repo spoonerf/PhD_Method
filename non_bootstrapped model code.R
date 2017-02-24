@@ -1,8 +1,8 @@
 
 #temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
 #temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
-#temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
-temp2<-read.csv("All_LPI_nobuff_1931_mean_temp_sum_change.csv")
+temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
+#temp2<-read.csv("All_LPI_nobuff_1931_mean_temp_sum_change.csv")
 
 body<-read.csv("bird_and_mammal_traits2.csv")
 body2<-read.csv("Bird_and_Mammal_BM.csv")
@@ -37,8 +37,8 @@ Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
-#temp<-temp[,c("ID", "Estimate")]
-temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
+temp<-temp[,c("ID", "Estimate")]
+#temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
 
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
@@ -56,17 +56,14 @@ nrow(df)
 #nrow(dfa)
 nrow(dfd) 
 
-<<<<<<< HEAD
-df2<-subset(dfd, !is.na(Sum_Mean_Change) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
-            &Specific_location == 1 &!is.na(both_sum) & !is.na(Bodymass_g)&Class=="Aves")
 
-#df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
-#           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
-=======
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g)& Class=="Mammalia")
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) &Class=="Mammalia")
 nrow(df2)
->>>>>>> 6785f4ad2b797cd18722e2650890aa4b8183caf5
+
+write.csv(df2, "Pops_for_lme.csv")
+ #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
+#           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
 
 df_bird<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
@@ -99,11 +96,8 @@ nrow(df_mammal)
 #             &Tertiary_threat!="Pollution")))
 
 
-<<<<<<< HEAD
-#df2$Estimate_sum<-df2$Estimate * df2$length_time
-=======
+
 #df2$Estimate_sum<-df2$Estimate * df2$length_time#
->>>>>>> 6785f4ad2b797cd18722e2650890aa4b8183caf5
 #df2$both_change_sum<-df2$both_change * df2$length_time
 
 
@@ -123,20 +117,15 @@ library(data.table)
 dt = as.data.table(sp_dups_df)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
-<<<<<<< HEAD
-parm_df<-sp_dups_df[,c("ID","Sum_Mean_Change", "both_sum", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
-=======
-#parm_df<-sp_dups_df[,c("ID","Estimate_sum", "both_change_sum", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
->>>>>>> 6785f4ad2b797cd18722e2650890aa4b8183caf5
+
+
 #parm_df<-sp_dups_df[,c("ID","Estimate", "change_rate_49", "Bodymass_g")]
 
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
-<<<<<<< HEAD
-parm_scale<-scale(parm_mat[,c("ID","Sum_Mean_Change", "both_sum", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
-=======
+
 #parm_scale<-scale(parm_mat[,c("Estimate_sum", "both_change_sum", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
->>>>>>> 6785f4ad2b797cd18722e2650890aa4b8183caf5
+
 #parm_scale<-scale(parm_mat[,c("Estimate", "change_rate_49", "Bodymass_g")])  
 
 parm_id<-parm_mat[,"ID"]
@@ -172,6 +161,7 @@ source("rsquaredglmm.R")
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1cus<-lmer(lambda_mean ~ Estimate + (1|Binomial) + (1|loc_id), data= sp_dups_df, REML=F)
   
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
@@ -199,7 +189,8 @@ source("rsquaredglmm.R")
   library(MuMIn)
   var_imp<-summary(model.avg(models_list))
 
-  mav<-model.avg(models_list, subset = cumsum <= 0.95)
+  #mav<-model.avg(models_list, subset = cumsum(weight) <= 0.95)
+  mav<-model.avg(models_list, subset = delta <= 8)
   
   smav<-summary(mav)
   
