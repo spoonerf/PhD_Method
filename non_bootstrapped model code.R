@@ -1,8 +1,13 @@
 
 #temp<-read.csv("All_LPI_Mean_Temp_Slope.csv")
 #temp<-read.csv("All_LPI_Mean_Temp_Slope_nobuff.csv")
+<<<<<<< HEAD
 temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 #temp2<-read.csv("All_LPI_nobuff_1931_mean_temp_sum_change.csv")
+=======
+#temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
+temp<-read.csv("All_LPI_nobuff_1931_mean_temp_sum_change.csv")
+>>>>>>> 282c1bf5e0c005e5e314ea391ba05bdfdd5f7a7e
 
 body<-read.csv("bird_and_mammal_traits2.csv")
 body2<-read.csv("Bird_and_Mammal_BM.csv")
@@ -56,6 +61,7 @@ nrow(df)
 #nrow(dfa)
 nrow(dfd) 
 
+<<<<<<< HEAD
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) &Class=="Mammalia")
@@ -65,6 +71,15 @@ write.csv(df2, "Pops_for_lme.csv")
  #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
+=======
+
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass) & Class=="Mammalia" & Binomial !="Gyps_bengalensis")
+
+#df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
+#           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
+nrow(df2)
+>>>>>>> 282c1bf5e0c005e5e314ea391ba05bdfdd5f7a7e
 
 df_bird<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves")
@@ -97,7 +112,13 @@ nrow(df_mammal)
 
 
 
+<<<<<<< HEAD
 #df2$Estimate_sum<-df2$Estimate * df2$length_time#
+=======
+
+#df2$Estimate_sum<-df2$Estimate * df2$length_time
+
+>>>>>>> 282c1bf5e0c005e5e314ea391ba05bdfdd5f7a7e
 #df2$both_change_sum<-df2$both_change * df2$length_time
 
 
@@ -116,6 +137,7 @@ sp_dups_df<-merge(sp_dups, df2, by=c("Longitude","Latitude"))
 library(data.table)
 dt = as.data.table(sp_dups_df)
 
+<<<<<<< HEAD
 parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
 
 
@@ -126,6 +148,17 @@ parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass_g")])       #
 
 #parm_scale<-scale(parm_mat[,c("Estimate_sum", "both_change_sum", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
 
+=======
+parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Bodymass")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
+
+#parm_df<-sp_dups_df[,c("ID","Estimate_sum", "both_change_sum", "Bodymass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
+#parm_df<-sp_dups_df[,c("ID","Estimate", "change_rate_49", "Bodymass_g")]
+
+parm_mat<-as.matrix(parm_df)
+parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Bodymass")])       #use the scaling factors at the bottom of these to scale the rasters
+
+#parm_scale<-scale(parm_mat[,c("Estimate_sum", "both_change_sum", "Bodymass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+>>>>>>> 282c1bf5e0c005e5e314ea391ba05bdfdd5f7a7e
 #parm_scale<-scale(parm_mat[,c("Estimate", "change_rate_49", "Bodymass_g")])  
 
 parm_id<-parm_mat[,"ID"]
@@ -140,38 +173,57 @@ dt<-data.table(sp_df_scale)
 
 length(unique(dt$loc_id))
 
+dt<-subset(dt, !is.na(WWF_REALM2))
+
+nrow(dt)
 source("rsquaredglmm.R")
 
   library(lme4) 
   
   m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-
+  m0r<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  
   m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0ar<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0br<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0cr<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m0d<-lmer(lambda_mean ~ Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0dr<-lmer(lambda_mean ~ Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1r<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1ar<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1br<-lmer(lambda_mean ~ change_rate_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+<<<<<<< HEAD
   m1cus<-lmer(lambda_mean ~ Estimate + (1|Binomial) + (1|loc_id), data= sp_dups_df, REML=F)
+=======
+  m1cr<-lmer(lambda_mean ~ mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+>>>>>>> 282c1bf5e0c005e5e314ea391ba05bdfdd5f7a7e
   
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
+  
+  AIC(m1c,m1cr)
  
+  
   
   # #Weights
   library(MuMIn)
   
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  #msAICc <- model.sel(m0,m0r,m0a,m0ar,m0b,m0br,m0c,m0cr,m0d,m0dr,m1,m1r,m1a,m1ar,m1b,m1br,m1c,m1cr,mnull)
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
@@ -179,7 +231,8 @@ source("rsquaredglmm.R")
   
   #Rsq
   models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
-  #models_list<-list(m1,m1a,m1b,m1c,mnull)
+  #models_list<-list(m0,m0r,m0a,m0ar,m0b,m0br,m0c,m0cr,m0d,m0dr,m1,m1r,m1a,m1ar,m1b,m1br,m1c,m1cr,mnull)
+    #models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
   rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
@@ -261,7 +314,7 @@ p1<-ggplot(coefs_both, aes(colour=Class))
 p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
 p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
-p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw() + labs(y = "Population Change (%)", x = "Variable") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw() + labs(y = "Population Change (%)", x = "") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
 p1<- p1 + scale_color_manual(values=c("black", "black"))
 
 print(p1)

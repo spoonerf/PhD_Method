@@ -1,3 +1,5 @@
+library(raster)
+
 mtc<-raster("Global_Rate_Mean_Temp_Change.tif")
 luc<-raster("Global_Rate_Land_Use_Change.tif")
 
@@ -11,15 +13,114 @@ scale_tempb<-0.07006285
 centre_lucb<- -0.0001411668
 scale_lucb<- 0.005582236
 
+centre_bmassb<-2.349304967 
+scale_bmassb<-0.916571082
+
+####with no vultures and no realm missing
+
+centre_tempb<-0.045383714
+scale_tempb<-0.070236640
+
+centre_lucb<- -0.0001416388
+scale_lucb<- 0.005613524
+
+centre_bmassb<-2.328359012 
+scale_bmassb<-0.908937973
+
+
+
 mtc_s<-scale(mtc, scale=scale_tempb, center=centre_tempb)
 luc_s<-scale(luc, scale=scale_lucb, center=centre_lucb)
+body_s<-scale(body, scale=scale_bmassb, center=centre_bmassb)
+
+#luc_sr<-resample(luc_s, mtc_s, method="bilinear")
+
+mtc_s<-resample(mtc_s,luc_s, method="bilinear")
+luc_sr<-luc_s
+
+body<-(mtc_s - mtc_s)
+
+body_s<-body + log10(1)
+body_s = body*0
+
+luc_sr = luc_sr*0
+
+rlm<-readOGR(dsn="C:/Users/Fiona/Documents/GIS/Ecoregions", layer ="ecoregions_dissolved_realm" )
+rp <- rasterize(rlm, luc_s, 'WWF_REALM2')
+
+
+plot(rp)
+Afrotropic<-rp
+Antarctic<-rp
+Australasia<-rp
+IndoMalay<-rp
+Nearctic<-rp
+Neotropic<-rp
+Oceania<-rp
+Palearctic<-rp
+
+Afrotropic[values(Afrotropic) != 1] <- NA
+Antarctic[values(Antarctic) != 2] <- NA
+Australasia[values(Australasia) != 3] <- NA
+IndoMalay[values(IndoMalay) != 4] <- NA
+Nearctic[values(Nearctic) != 5] <- NA
+Neotropic[values(Neotropic) != 6] <- NA
+Oceania[values(Oceania) != 7] <- NA
+Palearctic[values(Palearctic) != 8] <- NA
+
+v = values(luc_s)
+
+realm_mod<-function(rlm, name){
+  v = as.numeric(values(rlm))
+  realm = v*NA
+  realm[!is.na(values(rlm))] = name
+  realm = factor(realm, levels(dt$WWF_REALM2))
+  stack_pred<-stack(mtc_s, luc_s, body_s)
+  temp = as.data.frame(stack_pred)
+  temp = cbind(temp, realm)
+  colnames(temp)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale", "WWF_REALM2")
+  pred_rast<-predict(newdata=temp,m1cr,re.form=NA)
+  e<-extent(luc_s)
+  pred_rast = raster(matrix(pred_rast, ncol=4320, nrow=2160, byrow=T))
+  extent(pred_rast)<-e
+  return(pred_rast)
+}
+
+
+Afr<-realm_mod(Afrotropic, "Afrotropic")
+Aus<-realm_mod(Australasia, "Australasia")
+IdM<-realm_mod(IndoMalay, "Indo-Malay")
+Nea<-realm_mod(Nearctic, "Nearctic")
+Neo<-realm_mod(Neotropic, "Neotropic")
+Oce<-realm_mod(Oceania, "Oceania")
+Pal<-realm_mod(Palearctic, "Palearctic")
+
+
+
+wrld<-merge(Afr,Aus, IdM, Nea, Neo, Oce, Pal)
+plot(wrld)
+
+
+levelplot(10^(wrld*40), zscaleLog=10, pretty=T,par.settings=GrTheme())
+
+## Change the color theme
+levelplot(r, par.settings=GrTheme())
+levelplot(r, par.settings=PuOrTheme())
+
+myTheme=rasterTheme(region=brewer.pal('Blues', n=9))
+levelplot(r, par.settings=myTheme)
+
+
+
+
+
+############################################
+
 
 plot(mtc_s)
 
 luc_r<-resample(luc, mtc, method="bilinear")
 luc_sr<-resample(luc_s, mtc_s, method="bilinear")
-
-body<-(mtc_s- mtc_s)
 
 stack_predus<-stack(mtc, luc_r, body)
 stack_pred<-stack(mtc_s, luc_sr, body)
@@ -32,14 +133,8 @@ predus_rast<-predict(stack_predus, m1cus, re.form=NA)
 pred_rast<-predict(stack_pred,m1c, re.form=NA)
 
 
-
-
-plot(pred_rast)
-
 predus_pcnt<-(((10^predus_rast) - 1))
 pred_pcnt<-(((10^pred_rast) - 1))
-
-
 
 plot(predus_pcnt)
 plot(pred_pcnt)        
@@ -113,4 +208,18 @@ ggplot(data=pred_2100_df2, aes(Longitude, Latitude))+
   theme(text = element_text(size=20))
 
 
-        
+
+
+
+
+
+
+
+v = values(luc_sr)
+realm = v*NA
+realm[!is.na(values(luc_sr))] = "Afrotropic"
+realm = factor(realm, levels(dt$WWF_REALM2))
+
+#test_realm = raster(matrix(as.numeric(realm), ncol=720, nrow=360, byrow=T))
+#plot(test_realm)
+
