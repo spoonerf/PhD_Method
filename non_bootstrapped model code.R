@@ -63,7 +63,11 @@ nrow(dfd)
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
+<<<<<<< HEAD
             &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass) &Class=="Aves" & Binomial !="Gyps_bengalensis" &Migratory != 1)
+=======
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass) & Class=="Aves")
+>>>>>>> f16ccfa3efb5fd542766a45c0750cea9e85c3395
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
@@ -78,7 +82,7 @@ df_bird<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & Sy
 nrow(df_bird)
 
 df_mammal<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-                                &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
+                                &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia" & ID !=13504 & ID !=4518)
 
 nrow(df_mammal)
 
@@ -144,6 +148,11 @@ dt<-data.table(sp_df_scale)
 length(unique(dt$loc_id))
 
 dt<-subset(dt, !is.na(WWF_REALM2))
+
+d<-data.frame(dt$loc_id, dt$Protected_status)
+d<-unique(d)
+table(d$dt.Protected_status)
+
 
 nrow(dt)
 source("rsquaredglmm.R")
@@ -234,11 +243,13 @@ source("rsquaredglmm.R")
   
   smav<-summary(mav)
   
-  coef_av<-smav$coefmat.subset[2:5,"Estimate"]
+  coef_av<-smav$coefmat.subset[1:5,"Estimate"]
   coef_df<-data.frame(coef_av)
-  coef_df$lowCI<-confint(mav)[2:5,1]
-  coef_df$highCI<-confint(mav)[2:5,2]
+  coef_df$lowCI<-confint(mav)[1:5,1]
+  coef_df$highCI<-confint(mav)[1:5,2]
   coef_df
+  
+  
   coef_pcnt<-data.frame(((10^coef_df) - 1)*100)
   coef_pcnt
   
@@ -249,7 +260,7 @@ source("rsquaredglmm.R")
   coef_pcnt$Var_name<-rownames(coef_pcnt)
   library(plotrix)
   
-  plotCI(1:4, y=coef_pcnt$coef_av, ui=coef_pcnt$highCI, li=coef_pcnt$lowCI, ylab="Annual Population Change (%)", xlab="" ,xaxt = "n", 
+  plotCI(1:5, y=coef_pcnt$coef_av, ui=coef_pcnt$highCI, li=coef_pcnt$lowCI, ylab="Annual Population Change (%)", xlab="" ,xaxt = "n", 
          main="Birds and Mammals", lwd=1, ylim=c(min(coef_pcnt$lowCI*1.1), max(coef_pcnt$highCI*1.2)))
   axis(1, at=1:4, labels=rownames(coef_pcnt), las=2)
   abline(h=0, col="red", lty =2)
@@ -267,7 +278,7 @@ source("rsquaredglmm.R")
 library(coefplot)
 library(ggplot2)
 
-coef_pcnt$val<-1:4
+coef_pcnt$val<-1:5
 coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[order(coef_pcnt$val)])
   
   p1<-ggplot(coef_pcnt)
@@ -289,6 +300,7 @@ coef_pcntm<-coef_pcnt
 coef_both<-rbind(coef_pcntb[,c(1,2,3,4,7)], coef_pcntm[,c(1,2,3,4,7)])
 
 coef_both$Var_name
+coef_both$Var_name[coef_both$Var_name == "(Intercept)"] <- "aIntercept"
 coef_both$Var_name[coef_both$Var_name == "mean_slope_scale"] <- "MTC"
 coef_both$Var_name[coef_both$Var_name == "change_rate_scale"] <- "LUC"
 coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <- "MTC*LUC"
@@ -307,6 +319,25 @@ p1<- p1 + scale_color_manual(values=c("black", "black"))
 print(p1)
 
 ((10^msAICc[,2:5])-1)*100
+
+
+
+
+
+dt
+
+m1c<-lm(lambda_mean ~ mean_slope_scale,data=dt)
+
+b1s<-coef(m1c)
+
+icol <- which(colnames(dt)=="mean_slope_scale")
+p.order <- c(icol,(1:ncol(dt))[-icol])
+m <- c(0,mean(df2$Estimate))
+s <- c(1,sd(df2$Estimate))
+all.equal(m1c,rescale.coefs(b1s,m,s)) 
+
+
+
 
 
 
