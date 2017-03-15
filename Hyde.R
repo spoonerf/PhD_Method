@@ -90,7 +90,7 @@ points<-SpatialPoints(cbind(xy[,2], xy[,3]))
 xmin<- colFromX(crop_s[[1]], points[1:length(points),]) - 1
 xmax<- colFromX(crop_s[[1]], points[1:length(points),]) + 1
 ymin<- rowFromY(crop_s[[1]], points[1:length(points),]) - 1
-ymax<- rowFromY(crop_s[[1]], points[1:length(points),]) + 1    #changed from 5 to 12
+ymax<- rowFromY(crop_s[[1]], points[1:length(points),]) + 1    
 
 
 grid_crop<-data.frame(ID=id,xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)   #setting extents of grid to extract

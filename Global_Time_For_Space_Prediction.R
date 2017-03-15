@@ -117,19 +117,26 @@ levelplot(r, par.settings=myTheme)
 ############################################
 
 
+plot(mtc_s)
+
+luc_r<-resample(luc, mtc, method="bilinear")
+luc_sr<-resample(luc_s, mtc_s, method="bilinear")
+
+stack_predus<-stack(mtc, luc_r, body)
+stack_pred<-stack(mtc_s, luc_sr, body)
+
+names(stack_predus)<- c("Estimate", "both_change", "Boydmass")
+names(stack_pred)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 
 
+predus_rast<-predict(stack_predus, m1cus, re.form=NA)
+pred_rast<-predict(stack_pred,m1c, re.form=NA)
 
 
+predus_pcnt<-(((10^predus_rast) - 1))
+pred_pcnt<-(((10^pred_rast) - 1))
 
-
-
-
-
-
-
-
-
+plot(predus_pcnt)
 plot(pred_pcnt)        
 #plot(mtc)
 
@@ -144,12 +151,12 @@ rate_x2<-rate_2.0/model_rate
 
 extrap<-function(x){
   
-  percent<-rate_x*x
+  percent<-rate_x2*x
   pop_perc_rem<-(1 + percent)^95
   return(pop_perc_rem)
   }
 
-perc_change<-calc(pred_pcnt,extrap)
+perc_change<-calc(predus_pcnt,extrap)
 plot(perc_change)
 
 

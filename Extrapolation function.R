@@ -41,8 +41,8 @@ pop_extrap<-function(year,temp, class){
       
       pop_decline_int<-c(pop_decline_lci, pop_decline, pop_decline_uci) 
   }
-
-  return(pop_decline_int)
+  return(lambda_mean)
+  #return(pop_decline_int)
 }
 
 # years<-seq(2040,2100,10)

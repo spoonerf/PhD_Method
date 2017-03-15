@@ -305,8 +305,10 @@ doMean = function(sp_name) {
   Year<-Date[(min(which(!is.na(spidt)))-lag):max(which(!is.na(spidt)))]
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
 
-  Mean<-year_temp$min_mean[(min(which(!is.na(spidt)))-lag):max(which(!is.na(spidt)))]
-  # 
+  Mean<-year_temp$mean_mean[(min(which(!is.na(spidt)))-lag):max(which(!is.na(spidt)))]
+  
+  mean_change<-sum(diff(Mean))
+  
   Mean_mon<-climid[climid$Year %in% Year, ]$Mean_T
   year_temp$Year<-as.numeric(year_temp$Year)
   
@@ -321,12 +323,12 @@ doMean = function(sp_name) {
     lm_mean<-lm(Mean~Year)
     #lm_mean<-lm(year_temp$mean_mean~year_temp$Year)
     lm_mean_df<-tidy(lm_mean)[2,]  
-    mean_df<-cbind(id,lm_mean_df)
+    mean_df<-cbind(id,mean_change, lm_mean_df)
     
   } else{
     
-    mean_df<-matrix(c(id,NA,NA,NA,NA,NA), nrow=1, ncol=6)
-    colnames(mean_df)<-c("id", "term", "estimate", "std.error", "statistic", "p.value")
+    mean_df<-matrix(c(id,mean_change,NA,NA,NA,NA,NA), nrow=1, ncol=6)
+    colnames(mean_df)<-c("id","mean_change" ,"term", "estimate", "std.error", "statistic", "p.value")
     #mean_df<-data.frame(mean_df)
   }
   
@@ -338,9 +340,9 @@ all_df_list <- lapply(unique(LPIsp2$ID), doMean)
 ```
 
 ```{r}
-all_matrix <- matrix(unlist(all_df_list), ncol=6, byrow=TRUE)
+all_matrix <- matrix(unlist(all_df_list), ncol=7, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
-colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
+colnames(mean_df) <- c("ID", "Sum_Mean_Change","Term","Estimate","SE","Statistic","p.val")
 
 mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 
@@ -350,6 +352,7 @@ mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931_moreLPI.csv")#with new version of LPI
 write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")#to go with hyde
 #write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931_moreLPI_min_mean_temp.csv")#annual minimum mean temp
+write.csv(mean_df, "All_LPI_nobuff_1931_mean_temp_sum_change.csv")
 ```
 
 
