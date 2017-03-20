@@ -63,11 +63,7 @@ nrow(dfd)
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
-<<<<<<< HEAD
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass) &Class=="Aves" & Binomial !="Gyps_bengalensis" &Migratory != 1)
-=======
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass) & Class=="Aves")
->>>>>>> f16ccfa3efb5fd542766a45c0750cea9e85c3395
+ &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass)&Class=="Mammalia")
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
@@ -78,8 +74,24 @@ nrow(df2)
 
 df_bird<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves")
-
 nrow(df_bird)
+df_bird_60<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+                &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves" & (Latitude > 60 | Latitude < (-60)))
+nrow(df_bird_60)
+
+df_bird_30<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+                   &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves" & (Latitude > 30 & Latitude < 60 | Latitude < -30 & Latitude > (-60)))
+
+nrow(df_bird_30)
+
+df_bird_eq<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
+                   &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves" & (Latitude < 30 & Latitude >-30 ))
+
+nrow(df_bird_eq)
+
+df2<-df_bird_60
+df2<-df_bird_30
+df2<-df_bird_eq
 
 df_mammal<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
                                 &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia" & ID !=13504 & ID !=4518)
@@ -217,7 +229,7 @@ source("rsquaredglmm.R")
   
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
-  #msAICc <- model.sel(m0,m0r,m0a,m0ar,m0b,m0br,m0c,m0cr,m0d,m0dr,m1,m1r,m1a,m1ar,m1b,m1br,m1c,m1cr,mnull)
+  msAICc <- model.sel(m0,m0r,m0a,m0ar,m0b,m0br,m0c,m0cr,m0d,m0dr,m1,m1r,m1a,m1ar,m1b,m1br,m1c,m1cr,mnull)
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
