@@ -16,6 +16,7 @@ body2<-read.csv("Bird_and_Mammal_BM.csv")
 
 
 body3<-rbind(body, body2)
+elev<-read.csv("altitude_pops.csv")
 
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 ###
@@ -41,13 +42,15 @@ pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 temp<-temp[,c("ID", "Estimate")]
 #temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
 
-LPI<-LPI[,c("ID","Binomial","Common_name", "Order", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
+LPI<-LPI[,c("ID","Binomial","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
 df<-merge(merge(temp,Realm, by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 
-dfb<-merge(df, body3[,c(3:5)], by="ID", all=TRUE)     #41 pops bodysizes missing for birds
+dfb<-merge(df, body3[,c(3:5)], by="ID", all=TRUE)      #41 pops bodysizes missing for birds
      #41 pops bodysizes missing for birds
+
+dfb<-merge(dfb, elev, by="ID" )
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(dfb, hyde[,c(-1,-3)], by="ID")
@@ -63,11 +66,7 @@ nrow(dfd)
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
-<<<<<<< HEAD
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass) &Class=="Aves" & Binomial !="Gyps_bengalensis" &Migratory != 1)
-=======
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass) & Class=="Aves")
->>>>>>> f16ccfa3efb5fd542766a45c0750cea9e85c3395
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass)& Class=="Aves")
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
@@ -161,47 +160,55 @@ source("rsquaredglmm.R")
   
   m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m0r<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  
+  m0f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+
   #m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|loc_id),data=dt, REML=F)
   
   m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m0ar<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0af<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   #m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|loc_id),data=dt, REML=F)
   
   m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m0br<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0bf<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   #m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+(1|loc_id),data=dt, REML=F)
   
   m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m0cr<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0cf<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   #m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+(1|loc_id),data=dt, REML=F)
   
   m0d<-lmer(lambda_mean ~ Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m0dr<-lmer(lambda_mean ~ Bodymass_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0df<-lmer(lambda_mean ~ Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   #m0d<-lmer(lambda_mean ~ Bodymass_scale+(1|loc_id),data=dt, REML=F)
   
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1r<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  
+  m1f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
  #m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|loc_id),data=dt, REML=F)
   
   m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1ar<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  
+  m1af<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   #m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|loc_id),data=dt, REML=F)
   
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1br<-lmer(lambda_mean ~ change_rate_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  
+  m1bf<-lmer(lambda_mean ~ change_rate_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)  
   #m1b<-lmer(lambda_mean ~ change_rate_scale+(1|loc_id),data=dt, REML=F)
   
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1cr<-lmer(lambda_mean ~ mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1ce<-lmer(lambda_mean ~ mean_slope_scale+Elevation + (1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1cf<-lmer(lambda_mean ~ mean_slope_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 
+  
   #m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|loc_id),data=dt, REML=F)
   
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
@@ -217,7 +224,7 @@ source("rsquaredglmm.R")
   
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
-  #msAICc <- model.sel(m0,m0r,m0a,m0ar,m0b,m0br,m0c,m0cr,m0d,m0dr,m1,m1r,m1a,m1ar,m1b,m1br,m1c,m1cr,mnull)
+  msAICc <- model.sel(m0,m0r,m0f,m0a,m0ar,m0af,m0b,m0br,m0bf,m0c,m0cr,m0cf,m0d,m0dr,m0df,m1,m1r,m1f,m1a,m1ar,m1af,m1b,m1br,m1bf,m1c,m1cr,m1cf,mnull)
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
@@ -227,7 +234,8 @@ source("rsquaredglmm.R")
   
   #Rsq
   models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
-  #models_list<-list(m0,m0r,m0a,m0ar,m0b,m0br,m0c,m0cr,m0d,m0dr,m1,m1r,m1a,m1ar,m1b,m1br,m1c,m1cr,mnull)
+  models_list<-list(m0,m0r,m0f,m0a,m0ar,m0af,m0b,m0br,m0bf,m0c,m0cr,m0cf,m0d,m0dr,m0df,m1,m1r,m1f,m1a,m1ar,m1af,m1b,m1br,m1bf,m1c,m1cr,m1cf,mnull)
+  
     #models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
