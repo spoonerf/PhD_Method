@@ -5,7 +5,7 @@ install.packages("stringi")
 library(biomod2)
 library(spocc)
 
-sloth<-occ("acridotheres tristis", from="gbif")
+sloth<-occ("acridotheres tristis", from="gbif", limit=10000)
 df<-occ2df(sloth)
 
 myRespName = "Bradypusvariegatus"
