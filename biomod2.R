@@ -10,7 +10,10 @@ library(spocc)
 library(rebird)
 sp<-"Tyto alba"
 
-sloth<-occ(sp, from="gbif", limit=20000)
+sloth<-occ("acridotheres tristis", from="gbif", limit=10000)
+df<-occ2df(sloth)
+
+myRespName = "Bradypusvariegatus"
 
 df<-occ2df(sloth)
 
