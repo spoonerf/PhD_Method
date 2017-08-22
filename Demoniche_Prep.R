@@ -53,10 +53,11 @@ species<-"Capra ibex"
 
 myBiomodOption <- BIOMOD_ModelingOptions()
 
+wd<-getwd()
 
 for (i in 1:length(years)){
   
-  bio<-stack(paste("C:/Users/Fiona/Documents/PhD/PhD_Method/Bioclim/",years[i],"_bioclim_variable_stack.tif", sep=""))  
+  bio<-stack(paste(wd, "/Bioclim/",years[i],"_bioclim_variable_stack.tif", sep=""))  
   alps<-crop(bio,e)  
   alps<-stack(alps)
   my_biomod_data<-BIOMOD_FormatingData(resp.var = sp,
@@ -64,7 +65,8 @@ for (i in 1:length(years)){
                                        #eval.resp.var = sp_eval,
                                        #eval.expl.var = bio_1950,
                                        resp.name = "Capra_ibex",
-                                       PA.nb.rep = 10,    #switch these three off to run without pseudo absences
+                                       PA.n
+                                       b.rep = 10,    #switch these three off to run without pseudo absences
                                        PA.nb.absences = 10,
                                        PA.strategy = 'random',
                                        na.rm=TRUE)
@@ -111,7 +113,7 @@ for (i in 1:length(years)){
   myCurrentProj <- get_predictions(myBiomodProj)
   
   ave_proj<-mean(myCurrentProj)
-  writeRaster(ave_proj, paste("C:/Users/Fiona/Documents/PhD/PhD_Method/Alp_SDMs/", years[i],"_SDM.tif", sep=""), overwrite=TRUE)
+  writeRaster(ave_proj, paste(wd, "/Alp_SDMs/", years[i],"_SDM.tif", sep=""), overwrite=TRUE)
   print(years[i])
 }
 
