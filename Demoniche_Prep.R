@@ -124,6 +124,13 @@ species<-"Capra_ibex"
 
 df2<-read.csv("LPI_pops_20160523_edited.csv")
 pyr<-subset(df2, Binomial ==species & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
+tl<-pyr[,c(65:130)]
+tl[tl=="NULL"]<-NA
+tlm<-as.matrix(tl)
+tlmn<-as.numeric(tlm)
+tl<-matrix(tlmn, nrow=10, ncol=66)
+ann_sum<-colSums(tl, na.rm=T)
+plot(ann_sum)
 
 plot(pyr$Longitude, pyr$Latitude)
 
@@ -207,7 +214,7 @@ colnames(matrices)<- c("Reference_matrix")
 
 prob_scenario<-c(0.5,0.5)    #need to check this
 
-noise<-0.95     #need to check this
+noise<-0.90     #need to check this
 
 stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
 #stagesf<-stages[1:3]
@@ -236,11 +243,11 @@ proportion_initial<- rep(1/length(stages), length(stages)) #proportion of popula
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
 
-density_individuals <- 1   #also compulsory not sure what best value would be
+density_individuals <- 4292.32   #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha 
 
-K<-10000   #carrying capacity
+K<-NULL   #carrying capacity
 
-K_weight<-c(0, 1.5,1,1,1,1,1,1)  #the weight with which carrying capacity affects each stage was FALSE
+K_weight<-c(1, 1,1,1,1,1,1,1)  #the weight with which carrying capacity affects each stage was FALSE
 
 fraction_SDD <- 0.05  #short distance dispersal
 
@@ -252,7 +259,7 @@ demoniche_setup(modelname = "Capra_ibex",Populations = Populations, Nichemap = n
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                 stages = stages, proportion_initial = proportion_initial,
                 density_individuals = density_individuals,
-                fraction_LDD = 0.05, fraction_SDD = 0.05,
+                fraction_LDD = 0.2, fraction_SDD = 0.2,
                 dispersal_constants = dispersal_constants_mine,
                 transition_affected_niche = transition_affected_niche,
                 transition_affected_demogr = transition_affected_demogr,
@@ -271,7 +278,7 @@ years<-1950:2016
 plot(RPyran_niche[,"Meanpop","Reference_matrix"])
 
 bleh<-cbind(years,RPyran_niche[,"Meanpop","Reference_matrix"])
-plot(bleh)
+plot(bleh, type="l")
 
 RPyran_disp_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
@@ -283,7 +290,7 @@ years<-1950:2016
 #plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 
 bleh<-cbind(years,RPyran_disp_niche[,"Meanpop","Reference_matrix"], RPyran_min_run[,"Max","Reference_matrix"])
-plot(bleh, type="l")
+lines(bleh, type="l", col="red")
 
 
 
