@@ -78,17 +78,25 @@ for (i in 1:19){
   print(layers)
 }
 
-bio_layer_pred<-c(5,6,7,10,11,13,19) # 5 = max temp warmest month , 6 = min temp coldest month , 7 = temp annual range ,
+bio_layer_pred<-c(5,6,7,13,19) # 5 = max temp warmest month , 6 = min temp coldest month , 7 = temp annual range ,
                                     # 10 = mean temp of warmest quarter, 11 = mean temp coldest quarter
                                     #13 = precipitation of wettest month, 19 = precipitatin of coldest quarter
 
 predictors<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 
 plot(predictors)
+predictors_alps<-crop(predictors, e)
 
+presvals <- extract(predictors_alps, sp)
 
+set.seed(0)
+backgr <- randomPoints(predictors, 500)
+absvals <- extract(predictors, backgr)
 
-
+pb <- c(rep(1, nrow(presvals)), rep(0, nrow(absvals)))
+sdmdata <- data.frame(cbind(pb, rbind(presvals, absvals)))
+head(sdmdata)
+pairs(sdmdata[,2:ncol(sdmdata)], cex=0.1, fig=TRUE)
 
 
 
