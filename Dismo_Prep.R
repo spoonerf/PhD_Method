@@ -3,6 +3,8 @@ library(dismo)
 library(demoniche)
 library(biomod2)
 
+
+wd<- getwd()
 capra <-gbif("capra", "ibex", geo=FALSE)
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA") 
 dups <- duplicated(capgeo[, c("lon", "lat")])
@@ -20,6 +22,10 @@ pol <- polygons(x)
 plot(pol)
 points(sp)
 
+set.seed(0)
+group<-kfold(sp, 4)
+
+
 samp1 <- spsample(pol, 250, type='random', iter=25)
 points(samp1, col="red")
 
@@ -32,6 +38,7 @@ set.seed(1963)
 bg<-randomPoints(mask, 500)
 
 bg2 <- randomPoints(mask, 50, ext=e)
+
 
 
 par(mfrow=c(1,2))
@@ -78,7 +85,7 @@ for (i in 1:19){
   print(layers)
 }
 
-bio_layer_pred<-c(5,6,7,13,19) # 5 = max temp warmest month , 6 = min temp coldest month , 7 = temp annual range ,
+bio_layer_pred<-c(5,6,13,15,19) # 5 = max temp warmest month , 6 = min temp coldest month , 7 = temp annual range ,
                                     # 10 = mean temp of warmest quarter, 11 = mean temp coldest quarter
                                     #13 = precipitation of wettest month, 19 = precipitatin of coldest quarter
 
@@ -96,7 +103,64 @@ absvals <- extract(predictors, backgr)
 pb <- c(rep(1, nrow(presvals)), rep(0, nrow(absvals)))
 sdmdata <- data.frame(cbind(pb, rbind(presvals, absvals)))
 head(sdmdata)
+
+colnames(sdmdata)<-c("pb", "bio5", "bio6", "bio13","bio15" ,"bio19")
 pairs(sdmdata[,2:ncol(sdmdata)], cex=0.1, fig=TRUE)
+
+m1 <- glm(pb ~ bio5+bio6+bio13 +bio15 + bio19, data=sdmdata)
+summary(m1)
+
+years<-1950:2016
+predict_stack<-stack(paste(wd, "/Bioclim/",years,"_bioclim_variable_stack.tif", sep=""))
+#predict_alps<-crop(predict_stack, e)
+bio_layer_pred<-c(5,6,13,15,19)
+
+#glm predictions for alpine ibex
+for (i in 1:length(years)){
+  predict_stack_year<-predict_stack[[bio_layer_pred]]
+  predict_alps_year<-crop(predict_stack_year, e)
+  names(predict_alps_year)<-c("bio5", "bio6", "bio13", "bio15", "bio19")
+  pm1<-predict(predict_alps_year, m1)
+  writeRaster(pm1, paste("D:/Fiona/Git_Method/Git_Method/Alp_SDMs/GLM/glm_",years[i],"capra_ibex.tif", sep=""), overwrite=T)
+  bio_layer_pred<-bio_layer_pred+19
+  print(i)
+  }
+
+predict_alps_year<-predict_alps[[bio_layer_pred]]
+names(predict_alps_1950)<-c("bio5", "bio6", "bio7", "bio13", "bio19")
+
+pm1<-predict(predict_alps_1950, m1)
+plot(pm1)
+
+
+colnames(presvals)<-c('bio5', 'bio6', 'bio7', 'bio13', 'bio19')
+bc <- bioclim(presvals[,c('bio5', 'bio6', 'bio7', 'bio13', 'bio19')])
+class(bc)
+
+pbc<-predict(predict_alps_1950, bc)
+plot(pbc)
+
+years<-1950:2016
+predict_stack<-stack(paste(wd, "/Bioclim/",years,"_bioclim_variable_stack.tif", sep=""))
+#predict_alps<-crop(predict_stack, e)
+bio_layer_pred<-c(5,6,13,15,19)
+
+
+for (i in 1:length(years)){
+  predict_stack_year<-predict_stack[[bio_layer_pred]]
+  predict_alps_year<-crop(predict_stack_year, e)
+  names(predict_alps_year)<-c("bio5", "bio6", "bio7", "bio13", "bio19")
+  pbc<-predict(predict_alps_year, bc)
+  writeRaster(pbc, paste("D:/Fiona/Git_Method/Git_Method/Alp_SDMs/Bioclim/bioclim_",years[i],"capra_ibex.tif", sep=""), overwrite=T)
+  bio_layer_pred<-bio_layer_pred+19
+  print(i)
+}
+
+
+
+
+
+
 
 
 
