@@ -264,18 +264,16 @@ for (i in 1:length(years)){
   names(models) <- c("bioclim", "gam", "random forest")
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
-  writeRaster(wm , paste(wd, "Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""))
+  writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""))
   print(years[i])
 }
 
 
+ms<-stack(paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years, ".tif", sep=""))
 
 
-
-models <- stack(pb, pg, pr)
-names(models) <- c("bioclim", "gam", "random forest")
-wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
-
+mean_hab<-cellStats(ms, mean)
+plot(mean_hab)
 
 
 
