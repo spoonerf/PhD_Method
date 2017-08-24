@@ -100,7 +100,7 @@ for (i in 1:length(years)){
   
   myBiomodProj <- BIOMOD_Projection(
     modeling.output = myBiomodModelOut,
-    new.env = alps,    #alps for 1950 and alps now for 2016
+    new.env = alps,    
     proj.name = 'current',
     selected.models = 'all',
     binary.meth = 'TSS',
@@ -290,7 +290,7 @@ years<-1950:2016
 #plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 
 bleh<-cbind(years,RPyran_disp_niche[,"Meanpop","Reference_matrix"], RPyran_min_run[,"Max","Reference_matrix"])
-lines(bleh, type="l", col="red")
+plot(bleh, type="l", col="red")
 
 
 
