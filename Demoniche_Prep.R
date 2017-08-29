@@ -42,6 +42,9 @@ capg <-capgeo[!dups, ]
 capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 , ] 
 capg2$presence<-rep(1)
 capg2$ID<-1:nrow(capg2)
+
+
+
 capc<-as.matrix(capg2[ , c( "lon","lat", "presence")])
 xy<-as.matrix(capc[,c(1,2)])
 df<-data.frame(capg2$presence)
@@ -50,72 +53,11 @@ sp<-SpatialPointsDataFrame(coords=xy, data=df)
 years<-as.character(1950:2016)
 e<-extent(sp)+4
 species<-"Capra ibex"
+################################# SDMs
 
-myBiomodOption <- BIOMOD_ModelingOptions()
+#summary of dismo prep in here
 
-wd<-getwd()
 
-for (i in 1:length(years)){
-  
-  bio<-stack(paste(wd, "/Bioclim/",years[i],"_bioclim_variable_stack.tif", sep=""))  
-  alps<-crop(bio,e)  
-  alps<-stack(alps)
-  my_biomod_data<-BIOMOD_FormatingData(resp.var = sp,
-                                       expl.var =  alps,  #alps for 1950, alps now for 2016
-                                       #eval.resp.var = sp_eval,
-                                       #eval.expl.var = bio_1950,
-                                       resp.name = "Capra_ibex",
-                                       PA.n
-                                       b.rep = 10,    #switch these three off to run without pseudo absences
-                                       PA.nb.absences = 10,
-                                       PA.strategy = 'random',
-                                       na.rm=TRUE)
-  
-  myBiomodModelOut <- BIOMOD_Modeling(
-    my_biomod_data,
-    models = c("GLM", "GAM", "RF"),
-    models.options = myBiomodOption,
-    NbRunEval=3,
-    DataSplit=80,
-    Prevalence=0.5,
-    VarImport=3,
-    models.eval.meth = c('TSS','ROC'),
-    SaveObj = TRUE,
-    rescal.all.models = TRUE,
-    do.full.models = FALSE,
-    modeling.id = paste(species,"FirstModeling",sep=""))
-  
-  myBiomodEM <- BIOMOD_EnsembleModeling(
-    modeling.output = myBiomodModelOut,
-    chosen.models = 'all',
-    em.by='all',
-    eval.metric = c('TSS'),
-    eval.metric.quality.threshold = c(0.7),
-    prob.mean = T,
-    prob.cv = T,
-    prob.ci = T,
-    prob.ci.alpha = 0.05,
-    prob.median = T,
-    committee.averaging = T,
-    prob.mean.weight = T,
-    prob.mean.weight.decay = 'proportional' )
-  
-  myBiomodProj <- BIOMOD_Projection(
-    modeling.output = myBiomodModelOut,
-    new.env = alps,    
-    proj.name = 'current',
-    selected.models = 'all',
-    binary.meth = 'TSS',
-    compress = 'xz',
-    clamping.mask = F,
-    output.format = '.grd')
-  
-  myCurrentProj <- get_predictions(myBiomodProj)
-  
-  ave_proj<-mean(myCurrentProj)
-  writeRaster(ave_proj, paste(wd, "/Alp_SDMs/", years[i],"_SDM.tif", sep=""), overwrite=TRUE)
-  print(years[i])
-}
 
 #############################
 
@@ -142,7 +84,7 @@ id<-pyrs$ID*100
 lam<-rep(200,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 
-sdm<-raster("C:/Users/Fiona/Documents/PhD/PhD_Method/Alp_SDMs/1950_SDM.tif")
+sdm<-raster("C:/Users/Fiona/Documents/PhD/PhD_Method/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif")
 e2<-extent(sdm)
 
 r<-raster(e2, resolution=res(sdm))
@@ -163,12 +105,12 @@ colnames(df)<-c( "PatchID","X","Y","area")
 Populations<-data.frame(na.omit(df)) 
 
 
-sdm_df<-data.frame(ID=1:2030)
+sdm_df<-data.frame(ID=1:ncell(rid))
 
 #formatting data for demoniche
 for (i in 1:length(years)){
   
-  sdm<-raster(paste("C:/Users/Fiona/Documents/PhD/PhD_Method/Alp_SDMs/", years[i],"_SDM.tif", sep=""))  
+  sdm<-raster(paste("C:/Users/Fiona/Documents/PhD/PhD_Method/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))  
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)      
   } else{
@@ -197,7 +139,7 @@ no_yrs_mine<-1 #number of years each time period represents - could be 1 when I 
 ####matrix set up
 
 dir<-getwd()
-load(paste(dir, "COMADRE_v.1.0.0.RData", sep="/"))
+load(paste(dir, "COMADRE_v.2.0.1.RData", sep="/"))
 
 species<-"Capra_ibex"
 
@@ -207,7 +149,7 @@ keep<-as.numeric(rownames(tempMetadata))
 
 tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and/or C
 
-MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need to find a way to code this better
+MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix")
@@ -245,7 +187,7 @@ proportion_initial<- rep(1/length(stages), length(stages)) #proportion of popula
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
 
-density_individuals <- 4292.32   #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha 
+density_individuals <- 16000   #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha 
 
 K<-NULL   #carrying capacity
 
@@ -261,7 +203,7 @@ demoniche_setup(modelname = "Capra_ibex",Populations = Populations, Nichemap = n
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                 stages = stages, proportion_initial = proportion_initial,
                 density_individuals = density_individuals,
-                fraction_LDD = 0.2, fraction_SDD = 0.2,
+                fraction_LDD = 0.5, fraction_SDD = 0.5,
                 dispersal_constants = dispersal_constants_mine,
                 transition_affected_niche = transition_affected_niche,
                 transition_affected_demogr = transition_affected_demogr,

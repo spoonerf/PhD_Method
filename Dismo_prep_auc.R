@@ -10,9 +10,21 @@ capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | y
 dups <- duplicated(capgeo[, c("lon", "lat")])
 capg <-capgeo[!dups, ]
 capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 & capg$year>=1985, ] 
+
+capg2<-data.frame(capg2$lon,capg2$lat)
+colnames(capg2)<-c("Longitude", "Latitude")
+
+df2<-read.csv("LPI_pops_20160523_edited.csv")
+pyr<-subset(df2, Binomial ==species & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
+pyrs<-pyr[,c("Longitude","Latitude")]
+
+capg2<-rbind(capg2, pyrs)
+
+capg2<-na.omit(capg2)
+
 capg2$presence<-rep(1)
 capg2$ID<-1:nrow(capg2)
-capc<-as.matrix(capg2[ , c( "lon","lat", "presence")])
+capc<-as.matrix(capg2[ , c( "Longitude","Latitude", "presence")])
 capc<-matrix(capc[complete.cases(capc)], ncol=3)
 xy<-as.matrix(capc[,c(1,2)])
 df<-data.frame(capc[,3])
@@ -32,8 +44,8 @@ e<-extent(sp)+4
 
 lf<-list.files(paste(wd, "/Bioclim/", sep=""))
 
-first<-which(grepl("1985", lf))
-last<-which(grepl("2016", lf))
+first<-which(grepl("1985_bioclim", lf))
+last<-which(grepl("2016_bioclim", lf))
 all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
 
 bios<-seq(1,nlayers(all_years), by=19)
@@ -48,7 +60,7 @@ for (i in 1:19){
 
 
 
-bio_layer_pred<-c(5,6,13,15,19)
+bio_layer_pred<-c(5,6,13,15,19)  #picking out the bioclim layers we want to use in the model
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 
 
@@ -107,21 +119,21 @@ envtrain <- extract(pred_nf, train)
 envtrain <- data.frame( cbind(pa=pb_train, envtrain) )
 
 group <- kfold(envtrain, k)
-testpres <- data.frame( extract(pred_nf, pres_test) )
-testbackg <- data.frame( extract(pred_nf, backg_test) )
+#testpres <- data.frame( extract(pred_nf, pres_test) )
+#testbackg <- data.frame( extract(pred_nf, backg_test) )
 
 library(mgcv)
 
 
 gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 
-gam_ev<-dismo:::evaluate(testpres, testbackg, gm1)
+#gam_ev<-dismo:::evaluate(testpres, testbackg, gm1)
 plot(gam_ev, "ROC")
 
 evl<- list()
 
 for (i in 1:k){
-  pres_train<-envtrain[group!=i,]
+  pres_train<-envtrain[group!=i,]   #k fold separately for pres/abs
   pres_test<-envtrain[group==i,]
   gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=pres_train)
   evl[[i]] <- dismo:::evaluate(pres_test, testbackg, gm1)
@@ -196,23 +208,24 @@ wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
 
 par(mfrow=c(1,1))
 plot(wm, main='weighted mean of bioclim, gam and random forest')
+points(sp)
 
 years<-1950:2016
 predict_stack<-stack(paste(wd, "/Bioclim/",years,"_bioclim_variable_stack.tif", sep=""))
 #predict_alps<-crop(predict_stack, e)
 bio_layer_pred<-c(5,6,13,15,19)
 
-
-for (i in 1:length(years)){
-  predict_stack_year<-predict_stack[[bio_layer_pred]]
-  predict_alps_year<-crop(predict_stack_year, e)
-  names(predict_alps_year)<-c("bio5", "bio6", "bio7", "bio13", "bio19")
-  pbc<-predict(predict_alps_year, bc)
-  writeRaster(pbc, paste("D:/Fiona/Git_Method/Git_Method/Alp_SDMs/Bioclim/bioclim_",years[i],"capra_ibex.tif", sep=""), overwrite=T)
-  bio_layer_pred<-bio_layer_pred+19
-  print(i)
-}
-
+# 
+# for (i in 1:length(years)){
+#   predict_stack_year<-predict_stack[[bio_layer_pred]]
+#   predict_alps_year<-crop(predict_stack_year, e)
+#   names(predict_alps_year)<-c("bio5", "bio6", "bio7", "bio13", "bio19")
+#   pbc<-predict(predict_alps_year, bc)
+#   writeRaster(pbc, paste("D:/Fiona/Git_Method/Git_Method/Alp_SDMs/Bioclim/bioclim_",years[i],"capra_ibex.tif", sep=""), overwrite=T)
+#   bio_layer_pred<-bio_layer_pred+19
+#   print(i)
+# }
+# 
 
 
 #bc, gm1,rf1
@@ -264,7 +277,7 @@ for (i in 1:length(years)){
   names(models) <- c("bioclim", "gam", "random forest")
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
-  writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""))
+  writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
   print(years[i])
 }
 
@@ -273,7 +286,7 @@ ms<-stack(paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years, ".tif",
 
 
 mean_hab<-cellStats(ms, mean)
-plot(mean_hab)
+plot(years, mean_hab,  type="l")
 
 
 
