@@ -310,7 +310,7 @@ ms<-stack(paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years, ".tif",
 mean_hab<-cellStats(ms, stat="mean")
 plot(years, mean_hab, type="l")
 
-
+###try with presence/absence threshold - check damaris SM
 
 
 

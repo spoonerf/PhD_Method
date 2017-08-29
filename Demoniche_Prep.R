@@ -84,7 +84,8 @@ id<-pyrs$ID*100
 lam<-rep(200,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 
-sdm<-raster("C:/Users/Fiona/Documents/PhD/PhD_Method/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif")
+wd<-getwd()
+sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 
 r<-raster(e2, resolution=res(sdm))
@@ -107,10 +108,12 @@ Populations<-data.frame(na.omit(df))
 
 sdm_df<-data.frame(ID=1:ncell(rid))
 
+
+
 #formatting data for demoniche
 for (i in 1:length(years)){
   
-  sdm<-raster(paste("C:/Users/Fiona/Documents/PhD/PhD_Method/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))  
+  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))  
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)      
   } else{
@@ -138,8 +141,10 @@ no_yrs_mine<-1 #number of years each time period represents - could be 1 when I 
 
 ####matrix set up
 
-dir<-getwd()
-load(paste(dir, "COMADRE_v.2.0.1.RData", sep="/"))
+
+#load(paste(wd, "COMADRE_v.2.0.1.RData", sep="/"))
+
+load(paste(wd, "COMADRE_v.1.0.0.RData", sep="/"))
 
 species<-"Capra_ibex"
 
@@ -233,8 +238,8 @@ RPyran_disp_niche[,"Meanpop","Reference_matrix"]
 years<-1950:2016
 #plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 
-bleh<-cbind(years,RPyran_disp_niche[,"Meanpop","Reference_matrix"], RPyran_min_run[,"Max","Reference_matrix"])
-plot(bleh, type="l", col="red")
+niche_disp<-cbind(years,RPyran_disp_niche[,"Meanpop","Reference_matrix"], RPyran_disp_niche[,"Max","Reference_matrix"])
+lines(niche_disp, type="l", col="red")
 
 
 
