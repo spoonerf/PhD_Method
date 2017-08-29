@@ -55,7 +55,7 @@ pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif
 set.seed(10)
 backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
 colnames(backg) = c('lon', 'lat')
-group <- kfold(backg, k)
+group_back <- kfold(backg, k)
 backg_train <- backg[group != 1, ]
 backg_test <- backg[group == 1, ]
 
@@ -69,18 +69,24 @@ points(pres_test, pch='+', col='blue')
 
 
 bc <- bioclim(pred_nf, sp)
-plot(bc, a=1, b=2, p=0.85)
+#plot(bc, a=1, b=2, p=0.85)
+plot(bc)
 
 ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
 plot(ev, 'ROC')
 
 evl<- list()
 
+group_back <- kfold(backg, k)
+
 for (i in 1:k){
   pres_train<-sp[group_pres!=i,]
   pres_test<-sp[group_pres==i,]
+  #backg_train<-sp[group_back!=i,]
+  backg_test<-backg[group_back==i,]
   bc <- bioclim(pred_nf,pres_train)
   evl[[i]] <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
+  print(i)
 }
 
 auc <- sapply( evl, function(x){slot(x, "auc")} )
@@ -98,6 +104,19 @@ points(pres_train, pch='+')
 
 
 #######Regression
+
+k<-4
+group_pres<-kfold(sp, k)
+pres_train<-sp[group_pres!=1,]
+pres_test<-sp[group_pres==1,]
+
+set.seed(10)
+backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
+colnames(backg) = c('lon', 'lat')
+group_back <- kfold(backg, k)
+backg_train <- backg[group != 1, ]
+backg_test <- backg[group == 1, ]
+
 
 pres_train<-data.frame(pres_train)[,c(2,3)]
 colnames(pres_train)<-c("lon", "lat")
@@ -121,10 +140,11 @@ plot(gam_ev, "ROC")
 evl<- list()
 
 for (i in 1:k){
-  pres_train<-envtrain[group!=i,]
-  pres_test<-envtrain[group==i,]
+  pres_train<-envtrain[group!=i ,]
+  pres_test<-envtrain[(group==i & envtrain$pa ==1),]
+  back_test<-envtrain[(group==i & envtrain$pa ==0),]
   gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=pres_train)
-  evl[[i]] <- dismo:::evaluate(pres_test, testbackg, gm1)
+  evl[[i]] <- dismo:::evaluate(pres_test, back_test, gm1)
   print(i)
   }
 
@@ -154,11 +174,13 @@ rf2 <- randomForest(model, data=envtrain)
 
 evl<- list()
 
+
 for (i in 1:k){
   pres_train<-envtrain[group!=i,]
-  pres_test<-envtrain[group==i,]
+  pres_test<-envtrain[(group==i & envtrain$pa ==1),]
+  back_test<-envtrain[(group==i & envtrain$pa ==0),]
   rf1 <- randomForest(model, data=pres_train)
-  evl[[i]] <- dismo:::evaluate(pres_test, testbackg, rf1)
+  evl[[i]] <- dismo:::evaluate(pres_test, back_test, rf1)
 }
 
 auc <- sapply( evl, function(x){slot(x, "auc")} )
@@ -201,19 +223,19 @@ years<-1950:2016
 predict_stack<-stack(paste(wd, "/Bioclim/",years,"_bioclim_variable_stack.tif", sep=""))
 #predict_alps<-crop(predict_stack, e)
 bio_layer_pred<-c(5,6,13,15,19)
-
-
-for (i in 1:length(years)){
-  predict_stack_year<-predict_stack[[bio_layer_pred]]
-  predict_alps_year<-crop(predict_stack_year, e)
-  names(predict_alps_year)<-c("bio5", "bio6", "bio7", "bio13", "bio19")
-  pbc<-predict(predict_alps_year, bc)
-  writeRaster(pbc, paste("D:/Fiona/Git_Method/Git_Method/Alp_SDMs/Bioclim/bioclim_",years[i],"capra_ibex.tif", sep=""), overwrite=T)
-  bio_layer_pred<-bio_layer_pred+19
-  print(i)
-}
-
-
+# 
+# 
+# for (i in 1:length(years)){
+#   predict_stack_year<-predict_stack[[bio_layer_pred]]
+#   predict_alps_year<-crop(predict_stack_year, e)
+#   names(predict_alps_year)<-c("bio5", "bio6", "bio7", "bio13", "bio19")
+#   pbc<-predict(predict_alps_year, bc)
+#   writeRaster(pbc, paste("D:/Fiona/Git_Method/Git_Method/Alp_SDMs/Bioclim/bioclim_",years[i],"capra_ibex.tif", sep=""), overwrite=T)
+#   bio_layer_pred<-bio_layer_pred+19
+#   print(i)
+# }
+# 
+# 
 
 #bc, gm1,rf1
 
@@ -266,14 +288,15 @@ for (i in 1:length(years)){
   
   writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""))
   print(years[i])
+  plot(wm, main=years[i])
 }
 
 
 ms<-stack(paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years, ".tif", sep=""))
 
 
-mean_hab<-cellStats(ms, mean)
-plot(mean_hab)
+mean_hab<-cellStats(ms, stat="mean")
+plot(years, mean_hab, type="l")
 
 
 
