@@ -53,7 +53,7 @@ bios<-seq(1,nlayers(all_years), by=19)
 for (i in 1:19){
   layers<-bios
   bio_layer<-mean(all_years[[layers]])
-  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_1985_2016_average.tif",sep=""))
+  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_1985_2016_average.tif",sep=""), overwrite=TRUE)
   bios<-bios+1
   print(layers)
 }
@@ -68,8 +68,8 @@ set.seed(10)
 backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
 colnames(backg) = c('lon', 'lat')
 group_back <- kfold(backg, k)
-backg_train <- backg[group != 1, ]
-backg_test <- backg[group == 1, ]
+backg_train <- backg[group_back != 1, ]
+backg_test <- backg[group_back == 1, ]
 
 r <- raster(pred_nf, 1)
 plot(!is.na(r), col=c('white', 'light grey'), legend=FALSE, ext=e)
@@ -82,7 +82,7 @@ points(pres_test, pch='+', col='blue')
 
 bc <- bioclim(pred_nf, sp)
 #plot(bc, a=1, b=2, p=0.85)
-plot(bc)
+#plot(bc)
 
 ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
 plot(ev, 'ROC')
@@ -126,8 +126,8 @@ set.seed(10)
 backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
 colnames(backg) = c('lon', 'lat')
 group_back <- kfold(backg, k)
-backg_train <- backg[group != 1, ]
-backg_test <- backg[group == 1, ]
+backg_train <- backg[group_back != 1, ]
+backg_test <- backg[group_back == 1, ]
 
 
 pres_train<-data.frame(pres_train)[,c(2,3)]
@@ -147,7 +147,7 @@ library(mgcv)
 gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 
 #gam_ev<-dismo:::evaluate(testpres, testbackg, gm1)
-plot(gam_ev, "ROC")
+#plot(gam_ev, "ROC")
 
 evl<- list()
 
@@ -201,8 +201,8 @@ rf_auc<-mean(auc)
 
 
 
-erf <- dismo:::evaluate(testpres, testbackg, rf1)
-plot(erf, "ROC")
+#erf <- dismo:::evaluate(testpres, testbackg, rf1)
+#plot(erf, "ROC")
 
 
 pr <- predict(pred_nf, rf1, ext=e)
@@ -283,6 +283,17 @@ bc <- bioclim(pred_nf, sp)
 gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 rf1 <- randomForest(model, data=envtrain)
 
+ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
+tr_bc <- threshold(ev, 'spec_sens')
+
+gam_ev<-dismo:::evaluate(pres_test, backg_test, gm1, pred_nf)
+tr_gam<-threshold(gam_ev, 'spec_sens')
+
+rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
+tr_rf<-threshold(rf_ev, 'spec_sens')
+
+thresh<-max(c(tr_bc, tr_gam, tr_rf))
+
 
 for (i in 1:length(years)){
   
@@ -298,7 +309,11 @@ for (i in 1:length(years)){
   names(models) <- c("bioclim", "gam", "random forest")
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
+  pa<-wm>thresh
+    
   writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  
   print(years[i])
   plot(wm, main=years[i])
 }
