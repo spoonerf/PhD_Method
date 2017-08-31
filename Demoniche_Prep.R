@@ -81,11 +81,11 @@ plot(pyr$Longitude, pyr$Latitude)
 pyrs<-pyr[,c("ID","Longitude","Latitude")]
 
 id<-pyrs$ID*100
-lam<-rep(200,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
+lam<-rep(20,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 
 wd<-getwd()
-sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif", sep=""))
+sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 
 r<-raster(e2, resolution=res(sdm))
@@ -113,7 +113,7 @@ sdm_df<-data.frame(ID=1:ncell(rid))
 #formatting data for demoniche
 for (i in 1:length(years)){
   
-  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))  
+  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i],".tif", sep=""))  
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)      
   } else{
@@ -142,9 +142,9 @@ no_yrs_mine<-1 #number of years each time period represents - could be 1 when I 
 ####matrix set up
 
 
-#load(paste(wd, "COMADRE_v.2.0.1.RData", sep="/"))
+load(paste(wd, "COMADRE_v.2.0.1.RData", sep="/"))
 
-load(paste(wd, "COMADRE_v.1.0.0.RData", sep="/"))
+#load(paste(wd, "COMADRE_v.1.0.0.RData", sep="/"))
 
 species<-"Capra_ibex"
 
@@ -154,18 +154,21 @@ keep<-as.numeric(rownames(tempMetadata))
 
 tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and/or C
 
-MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
-AllMat<-unlist(MatList)
-matrices<-matrix(AllMat, ncol=length(MatList))
+
+# MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+# AllMat<-unlist(MatList)
+# matrices<-matrix(AllMat, ncol=length(MatList))
+
+tempMat<-(tempMat[[2]][[1]] + tempMat[[3]][[1]] + tempMat[[4]][[1]]+ tempMat[[5]][[1]])/4
+matrices<-matrix(tempMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix")
-
-
 
 prob_scenario<-c(0.5,0.5)    #need to check this
 
 noise<-0.90     #need to check this
 
 stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
+stages<-comadre$matrixClass[keep][[2]]$MatrixClassAuthor
 #stagesf<-stages[1:3]
 
 list_names_matrices<-colnames(matrices)
@@ -192,15 +195,15 @@ proportion_initial<- rep(1/length(stages), length(stages)) #proportion of popula
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
 
-density_individuals <- 16000   #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha 
+density_individuals <- 4292.32  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha 
 
 K<-NULL   #carrying capacity
 
-K_weight<-c(1, 1,1,1,1,1,1,1)  #the weight with which carrying capacity affects each stage was FALSE
+K_weight<-c(rep(1, length(stages)))  #the weight with which carrying capacity affects each stage was FALSE
 
 fraction_SDD <- 0.05  #short distance dispersal
 
-dispersal_constants_mine <-c(0.7,0.7,0.1,3)
+dispersal_constants_mine <-c(0.7,0.7,0.1,1)
 
 niche_map_mine[is.na(niche_map_mine)]<-0
 
@@ -208,7 +211,7 @@ demoniche_setup(modelname = "Capra_ibex",Populations = Populations, Nichemap = n
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                 stages = stages, proportion_initial = proportion_initial,
                 density_individuals = density_individuals,
-                fraction_LDD = 0.5, fraction_SDD = 0.5,
+                fraction_LDD = 0.05, fraction_SDD = 1,
                 dispersal_constants = dispersal_constants_mine,
                 transition_affected_niche = transition_affected_niche,
                 transition_affected_demogr = transition_affected_demogr,
@@ -224,10 +227,10 @@ RPyran_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE,
 RPyran_niche[,"Meanpop","Reference_matrix"]
 
 years<-1950:2016
-plot(RPyran_niche[,"Meanpop","Reference_matrix"])
-
-bleh<-cbind(years,RPyran_niche[,"Meanpop","Reference_matrix"])
+bleh<-(RPyran_niche[,"Meanpop","Reference_matrix"])
 plot(bleh, type="l")
+
+plot(years,log10(bleh), type="l")
 
 RPyran_disp_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
@@ -239,9 +242,10 @@ years<-1950:2016
 #plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 
 niche_disp<-cbind(years,RPyran_disp_niche[,"Meanpop","Reference_matrix"], RPyran_disp_niche[,"Max","Reference_matrix"])
-lines(niche_disp, type="l", col="red")
 
-
+#lines(niche_disp, type="l", col="red")
+plot(niche_disp, type="l", col="red")
+mean(diff(log10(niche_disp[,2])))
 
 
 

@@ -63,6 +63,14 @@ for (i in 1:19){
 bio_layer_pred<-c(5,6,13,15,19)  #picking out the bioclim layers we want to use in the model
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 
+sp_rast<-rasterize(sp, pred_nf[[1]])
+
+sp_rast<-sp_rast[[2]]
+
+sp_rast[is.na(sp_rast)]<-0
+
+sp_rast<-crop(sp_rast, e)
+plot(sp_rast)
 
 set.seed(10)
 backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
@@ -292,7 +300,9 @@ tr_gam<-threshold(gam_ev, 'spec_sens')
 rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
 tr_rf<-threshold(rf_ev, 'spec_sens')
 
-thresh<-max(c(tr_bc, tr_gam, tr_rf))
+thresh<-mean(c(tr_bc, tr_gam, tr_rf))
+thresh_weighted<-weighted.mean(c(tr_bc, tr_gam, tr_rf), w)
+
 
 
 for (i in 1:length(years)){
@@ -309,23 +319,52 @@ for (i in 1:length(years)){
   names(models) <- c("bioclim", "gam", "random forest")
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
-  pa<-wm>thresh
+  pa<-wm>thresh_weighted
     
   writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
   writeRaster(pa , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
   
   print(years[i])
-  plot(wm, main=years[i])
+  print(cellStats(pa, max))
+  #plot(wm, main=years[i])
 }
 
 
 ms<-stack(paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years, ".tif", sep=""))
-
+pa_s<-stack(paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years, ".tif", sep=""))
 
 mean_hab<-cellStats(ms, stat="mean")
 plot(years, mean_hab, type="l")
+
+mean_pa<-cellStats(pa_s, stat="mean")
+plot(years, mean_pa, type="l")
 
 ###try with presence/absence threshold - check damaris SM
 
 
 
+values(sp_rast)
+values(pb)
+
+mat<-as.matrix(values(pb), values(sp_rast))
+
+truth<-as.factor(values(sp_rast))
+
+
+thresh<-seq(0.01, 1, by=0.01)
+
+pred<-values(pb)
+
+spec_l<-numeric()
+sens_l<-numeric()
+tss_l<-numeric()
+for (i in 1:length(thresh)){
+  pred_i<-as.factor((pred>thresh[i])*1)
+  spec<-caret:::specificity(pred_i, truth)
+  sens<-caret:::sensitivity(pred_i, truth)
+  spec_l<-rbind(spec, spec_l)
+  sens_l<-rbind(sens, sens_l)
+  tss<-(spec + sens)-1
+  tss_l<-rbind(tss, tss_l)
+  print(i)
+}
