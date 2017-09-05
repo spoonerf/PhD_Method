@@ -9,7 +9,7 @@ capra <-gbif("capra", "ibex", geo=FALSE)
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA") 
 dups <- duplicated(capgeo[, c("lon", "lat")])
 capg <-capgeo[!dups, ]
-capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 & capg$year>=1985, ] 
+capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 & capg$lat < 47.9 & capg$year>=1985, ] 
 
 capg2<-data.frame(capg2$lon,capg2$lat)
 colnames(capg2)<-c("Longitude", "Latitude")
@@ -60,7 +60,7 @@ for (i in 1:19){
 
 
 
-bio_layer_pred<-c(5,6,13,15,19)  #picking out the bioclim layers we want to use in the model
+bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 
 sp_rast<-rasterize(sp, pred_nf[[1]])
@@ -152,7 +152,9 @@ group <- kfold(envtrain, k)
 library(mgcv)
 
 
-gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
+gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
+           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+           s(Bio_19_1985_2016_average), data=envtrain)
 
 #gam_ev<-dismo:::evaluate(testpres, testbackg, gm1)
 #plot(gam_ev, "ROC")
@@ -163,7 +165,7 @@ for (i in 1:k){
   pres_train<-envtrain[group!=i ,]
   pres_test<-envtrain[(group==i & envtrain$pa ==1),]
   back_test<-envtrain[(group==i & envtrain$pa ==0),]
-  gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=pres_train)
+  gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=pres_train)
   evl[[i]] <- dismo:::evaluate(pres_test, back_test, gm1)
   print(i)
   }
@@ -187,7 +189,7 @@ points(backg_train, pch='-', cex=0.25)
 
 library(randomForest)
 
-model<-pa~ Bio_5_1985_2016_average+ Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ Bio_19_1985_2016_average
+model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ Bio_18_1985_2016_average+ Bio_19_1985_2016_average
 
 rf1 <- randomForest(model, data=envtrain)
 rf2 <- randomForest(model, data=envtrain)
@@ -243,7 +245,7 @@ points(sp)
 years<-1950:2016
 predict_stack<-stack(paste(wd, "/Bioclim/",years,"_bioclim_variable_stack.tif", sep=""))
 #predict_alps<-crop(predict_stack, e)
-bio_layer_pred<-c(5,6,13,15,19)
+bio_layer_pred<-c(1,5,6,13,15,18,19)
 
 # for (i in 1:length(years)){
 #   predict_stack_year<-predict_stack[[bio_layer_pred]]
@@ -267,11 +269,11 @@ plot(models)
 auc<-c(bioclim_auc, gam_auc, rf_auc)
 w <- (auc-0.5)^2
 
-years<-1950:2016
-bio_layer_pred<-c(5,6,13,15,19)
+#years<-1950:2016
+bio_layer_pred<-c(1,5,6,13,15,18,19)
 
 
-model<-pa~ Bio_5_1985_2016_average+ Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ Bio_19_1985_2016_average
+model<-pa~ Bio_1_1985_2016_average+Bio_5_1985_2016_average+ Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ Bio_18_1985_2016_average+ Bio_19_1985_2016_average
 
 set.seed(0)
 k<-4
@@ -288,28 +290,44 @@ envtrain <- data.frame( cbind(pa=pb_train, envtrain) )
 
 #envtrain
 bc <- bioclim(pred_nf, sp)
-gm1<-gam(pa~ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
+gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 rf1 <- randomForest(model, data=envtrain)
 
 ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
 tr_bc <- threshold(ev, 'spec_sens')
+tr_bc_k <- threshold(ev, 'kappa')
+tr_bc_p <- threshold(ev, 'prevalence')
+tr_bc_e<-threshold(ev, 'equal_sens_spec')
 
 gam_ev<-dismo:::evaluate(pres_test, backg_test, gm1, pred_nf)
 tr_gam<-threshold(gam_ev, 'spec_sens')
+tr_gam_k<-threshold(gam_ev, 'kappa')
+tr_gam_p<-threshold(gam_ev, 'prevalence')
+tr_gam_e<-threshold(gam_ev, 'equal_sens_spec')
 
 rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
 tr_rf<-threshold(rf_ev, 'spec_sens')
+tr_rf_k<-threshold(rf_ev, 'kappa')
+tr_rf_p<-threshold(rf_ev, 'prevalence')
+tr_rf_e<-threshold(rf_ev, 'equal_sens_spec')
 
 thresh<-mean(c(tr_bc, tr_gam, tr_rf))
 thresh_weighted<-weighted.mean(c(tr_bc, tr_gam, tr_rf), w)
+thresh_weighted_k<-weighted.mean(c(tr_bc_k, tr_gam_k, tr_rf_k), w)
+thresh_weighted_p<-weighted.mean(c(tr_bc_p, tr_gam_p, tr_rf_p), w)
+thresh_weighted_e<-weighted.mean(c(tr_bc_e, tr_gam_e, tr_rf_e), w)
 
+tholds<-c(thresh, thresh_weighted, thresh_weighted_k, thresh_weighted_p, thresh_weighted_e)
+names<-c("non_weighted", "spec_sens", "kappa", "prevalence", "equal_sens_spec")
 
+cbind(names, tholds)
 
+library(raster)
 for (i in 1:length(years)){
   
   pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))  
   pred_nf<-pred_nf[[bio_layer_pred]]
-  names(pred_nf)<-c("Bio_5_1985_2016_average", "Bio_6_1985_2016_average", "Bio_13_1985_2016_average" ,"Bio_15_1985_2016_average", "Bio_19_1985_2016_average")
+  names(pred_nf)<-c("Bio_1_1985_2016_average","Bio_5_1985_2016_average", "Bio_6_1985_2016_average", "Bio_13_1985_2016_average" ,"Bio_15_1985_2016_average","Bio_18_1985_2016_average", "Bio_19_1985_2016_average")
   
   pb <- predict(pred_nf, bc, ext=e, progress='')
   pg <- predict(pred_nf, gm1, ext=e)
@@ -320,12 +338,21 @@ for (i in 1:length(years)){
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
   pa<-wm>thresh_weighted
-    
+  pa_k<-wm>thresh_weighted_k
+  pa_p<-wm>thresh_weighted_p
+  pa_e<-wm>thresh_weighted_e
+  
   writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
   writeRaster(pa , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_p , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_e , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
   
   print(years[i])
-  print(cellStats(pa, max))
+  print(cellStats(pa, "max"))
+  print(cellStats(pa_k, "max"))
+  print(cellStats(pa_p, "max"))
+  print(cellStats(pa_e, "max"))
   #plot(wm, main=years[i])
 }
 
@@ -349,7 +376,7 @@ values(pb)
 mat<-as.matrix(values(pb), values(sp_rast))
 
 truth<-as.factor(values(sp_rast))
-
+library(caret)
 
 thresh<-seq(0.01, 1, by=0.01)
 
@@ -368,3 +395,5 @@ for (i in 1:length(thresh)){
   tss_l<-rbind(tss, tss_l)
   print(i)
 }
+
+
