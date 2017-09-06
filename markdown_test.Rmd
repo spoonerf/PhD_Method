@@ -9,9 +9,11 @@ output: html_document
 ```{r, eval=FALSE}
 install.packages('climates',,'http://www.rforge.net/')
 install.packages("dismo")
+install.packages("maps")
+install.packages("mapdata")
 ```
 
-```{r}
+```{r, message= FALSE}
 library(zoo)
 library(dismo)
 ```
@@ -45,10 +47,11 @@ for (i in 1:length(years)){
 #####Dismo SDMs
 
 Extracting Alpine ibex data from GBIF and adding in the locations from the LPI dataset - need to check the LPI populations are from after 1985. Formatting these points as a spatialpointsdataframe
-```{r, cache=TRUE}
+```{r, cache=TRUE, message= FALSE, warning=FALSE}
 library(dismo)
 library(demoniche)
-library(maptools)
+library(maps)
+library(mapdata)
 
 #Extracting Alpine ibex data from GBIF
 wd<- getwd()
@@ -76,12 +79,19 @@ df<-data.frame(capc[,3])
 sp<-SpatialPointsDataFrame(coords=xy, data=df)
 x <- circles(sp, d=50000, lonlat=TRUE)
 pol <- polygons(x)
-plot(pol)
-points(sp)
+```
+
+```{r}
+e<-extent(sp)
+e_big<-e+4
+maps:::map('world',c('Italy', 'Switzerland', 'Austria', 'Monaco','Liechtenstein','Germany', 'Slovenia', 'France'),  col="light grey", fill=T, xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]))
+plot(pol,add=T)
+points(sp, col="red", pch=20)
+
 ```
 
 Creating the 1985-2016 average for each bioclim variable and pulling out the layers we want to use in the model 
-```{r,cache=TRUE}
+```{r,cache=TRUE, message=FALSE}
 e<-extent(sp)+4
 
 lf<-list.files(paste(wd, "/Bioclim/", sep=""))
@@ -98,7 +108,7 @@ for (i in 1:19){
   bio_layer<-mean(all_years[[layers]])
   writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_1985_2016_average.tif",sep=""), overwrite=TRUE)
   bios<-bios+1
-  print(layers)
+  #print(layers)
 }
 
 #pulling out the bioclim layers i'm interested in
@@ -108,7 +118,7 @@ pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif
 ```
 
 Creating training and testing presence and background data
-```{r, cache=TRUE}
+```{r, cache=TRUE, message=FALSE}
 k<-4
 group_pres<-kfold(sp, k)
 pres_train<-sp[group_pres!=1,]
@@ -161,7 +171,7 @@ for (i in 1:k){
   backg_test<-backg[group_back==i,]
   bc <- bioclim(pred_nf,pres_train)
   evl[[i]] <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
-  print(i)
+  #print(i)
 }
 
 auc <- sapply( evl, function(x){slot(x, "auc")} )
@@ -174,7 +184,7 @@ print(bioclim_auc)
 
 Running a gam and evaluating it to get an AUC value
 
-```{r, cache= TRUE}
+```{r, cache= TRUE, message=FALSE}
 library(mgcv)
 gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
            s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
@@ -201,7 +211,7 @@ for (i in 1:k){
              s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
              s(Bio_19_1985_2016_average),family= binomial(link = "logit") , data=envtrain)
   evl[[i]] <- dismo:::evaluate(pres_test, back_test, gm1)
-  print(i)
+  #print(i)
 }
 
 auc <- sapply( evl, function(x){slot(x, "auc")} )
@@ -246,7 +256,7 @@ rf_auc<-mean(auc)
 
 Creating a weighted ensemble averaged suitability model for 1985-2016 which can be used to predict suitability backwards
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
 #total models
 bc <- bioclim(pred_nf, sp)
 gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
@@ -256,7 +266,7 @@ rf1 <- randomForest(model, data=env_all)
 
 pb <- predict(pred_nf, bc, ext=e, progress='') #bioclim predict
 pg <- predict(pred_nf, gm1, ext=e) #gam predict
-pgl<-calc(pg, fun=function(x){ exp(x)/(1+exp(x))})
+pgl<-calc(pg, fun=function(x){ exp(x)/(1+exp(x))}) #backtransforming from logit space
 pr <- predict(pred_nf, rf1, ext=e) #random forest predict
 
 models <- stack(pb, pgl, pr)
@@ -267,12 +277,12 @@ auc<-c(bioclim_auc, gam_auc, rf_auc)
 w <- (auc-0.5)^2
 wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
 plot(wm)
+
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #thresholds - perhaps redundant for now?
 
-envtrain
 bc <- bioclim(pred_nf, sp)
 gm1<-mgcv:::gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 rf1 <- randomForest:::randomForest(model, data=envtrain)
@@ -363,7 +373,7 @@ for (i in 1:length(years)){
 ### Demoniche
 
 Formatting the data for use in demoniche
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(demoniche)
 library(rgdal)
 library(raster)
@@ -398,8 +408,8 @@ r<-raster(e2, resolution=res(sdm))
 
 rz<-rasterize(pyrxy,r,lam )
 rid<-rasterize(pyrxy,r,id)
-plot(rz)
-plot(rid)
+# plot(rz)
+# plot(rid)
 
 rz_spdf<-xyFromCell(rz, 1:ncell(rid))
 
@@ -456,7 +466,7 @@ plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))])
 
 Accessing the population matrices from comadre
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 #Population matrix set up
 
 
@@ -563,6 +573,8 @@ plot(years, bleh, type="l")
 
 ```
 
+
+```{r, echo=FALSE, eval=FALSE}
 # RPyran_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE, 
 #                                 Dispersal = FALSE, repetitions = 1,
 #                                 foldername = "RPyran_minimal")
@@ -587,7 +599,7 @@ niche_disp<-cbind(years,RPyran_disp_niche[,"Meanpop","Reference_matrix"], RPyran
 #lines(niche_disp, type="l", col="red")
 plot(niche_disp, type="l", col="red")
 mean(diff(log10(niche_disp[,2])))
-
+```
 
 
 
