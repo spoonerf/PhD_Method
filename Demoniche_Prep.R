@@ -86,6 +86,7 @@ for (i in 1:19){
   print(layers)
 }
 
+#pulling out the bioclim layers i'm interested in
 bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 sp_rast<-rasterize(sp, pred_nf[[1]])
@@ -109,9 +110,20 @@ backg_test <- backg[group_back == 1, ]
 pres_train<-data.frame(pres_train)[,c(2,3)]
 colnames(pres_train)<-c("lon", "lat")
 train <- rbind(pres_train, backg_train)
+
+pres_test<-data.frame(pres_test)[,c(2,3)]
+colnames(pres_test)<-c("lon", "lat")
+test<-rbind(pres_test, backg_test)
+
 pb_train <- c(rep(1, nrow(pres_train)), rep(0, nrow(backg_train)))
 envtrain <- extract(pred_nf, train)
 envtrain <- data.frame( cbind(pa=pb_train, envtrain) )
+
+pb_test<-c(rep(1, nrow(pres_test)), rep(0, nrow(backg_test)))
+envtest <- extract(pred_nf, test)
+envtest <- data.frame( cbind(pa=pb_test, envtest) )
+
+env_all<-rbind(envtrain, envtest)
 
 #Bioclim
 bc <- bioclim(pred_nf, sp)
