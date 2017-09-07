@@ -152,10 +152,13 @@ bioclim_auc<-mean(auc)
 library(mgcv)
 gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
            s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-           s(Bio_19_1985_2016_average), data=envtrain)
+           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
 
-env_pres<-envtrain[envtrain$pa==1,]
-env_back<-envtrain[envtrain$pa==0,]
+gp<-predict(pred_nf, gm1)
+r<-calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
+
+env_pres<-env_all[env_all$pa==1,]
+env_back<-env_all[env_all$pa==0,]
 group_pres<-  kfold(env_pres, k)
 group_back<- kfold(env_back, k)
 
@@ -167,7 +170,10 @@ for (i in 1:k){
   back_test<-env_back[(group_back==i),]
   back_train<-env_back[(group_back!=i),]
   envtrain<-rbind(pres_train, back_train)
-  gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
+  gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ 
+             s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ 
+             s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+             s(Bio_19_1985_2016_average),family= binomial(link = "logit") , data=envtrain)
   evl[[i]] <- dismo:::evaluate(pres_test, back_test, gm1)
   print(i)
 }
@@ -178,7 +184,9 @@ gam_auc<-mean(auc)
 
 library(randomForest)
 
-model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ Bio_18_1985_2016_average+ Bio_19_1985_2016_average
+model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ 
+  Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ 
+  Bio_18_1985_2016_average+ Bio_19_1985_2016_average
 
 evl<- list()
 
@@ -199,11 +207,19 @@ rf_auc<-mean(auc)
 
 #using the models to predict
 
+#total models
+bc <- bioclim(pred_nf, sp)
+gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
+           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+rf1 <- randomForest(model, data=env_all)
+
 pb <- predict(pred_nf, bc, ext=e, progress='') #bioclim predict
 pg <- predict(pred_nf, gm1, ext=e) #gam predict
-pr <- predict(pred_nf, rf1, ext=e) #random predict
+pgl<-calc(pg, fun=function(x){ exp(x)/(1+exp(x))})
+pr <- predict(pred_nf, rf1, ext=e) #random forest predict
 
-models <- stack(pb, pg, pr)
+models <- stack(pb, pgl, pr)
 names(models) <- c("bioclim", "gam", "random forest")
 plot(models)
 
@@ -216,47 +232,47 @@ plot(wm)
 # bc <- bioclim(pred_nf, sp)
 # gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 # rf1 <- randomForest(model, data=envtrain)
+# 
+# k<-4
+# group_pres<-kfold(sp, k)
+# pres_train<-sp[group_pres!=1,]
+# pres_test<-sp[group_pres==1,]
+# 
+# set.seed(10)
+# backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
+# colnames(backg) = c('lon', 'lat')
+# group_back <- kfold(backg, k)
+# backg_train <- backg[group_back != 1, ]
+# backg_test <- backg[group_back == 1, ]
+# 
+# ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
+# tr_bc <- threshold(ev, 'spec_sens')
+# tr_bc_k <- threshold(ev, 'kappa')
+# tr_bc_p <- threshold(ev, 'prevalence')
+# tr_bc_e<-threshold(ev, 'equal_sens_spec')
+# 
+# gam_ev<-dismo:::evaluate(pres_test, backg_test, gm1, pred_nf)
+# tr_gam<-threshold(gam_ev, 'spec_sens')
+# tr_gam_k<-threshold(gam_ev, 'kappa')
+# tr_gam_p<-threshold(gam_ev, 'prevalence')
+# tr_gam_e<-threshold(gam_ev, 'equal_sens_spec')
+# 
+# rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
+# tr_rf<-threshold(rf_ev, 'spec_sens')
+# tr_rf_k<-threshold(rf_ev, 'kappa')
+# tr_rf_p<-threshold(rf_ev, 'prevalence')
+# tr_rf_e<-threshold(rf_ev, 'equal_sens_spec')
+# 
+# thresh<-mean(c(tr_bc, tr_gam, tr_rf))
+# thresh_weighted<-weighted.mean(c(tr_bc, tr_gam, tr_rf), w)
+# thresh_weighted_k<-weighted.mean(c(tr_bc_k, tr_gam_k, tr_rf_k), w)
+# thresh_weighted_p<-weighted.mean(c(tr_bc_p, tr_gam_p, tr_rf_p), w)
+# thresh_weighted_e<-weighted.mean(c(tr_bc_e, tr_gam_e, tr_rf_e), w)
+# 
+# tholds<-c(thresh, thresh_weighted, thresh_weighted_k, thresh_weighted_p, thresh_weighted_e)
+# names<-c("non_weighted", "spec_sens", "kappa", "prevalence", "equal_sens_spec")
 
-k<-4
-group_pres<-kfold(sp, k)
-pres_train<-sp[group_pres!=1,]
-pres_test<-sp[group_pres==1,]
-
-set.seed(10)
-backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
-colnames(backg) = c('lon', 'lat')
-group_back <- kfold(backg, k)
-backg_train <- backg[group_back != 1, ]
-backg_test <- backg[group_back == 1, ]
-
-ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
-tr_bc <- threshold(ev, 'spec_sens')
-tr_bc_k <- threshold(ev, 'kappa')
-tr_bc_p <- threshold(ev, 'prevalence')
-tr_bc_e<-threshold(ev, 'equal_sens_spec')
-
-gam_ev<-dismo:::evaluate(pres_test, backg_test, gm1, pred_nf)
-tr_gam<-threshold(gam_ev, 'spec_sens')
-tr_gam_k<-threshold(gam_ev, 'kappa')
-tr_gam_p<-threshold(gam_ev, 'prevalence')
-tr_gam_e<-threshold(gam_ev, 'equal_sens_spec')
-
-rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
-tr_rf<-threshold(rf_ev, 'spec_sens')
-tr_rf_k<-threshold(rf_ev, 'kappa')
-tr_rf_p<-threshold(rf_ev, 'prevalence')
-tr_rf_e<-threshold(rf_ev, 'equal_sens_spec')
-
-thresh<-mean(c(tr_bc, tr_gam, tr_rf))
-thresh_weighted<-weighted.mean(c(tr_bc, tr_gam, tr_rf), w)
-thresh_weighted_k<-weighted.mean(c(tr_bc_k, tr_gam_k, tr_rf_k), w)
-thresh_weighted_p<-weighted.mean(c(tr_bc_p, tr_gam_p, tr_rf_p), w)
-thresh_weighted_e<-weighted.mean(c(tr_bc_e, tr_gam_e, tr_rf_e), w)
-
-tholds<-c(thresh, thresh_weighted, thresh_weighted_k, thresh_weighted_p, thresh_weighted_e)
-names<-c("non_weighted", "spec_sens", "kappa", "prevalence", "equal_sens_spec")
-
-cbind(names, tholds)
+#cbind(names, tholds)
 
 years<-1950:2016
 library(raster)
@@ -267,29 +283,30 @@ for (i in 1:length(years)){
   names(pred_nf)<-c("Bio_1_1985_2016_average","Bio_5_1985_2016_average", "Bio_6_1985_2016_average", "Bio_13_1985_2016_average" ,"Bio_15_1985_2016_average","Bio_18_1985_2016_average", "Bio_19_1985_2016_average")
   
   pb <- predict(pred_nf, bc, ext=e, progress='')
-  pg <- predict(pred_nf, gm1, ext=e)
+  pg <- predict(pred_nf, gm1, ext=e) #gam predict
+  pgl<-calc(pg, fun=function(x){ exp(x)/(1+exp(x))})
   pr <- predict(pred_nf, rf1, ext=e)
   
-  models <- stack(pb, pg, pr)
+  models <- stack(pb, pgl, pr)
   names(models) <- c("bioclim", "gam", "random forest")
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
-  pa<-wm>thresh_weighted
-  pa_k<-wm>thresh_weighted_k
-  pa_p<-wm>thresh_weighted_p
-  pa_e<-wm>thresh_weighted_e
+  # pa<-wm>thresh_weighted
+  # pa_k<-wm>thresh_weighted_k
+  # pa_p<-wm>thresh_weighted_p
+  # pa_e<-wm>thresh_weighted_e
   
   writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa_p , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa_e , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  
+  # writeRaster(pa , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  # writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  # writeRaster(pa_p , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  # writeRaster(pa_e , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  # 
   print(years[i])
-  print(cellStats(pa, "max"))
-  print(cellStats(pa_k, "max"))
-  print(cellStats(pa_p, "max"))
-  print(cellStats(pa_e, "max"))
+  # print(cellStats(pa, "max"))
+  # print(cellStats(pa_k, "max"))
+  # print(cellStats(pa_p, "max"))
+  # print(cellStats(pa_e, "max"))
   #plot(wm, main=years[i])
 }
 
