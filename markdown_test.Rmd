@@ -325,7 +325,7 @@ thresh_weighted_e<-weighted.mean(c(tr_bc_e, tr_gam_e, tr_rf_e), w)
 tholds<-c(thresh, thresh_weighted, thresh_weighted_k, thresh_weighted_p, thresh_weighted_e)
 names<-c("non_weighted", "spec_sens", "kappa", "prevalence", "equal_sens_spec")
 
-#cbind(names, tholds)
+cbind(names, tholds)
 ```
 
 Using the ensemble model to predict suitability for each year - 1950-2016
@@ -420,6 +420,11 @@ colnames(df)<-c( "PatchID","X","Y","area")
 
 Populations<-data.frame(na.omit(df)) 
 
+```
+
+
+```{r}
+#formatting the sdm data
 
 sdm_df<-data.frame(ID=1:ncell(rid))
 
@@ -427,9 +432,9 @@ sdm_df<-data.frame(ID=1:ncell(rid))
 for (i in 1:length(years)){
   
   #a selection of different threshold techniques for presence absence, as well as a suitability surface
-  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i],".tif", sep="")) #15.4%  
-  #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
+  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i],".tif", sep="")) #14,3%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i],".tif", sep=""))  #13.1%
   if (i ==1){
@@ -601,5 +606,72 @@ mean(diff(log10(niche_disp[,2])))
 ```
 
 
+```{r}
+#plotting functions linking k and hsi
+
+k<-10000
+lin<-function(x){
+  x*k
+  }
+
+sig<-function(x){
+  k*(1/(1+exp(-10*x+5)))
+  }   #could also try with 18x + 9 - closer to SM in Damaris paper
+
+lt<-function(x) { 
+  val = (4/3) * x - (1/3)
+  val[x < 0.25] = 0 
+  val<-val*k
+  return(val)
+}
 
 
+#carrying capacity function 
+
+lf<-list.files(paste(wd,"/Alp_SDMs/Ensembles/", sep=""))   
+
+files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
+
+sdms<-stack(paste(wd,"/Alp_SDMs/Ensembles/", files, sep=""))
+
+xy<-Populations[,c(2,3)]
+
+hsi<-extract(sdms, xy)
+
+
+link<-lin(hsi)
+
+sigk<-sig(hsi)
+
+ltk<-lt(hsi)
+
+```
+
+
+```{r}
+demoniche_setup(modelname = "Capra_ibex",Populations = Populations, Nichemap = niche_map_mine,
+                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = density_individuals,
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(0.7,0.7,0.1,2),
+                transition_affected_niche = transition_affected_niche,
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=sigk, Kweight = K_weight, 
+                sumweight =sumweight)
+
+RPyran_disp_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "RPyran_disp_niche")
+
+RPyran_disp_niche[,"Meanpop","Reference_matrix"]
+
+years<-1950:2016
+#plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
+bleh<-(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
+
+plot(years, bleh, type="l", ylab="Number of Alpine Ibex")
+
+```
