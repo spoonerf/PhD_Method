@@ -378,7 +378,7 @@ library(rgdal)
 library(raster)
 species<-"Capra_ibex"
 
-years<-1950:2016
+
 
 df2<-read.csv("LPI_pops_20160523_edited.csv")
 pyr<-subset(df2, Binomial ==species & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
@@ -426,6 +426,10 @@ Populations<-data.frame(na.omit(df))
 ```{r}
 #formatting the sdm data
 
+years<-1950:2016
+
+years<-1050:2016
+
 sdm_df<-data.frame(ID=1:ncell(rid))
 
 #formatting data for demoniche
@@ -453,11 +457,13 @@ niche_map_mine<-sdm_df
 colnames(niche_map_mine)[1:3]<-c("gridID", "X", "Y")
 
 col_years<-paste("Year_", 1950:2016, sep="")
+col_years<-paste("Year_", 1050:2016, sep="")
+
 colnames(niche_map_mine)[4:length(colnames(niche_map_mine))]<-col_years
 
 niche_formulas <- as.formula(paste(paste(colnames(niche_map_mine)[-c(1:3)], collapse="+"),"X+Y",sep="~"))
 
-print(levelplot(niche_formulas, niche_map_mine, col.regions=rev(heat.colors(100)), main = "Niche Values"))
+#print(levelplot(niche_formulas, niche_map_mine, col.regions=rev(heat.colors(100)), main = "Niche Values"))
 
 no_yrs_mine<-1 #number of years each time period represents 
 
@@ -519,7 +525,7 @@ sumweight<-rep(1, length(stages)) #weight of stages  - should be equal for all m
 #calculate the female population it would be c(1,1,1,0,0,0)
 #sumweightf<-c(1,1,1)
 
-transition_affected_niche<-"all"    #which parts of the matrix are affected by the 
+transition_affected_niche<-c(1,2)   #which parts of the matrix are affected by the 
 #niche values
 
 transition_affected_env <- "all"
@@ -640,10 +646,18 @@ hsi<-extract(sdms, xy)
 
 
 link<-lin(hsi)
+link_spin_up<-matrix(rep(link[,1], 900), ncol=900)
+link_spin_up_comb<-cbind(link_spin_up,link)
 
 sigk<-sig(hsi)
+sigk_spin_up<-matrix(rep(sigk[,1], 900), ncol=900)
+sigk_spin_up_comb<-cbind(sigk_spin_up,link)
 
 ltk<-lt(hsi)
+ltkk_spin_up<-matrix(rep(ltk[,1], 900), ncol=900)
+ltkk_spin_up_comb<-cbind(ltkk_spin_up,link)
+
+
 
 ```
 
@@ -652,14 +666,14 @@ ltk<-lt(hsi)
 demoniche_setup(modelname = "Capra_ibex",Populations = Populations, Nichemap = niche_map_mine,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                 stages = stages, proportion_initial = proportion_initial,
-                density_individuals = density_individuals,
-                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.1,
                 dispersal_constants = c(0.7,0.7,0.1,2),
                 transition_affected_niche = transition_affected_niche,
                 transition_affected_demogr = transition_affected_demogr,
                 transition_affected_env=transition_affected_env,
                 env_stochas_type = env_stochas_type,
-                no_yrs = no_yrs_mine, K=sigk, Kweight = K_weight, 
+                no_yrs = no_yrs_mine, K=ltkk_spin_up_comb, Kweight = K_weight, 
                 sumweight =sumweight)
 
 RPyran_disp_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE, 
@@ -669,9 +683,24 @@ RPyran_disp_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE,
 RPyran_disp_niche[,"Meanpop","Reference_matrix"]
 
 years<-1950:2016
+years<-1050:2016
 #plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 bleh<-(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 
 plot(years, bleh, type="l", ylab="Number of Alpine Ibex")
+
+plot(years, bleh, type="l", ylab="Number of Alpine Ibex", xlim=c(1960,2016))
+```
+
+```{r}
+spin_up<-1050:1949
+year0<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep="")
+
+spin_up_files<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", spin_up,".tif", sep="")
+
+
+file.copy(year0, spin_up_files)
+
+
 
 ```
