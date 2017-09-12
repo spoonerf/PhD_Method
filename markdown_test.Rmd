@@ -430,36 +430,46 @@ years<-1950:2016
 
 years<-1050:2016
 
+sdm_patch_df<-data.frame(ID=1:ncell(rid))
 sdm_df<-data.frame(ID=1:ncell(rid))
+
 
 #formatting data for demoniche
 for (i in 1:length(years)){
   
   #a selection of different threshold techniques for presence absence, as well as a suitability surface
-  #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i],".tif", sep="")) #15.4%  
-  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
+  patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i],".tif", sep="")) #14,3%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i],".tif", sep=""))  #13.1%
   if (i ==1){
-    vec<-as.data.frame(sdm, xy = TRUE)      
+    vec<-as.data.frame(sdm, xy = TRUE)
+    vec_pat<-as.data.frame(patch, xy=TRUE)
   } else{
-    vec<-as.data.frame(sdm)  
+    vec<-as.data.frame(sdm)
+    vec_pat<-as.data.frame(patch)
   }
   
   sdm_df<-cbind(sdm_df, vec)
+  sdm_patch_df<-cbind(sdm_patch_df,vec)
   print(i)
 }
 
 sdm_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
+sdm_patch_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
 
 niche_map_mine<-sdm_df
 colnames(niche_map_mine)[1:3]<-c("gridID", "X", "Y")
+
+patch_map_mine<-sdm_patch_df
+colnames(patch_map_mine)[1:3]<-c("gridID", "X", "Y")
 
 col_years<-paste("Year_", 1950:2016, sep="")
 col_years<-paste("Year_", 1050:2016, sep="")
 
 colnames(niche_map_mine)[4:length(colnames(niche_map_mine))]<-col_years
+colnames(patch_map_mine)[4:length(colnames(patch_map_mine))]<-col_years
 
 niche_formulas <- as.formula(paste(paste(colnames(niche_map_mine)[-c(1:3)], collapse="+"),"X+Y",sep="~"))
 
@@ -468,7 +478,7 @@ niche_formulas <- as.formula(paste(paste(colnames(niche_map_mine)[-c(1:3)], coll
 no_yrs_mine<-1 #number of years each time period represents 
 
 
-plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
+#plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
 
 ```
 
@@ -525,7 +535,7 @@ sumweight<-rep(1, length(stages)) #weight of stages  - should be equal for all m
 #calculate the female population it would be c(1,1,1,0,0,0)
 #sumweightf<-c(1,1,1)
 
-transition_affected_niche<-c(1,2)   #which parts of the matrix are affected by the 
+transition_affected_niche<-c(2,11,20)   #which parts of the matrix are affected by the c(1,2) is juveniles
 #niche values
 
 transition_affected_env <- "all"
@@ -555,33 +565,6 @@ niche_map_mine[is.na(niche_map_mine)]<-0
 
 Running the demoniche model
 
-```{r}
-demoniche_setup(modelname = "Capra_ibex",Populations = Populations, Nichemap = niche_map_mine,
-                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
-                stages = stages, proportion_initial = proportion_initial,
-                density_individuals = density_individuals,
-                fraction_LDD = 0.1, fraction_SDD = 0.9,
-                dispersal_constants = c(0.7,0.7,0.1,2),
-                transition_affected_niche = transition_affected_niche,
-                transition_affected_demogr = transition_affected_demogr,
-                transition_affected_env=transition_affected_env,
-                env_stochas_type = env_stochas_type,
-                no_yrs = no_yrs_mine, K=NULL, Kweight = K_weight, 
-                sumweight =sumweight)
-
-RPyran_disp_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE, 
-                                     Dispersal = TRUE, repetitions = 1,
-                                     foldername = "RPyran_disp_niche")
-
-RPyran_disp_niche[,"Meanpop","Reference_matrix"]
-
-years<-1950:2016
-#plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
-bleh<-(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
-
-plot(years, bleh, type="l")
-
-```
 
 
 ```{r, echo=FALSE, eval=FALSE}
@@ -604,11 +587,7 @@ plot(years, bleh, type="l")
 
 
 
-niche_disp<-cbind(years,RPyran_disp_niche[,"Meanpop","Reference_matrix"], RPyran_disp_niche[,"Max","Reference_matrix"])
 
-#lines(niche_disp, type="l", col="red")
-plot(niche_disp, type="l", col="red")
-mean(diff(log10(niche_disp[,2])))
 ```
 
 
@@ -660,6 +639,41 @@ ltkk_spin_up_comb<-cbind(ltkk_spin_up,link)
 
 
 ```
+
+
+HSM as patch - Carrying capacity null -  transition matrix NULL?
+```{r}
+
+
+transition_affected_niche<-c(2,11,20)   #which parts of the matrix are affected by the c(2,11,20) is first three stages
+#niche values
+
+demoniche_setup(modelname = "Capra_ibex",Populations = Populations, Nichemap = patch_map_mine,
+                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = density_individuals,
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(0.7,0.7,0.1,2),
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=NULL, Kweight = K_weight, 
+                sumweight =sumweight)
+
+RPyran_disp_niche <- demoniche_model(modelname = "Capra_ibex", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "RPyran_disp_niche")
+
+RPyran_disp_niche[,"Meanpop","Reference_matrix"]
+
+years<-1950:2016
+#plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
+bleh<-(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
+
+plot(years, bleh[901:967], type="l")
+
+```
+
 
 
 ```{r}
