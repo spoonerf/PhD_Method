@@ -19,10 +19,10 @@ library(dismo)
 
 #####Creating Bioclim varibles for each year 1950-2016 for Europe - this only needs to be done once
 ```{r, eval=FALSE, message=FALSE}
-rr<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/rr_0.25deg_reg_v15.0.nc/rr_0.25deg_reg_v15.0.nc") #precipitation
-tg<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/tg_0.25deg_reg_v15.0.nc/tg_0.25deg_reg_v15.0.nc") #mean temp
-tn<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/tn_0.25deg_reg_v15.0.nc/tn_0.25deg_reg_v15.0.nc") #min temp
-tx<-brick("C:/Users/Fiona/Documents/PhD/PhD_Method/tx_0.25deg_reg_v15.0.nc/tx_0.25deg_reg_v15.0.nc") #max temp
+rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
+tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
+tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
+tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
 #dates<-as.Date((gsub("X", "",names(rr))), format="%Y.%m.%d")
 
 
