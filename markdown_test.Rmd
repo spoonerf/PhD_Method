@@ -458,7 +458,11 @@ Populations<-data.frame(na.omit(df))
 ```
 
 
+<<<<<<< HEAD
 ```{r, cache=TRUE, echo=FALSE}
+=======
+```{r, cache=TRUE}
+>>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
 #formatting the sdm data
 
 
@@ -538,7 +542,6 @@ keep<-as.numeric(rownames(tempMetadata))
 
 tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and/or C
 
-
 MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
@@ -555,7 +558,7 @@ colnames(matrices)<- c("Reference_matrix")
 
 Parameterising the demoniche model
 
-```{r}
+```{r, cache=TRUE}
 prob_scenario<-c(0.5,0.5)    #need to check this
 
 noise<-0.90     #not yet active in demoniche
@@ -602,7 +605,7 @@ patch_map_mine[is.na(patch_map_mine)]<-0
 
 Running the demoniche model
 
-```{r}
+```{r, cache=TRUE}
 #plotting functions linking k and hsi
 
 k<-5000   #need to find a better way of estimating this - filzbach should work well
@@ -640,18 +643,18 @@ hsi<-extract(sdms, xy)
 
 
 link<-lin(hsi)
-link_spin_up<-matrix(rep(link[,1], 900), ncol=900)
-link_spin_up_comb<-cbind(link_spin_up,link)
+#link_spin_up<-matrix(rep(link[,1], 900), ncol=900)
+#link_spin_up_comb<-cbind(link_spin_up,link)
 
 sigk<-sig(hsi)
-sigk_spin_up<-matrix(rep(sigk[,1], 900), ncol=900)
-sigk_spin_up_comb<-cbind(sigk_spin_up,link)
+#sigk_spin_up<-matrix(rep(sigk[,1], 900), ncol=900)
+#sigk_spin_up_comb<-cbind(sigk_spin_up,link)
 
 ltk<-lt(hsi)
-ltkk_spin_up<-matrix(rep(ltk[,1], 900), ncol=900)
-ltkk_spin_up_comb<-cbind(ltkk_spin_up,link)
+#ltkk_spin_up<-matrix(rep(ltk[,1], 900), ncol=900)
+#ltkk_spin_up_comb<-cbind(ltkk_spin_up,link)
 
-
+plot(link[,c(900, 967)])
 
 ```
 
@@ -775,6 +778,7 @@ ggplot(data = melt_lpi, aes(y= value, x= Year, group=Populations.PatchID, col=Po
 
 dt<-read.csv("Mammals_scaled_ready_for_models.csv")
 
+<<<<<<< HEAD
 m1c<-lm(lambda_mean ~ mean_slope_scale,data=dt)
 
 b1s<-coef(m1c)
@@ -810,6 +814,9 @@ pairs(lambda_preds)
 
 
 ```{r, eval=FALSE, echo=FALSE}
+=======
+```{r, eval=FALSE}
+>>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
 patch_run_dz <- demoniche_model_VE(modelname = "Capra_ibex_patch", Niche = TRUE, 
                                      Dispersal = T, repetitions = 1,
                                      foldername = "damaris_function")
@@ -826,7 +833,11 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 
 HSM - linear k - all stages
+<<<<<<< HEAD
 ```{r, eval=FALSE, echo=FALSE}
+=======
+```{r, eval=FALSE}
+>>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
 
 demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, Nichemap = niche_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -870,7 +881,11 @@ mean(diff(log10(link_years[900:967])), type="l")
 
 ```
 
+<<<<<<< HEAD
 ```{r, eval=FALSE, echo=FALSE}
+=======
+```{r, eval=FALSE}
+>>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
 spin_up<-1050:1949
 year0<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_1950.tif", sep="")
 
