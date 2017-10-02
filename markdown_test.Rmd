@@ -605,7 +605,7 @@ Running the demoniche model
 ```{r, cache=TRUE}
 #plotting functions linking k and hsi
 
-k<-5000   #need to find a better way of estimating this - filzbach should work well
+k<-1  #need to find a better way of estimating this - filzbach should work well
 lin<-function(x){
   x*k
   }
@@ -630,16 +630,23 @@ files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
 
 sdms<-stack(paste(wd,"/Alp_SDMs/Ensembles/", files, sep=""))
 
+ks_df<-read.csv("carrying_capacity_log_likelihood_capra_ibex.csv")
+ks_df$PatchID<-ID*100
+
 #for 1950-2016
 #sdms<-sdms[[901:967]]
 
 
-xy<-Populations[,c(2,3)]
 
-hsi<-extract(sdms, xy)
+
+ks_xy<-merge(Populations, ks_df[,c(2:4)], by="PatchID")
+
+
+hsi<-extract(sdms, ks_xy[,c(2,3)])
 
 
 link<-lin(hsi)
+
 #link_spin_up<-matrix(rep(link[,1], 900), ncol=900)
 #link_spin_up_comb<-cbind(link_spin_up,link)
 
