@@ -19,10 +19,10 @@ library(dismo)
 
 #####Creating Bioclim varibles for each year 1950-2016 for Europe - this only needs to be done once
 ```{r, eval=FALSE, message=FALSE}
-rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
-tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
-tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
-tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
+rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
+tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
+tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
+tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
 #dates<-as.Date((gsub("X", "",names(rr))), format="%Y.%m.%d")
 
 
@@ -282,6 +282,7 @@ plot(wm)
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #thresholds - perhaps redundant for now?
+library(rgdal)
 
 bc <- bioclim(pred_nf, sp)
 gm1<-mgcv:::gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
@@ -339,6 +340,8 @@ Using the ensemble model to predict suitability for each year - 1950-2016
 ```{r, cache=TRUE, eval=FALSE}
 years<-1950:2016
 library(raster)
+library(mgcv)
+library(randomForest)
 for (i in 1:length(years)){
   
   pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))  
@@ -455,7 +458,7 @@ Populations<-data.frame(na.omit(df))
 ```
 
 
-```{r}
+```{r, cache=TRUE, echo=FALSE}
 #formatting the sdm data
 
 
@@ -485,7 +488,7 @@ for (i in 1:length(years)){
   
   sdm_df<-cbind(sdm_df, vec)
   sdm_patch_df<-cbind(sdm_patch_df,vec_pat)
-  print(i)
+  #print(i)
 }
 
 sdm_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
@@ -585,13 +588,13 @@ proportion_initial<- rep(1/length(stages), length(stages)) #proportion of popula
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
 
-density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha 
+density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha - 
 
 
 K_weight<-c(rep(1, length(stages)))  #the weight with which carrying capacity affects each stage was FALSE
 
 
-niche_map_mine[is.na(niche_map_mine)]<-0
+#niche_map_mine[is.na(niche_map_mine)]<-0
 patch_map_mine[is.na(patch_map_mine)]<-0
 ```
 
@@ -602,7 +605,7 @@ Running the demoniche model
 ```{r}
 #plotting functions linking k and hsi
 
-k<-5000   #need to find a better way of estimating this
+k<-5000   #need to find a better way of estimating this - filzbach should work well
 lin<-function(x){
   x*k
   }
@@ -655,8 +658,10 @@ ltkk_spin_up_comb<-cbind(ltkk_spin_up,link)
 
 HSM as patch - Carrying capacity null -  transition matrix NULL?
 ```{r}
-demoniche_setup(modelname = "patch_ltk_low_disp",Populations = Populations, Nichemap = patch_map_mine,
-                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+
+library(demoniche)
+demoniche_setup(modelname = "patch_ltk_low_disp",Populations = Populations, Nichemap =pmm,
+                matrices = matrices, matrices_var = matrices_var, prob_scenario = prob_scenario,
                 stages = stages, proportion_initial = proportion_initial,
                 density_individuals = density_individuals,
                 fraction_LDD = 0.1, fraction_SDD = 0.1,
@@ -766,9 +771,45 @@ ggplot(data = melt_lpi, aes(y= value, x= Year, group=Populations.PatchID, col=Po
 
 ```
 
-
-
 ```{r}
+
+dt<-read.csv("Mammals_scaled_ready_for_models.csv")
+
+m1c<-lm(lambda_mean ~ mean_slope_scale,data=dt)
+
+b1s<-coef(m1c)
+
+icol <- which(colnames(dt)=="mean_slope_scale")
+p.order <- c(icol,(1:ncol(dt))[-icol])
+m <- c(0,mean(df2$Estimate))
+s <- c(1,sd(df2$Estimate))
+all.equal(m1c,rescale.coefs(b1s,m,s)) 
+
+
+capra_df<-df2[df2$ID == 10696 | df2$ID == 10714 | df2$ID == 10694 | df2$ID == 10717 | df2$ID == 10713 |df2$ID == 10718 |df2$ID == 10695 |df2$ID == 539 |df2$ID == 10710 ,]
+
+
+capras<-which(df2$ID == 10696 | df2$ID == 10714 | df2$ID == 10694 | df2$ID == 10717 | df2$ID == 10713 |df2$ID == 10718 |df2$ID == 10695 |df2$ID == 539 |df2$ID == 10710 )
+
+
+pred<-10^(predict(m0)[capras])
+pred_clim<-10^predict(m1c)[capras]   #climate only model
+pred_luc<-10^predict(m1b)[capras]
+real<-10^capra_df$lambda_mean
+  
+demo<-10^rowMeans(diff(as.matrix(log10(trends_df[,c(900:967)]))))
+
+
+lambda_preds<-cbind(pred, pred_clim,pred_luc, real, demo)
+
+
+pairs(lambda_preds)
+
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
 patch_run_dz <- demoniche_model_VE(modelname = "Capra_ibex_patch", Niche = TRUE, 
                                      Dispersal = T, repetitions = 1,
                                      foldername = "damaris_function")
@@ -785,7 +826,7 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 
 HSM - linear k - all stages
-```{r}
+```{r, eval=FALSE, echo=FALSE}
 
 demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, Nichemap = niche_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -829,7 +870,7 @@ mean(diff(log10(link_years[900:967])), type="l")
 
 ```
 
-```{r}
+```{r, eval=FALSE, echo=FALSE}
 spin_up<-1050:1949
 year0<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_1950.tif", sep="")
 
