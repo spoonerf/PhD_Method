@@ -458,11 +458,8 @@ Populations<-data.frame(na.omit(df))
 ```
 
 
-<<<<<<< HEAD
 ```{r, cache=TRUE, echo=FALSE}
-=======
-```{r, cache=TRUE}
->>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
+
 #formatting the sdm data
 
 
@@ -778,7 +775,6 @@ ggplot(data = melt_lpi, aes(y= value, x= Year, group=Populations.PatchID, col=Po
 
 dt<-read.csv("Mammals_scaled_ready_for_models.csv")
 
-<<<<<<< HEAD
 m1c<-lm(lambda_mean ~ mean_slope_scale,data=dt)
 
 b1s<-coef(m1c)
@@ -814,9 +810,7 @@ pairs(lambda_preds)
 
 
 ```{r, eval=FALSE, echo=FALSE}
-=======
-```{r, eval=FALSE}
->>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
+
 patch_run_dz <- demoniche_model_VE(modelname = "Capra_ibex_patch", Niche = TRUE, 
                                      Dispersal = T, repetitions = 1,
                                      foldername = "damaris_function")
@@ -833,11 +827,7 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 
 HSM - linear k - all stages
-<<<<<<< HEAD
 ```{r, eval=FALSE, echo=FALSE}
-=======
-```{r, eval=FALSE}
->>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
 
 demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, Nichemap = niche_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -881,11 +871,8 @@ mean(diff(log10(link_years[900:967])), type="l")
 
 ```
 
-<<<<<<< HEAD
 ```{r, eval=FALSE, echo=FALSE}
-=======
-```{r, eval=FALSE}
->>>>>>> fb7573042481d104958f87b37fe7f25f6148c6c4
+
 spin_up<-1050:1949
 year0<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_1950.tif", sep="")
 
