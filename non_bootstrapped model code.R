@@ -5,6 +5,8 @@ esa<-read.csv("Populations_1992_ESA.csv")
 temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 #temp2<-read.csv("All_LPI_nobuff_1931_mean_temp_sum_change.csv")
 
+
+
 body<-read.csv("bird_and_mammal_traits2.csv")
 body2<-read.csv("Bird_and_Mammal_BM.csv")
 # body2<-read.csv("LPI_traits.csv")
@@ -27,6 +29,8 @@ hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 
 hyde2<-read.csv("Hyde_crop_pasture_annual_change_sum.csv")
 
+temp<-merge(temp, hyde[,c(2,3)], by="ID")
+
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -47,7 +51,7 @@ temp<-temp[,c("ID", "Estimate")]
 
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
-df<-merge(merge(temp,body4[,c(3:5)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,body4[,c(2:4)], by="Binomial", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
@@ -72,6 +76,7 @@ df2<-subset(dfd, !is.na(Estimate) #& r_sq >= 0.4999999
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 nrow(df2)
 
+colnames(df2)[2]<-"Binomial"
 #just picking out the populations that are in the data set
 #df2<-df2[df2$ID %in% esa$ID,]
 
@@ -242,7 +247,7 @@ source("rsquaredglmm.R")
   
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
-  msAICc <- model.sel(m0,m0r,m0f,m0a,m0ar,m0af,m0b,m0br,m0bf,m0c,m0cr,m0cf,m0d,m0dr,m0df,m1,m1r,m1f,m1a,m1ar,m1af,m1b,m1br,m1bf,m1c,m1cr,m1cf,mnull)
+  #msAICc <- model.sel(m0,m0r,m0f,m0a,m0ar,m0af,m0b,m0br,m0bf,m0c,m0cr,m0cf,m0d,m0dr,m0df,m1,m1r,m1f,m1a,m1ar,m1af,m1b,m1br,m1bf,m1c,m1cr,m1cf,mnull)
 
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc$model<-rownames(msAICc)
@@ -387,3 +392,23 @@ pairs(lambda_preds)
 colSums(na.omit(lambda_preds - real))
 
 
+sp_ran<-data.frame(ranef(m0)[2])
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
+head(LPI)
+ord<-data.frame(LPI$Binomial, LPI$Family)
+colnames(ord)<-c("Binomial", "Family")
+sp_ran$Binomial<-rownames(sp_ran)
+sp_ran<-data.frame(sp_ran)
+colnames(sp_ran)<-c("Intercept","Binomial")
+
+unique(merge(ord, sp_ran, by="Binomial"))
+sp_ord<-unique(merge(ord, sp_ran, by="Binomial"))
+sp_ord<-sp_ord[sp_ord$Family != "",]
+plot(sp_ord$Intercept, col=sp_ord$Family)
+ord_int<-aggregate(sp_ord$Intercept,by=list(sp_ord$Family) ,FUN="mean")
+ord_int$pgr<-10^ord_int$x
+ord_int
+
+which.min(fitted.values(m0))
+
+dt[285,]
