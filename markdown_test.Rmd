@@ -992,9 +992,16 @@ melt_lpi$value<-as.numeric(as.character(melt_lpi$value))
 ggplot(data = melt_lpi, aes(y= value, x= Year, group=Populations.PatchID, col=Populations.PatchID))+
   geom_line()
 
+melt_lpi$model_type<-"Real"
+melt_lpi$ID<-as.numeric(melt_lpi$Populations.PatchID)/100
+melt_lpi<-melt_lpi[-1]
+
 ```
 
 ```{r}
+
+foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
+
 bdf<-data.frame()
 for(i in 1:length(foldernames)){
 trends<-read.csv(paste(wd, "/",foldernames[i],"/pop_trend_output.csv", sep=""))
@@ -1007,6 +1014,54 @@ bdf<-rbind(bdf,m_t)
 print(i)
 }
 
+bdf_lpi<-rbind(bdf,melt_lpi)
+
+pop_pred_539<-bdf_lpi[bdf_lpi$ID == 539 & bdf_lpi$Year >=1950,]
+pop_pred_10694<-bdf_lpi[bdf_lpi$ID == 10694 & bdf_lpi$Year >=1950,]
+pop_pred_10695<-bdf_lpi[bdf_lpi$ID == 10695 & bdf_lpi$Year >=1950,]
+pop_pred_10696<-bdf_lpi[bdf_lpi$ID == 10696 & bdf_lpi$Year >=1950,]
+pop_pred_10710<-bdf_lpi[bdf_lpi$ID == 10710 & bdf_lpi$Year >=1950,]
+pop_pred_10713<-bdf_lpi[bdf_lpi$ID == 10713 & bdf_lpi$Year >=1950,]
+pop_pred_10714<-bdf_lpi[bdf_lpi$ID == 10714 & bdf_lpi$Year >=1950,]
+pop_pred_10717<-bdf_lpi[bdf_lpi$ID == 10717 & bdf_lpi$Year >=1950,]
+pop_pred_10718<-bdf_lpi[bdf_lpi$ID == 10718 & bdf_lpi$Year >=1950,]
+
+ggplot(pop_pred_539, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 539")
+  
+ggplot(pop_pred_10694, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10694")
+  
+ggplot(pop_pred_10695, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10695")
+  
+ggplot(pop_pred_10696, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10696")
+  
+ggplot(pop_pred_10710, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10710")
+  
+ggplot(pop_pred_10713, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10713")
+  
+ggplot(pop_pred_10714, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10714")
+  
+ggplot(pop_pred_10717, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10717")
+  
+ggplot(pop_pred_10718, aes(y=value, x=Year, group=model_type, col=model_type))+
+  geom_line()+
+  labs(title="Population 10718")
+  
 
 ```
 
