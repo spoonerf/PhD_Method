@@ -297,7 +297,7 @@ auc<-c(bioclim_auc, gam_auc, rf_auc)
 w <- (auc-0.5)^2
 wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
 plot(wm)
-
+points(sp)
 ```
 
 Not sure if the way I am calculating the TSS threshold is correct
@@ -457,15 +457,6 @@ species<-"Capra_ibex"
 
 df2<-read.csv("LPI_pops_20160523_edited.csv")
 pyr<-subset(df2, Binomial ==species & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
-# tl<-pyr[,c(65:130)]
-# tl[tl=="NULL"]<-NA
-# tlm<-as.matrix(tl)
-# tlmn<-as.numeric(tlm)
-# tl<-matrix(tlmn, nrow=10, ncol=66)
-# ann_sum<-colSums(tl, na.rm=T)
-# plot(1950:2015, ann_sum)
-
-plot(pyr$Longitude, pyr$Latitude)
 
 #formatting the data for use in demoniche
 pyrs<-pyr[,c("ID","Longitude","Latitude")]
@@ -876,7 +867,7 @@ sigks<-sigk*ks_xy$ks
 ltk<-lt(hsi)
 ltks<-ltk*ks_xy$ks
 
-plot(links[1,c(900:967)], type="l")
+#plot(links[,c(900:967)], type="l")
 
 ```
 
@@ -1003,6 +994,21 @@ ggplot(data = melt_lpi, aes(y= value, x= Year, group=Populations.PatchID, col=Po
 
 ```
 
+```{r}
+bdf<-data.frame()
+for(i in 1:length(foldernames)){
+trends<-read.csv(paste(wd, "/",foldernames[i],"/pop_trend_output.csv", sep=""))
+trends<-trends[,-1]
+m_t<-melt(trends)
+m_t$Year<-rep(1050:2016, each=9)
+m_t$model_type<-foldernames[i]
+m_t$ID<-alpine$ID
+bdf<-rbind(bdf,m_t)
+print(i)
+}
+
+
+```
 
 Comparison of the demoniche models to the lpi correlation models
 ```{r, message=FALSE, warning=FALSE}
