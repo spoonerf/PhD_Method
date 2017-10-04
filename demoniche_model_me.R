@@ -1,4 +1,4 @@
-demoniche_model_me = function (modelname, Niche, Dispersal, repetitions, foldername) 
+demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, foldername) 
 {
   BEMDEM <- get(modelname, envir = .GlobalEnv)
   require(popbio)
