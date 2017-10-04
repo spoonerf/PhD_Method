@@ -1,3 +1,4 @@
+---
 title: "Demoniche Workflow"
 author: "Fiona Spooner"
 date: "September 6, 2017"
@@ -5,24 +6,24 @@ output: html_document
 ---
 ###Chapter 3 workflow
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, message=FALSE}
 install.packages('climates',,'http://www.rforge.net/')
 install.packages("dismo")
 install.packages("maps")
 install.packages("mapdata")
 ```
 
-```{r, message= FALSE}
+```{r, message= FALSE, warning=FALSE}
 library(zoo)
 library(dismo)
 ```
 
 #####Creating Bioclim varibles for each year 1950-2016 for Europe - this only needs to be done once
-```{r, eval=FALSE, message=FALSE}
-rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
-tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
-tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
-tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
+tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
+tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
+tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
 #dates<-as.Date((gsub("X", "",names(rr))), format="%Y.%m.%d")
 
 
@@ -80,7 +81,7 @@ x <- circles(sp, d=50000, lonlat=TRUE)
 pol <- polygons(x)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 e<-extent(sp)
 e_big<-e+4
 maps:::map('world',c('Italy', 'Switzerland', 'Austria', 'Monaco','Liechtenstein','Germany', 'Slovenia', 'France'),  col="light grey", fill=T, xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]))
@@ -89,8 +90,27 @@ points(sp, col="red", pch=20)
 
 ```
 
-Creating the 1985-2016 average for each bioclim variable and pulling out the layers we want to use in the model 
-```{r,cache=TRUE, message=FALSE}
+Creating the 1985-2016 average for each bioclim variable and pulling out the layers we want to use in the model.
+
+I have picked out:
+
+•	Bioclim 1 – Annual mean temperature
+
+•	Bioclim 5 – Max temperature of the warmest month
+
+•	Bioclim 6 – Min temperature of the coldest month
+
+•	Bioclim 13 – Precipitation of the wettest month
+
+•	Bioclim 15 – Precipitation seasonality (coefficient of variation)
+
+•	Bioclim 18 – Precipitation of warmest quarter
+
+•	Bioclim 19 – Precipitation of coldest quarter
+
+Snow septh seems to be an important predictor for alpine ibex but I have struggled to find historical data on this. Existing papers are based on one weather stations historical data, which means there is no spatial variation and therefore it is not appropriate for these models.
+
+```{r,cache=TRUE, message=FALSE, warning=FALSE}
 e<-extent(sp)+4
 
 lf<-list.files(paste(wd, "/Bioclim/", sep=""))
@@ -116,8 +136,8 @@ pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif
 
 ```
 
-Creating training and testing presence and background data
-```{r, cache=TRUE, message=FALSE}
+Creating training and testing presence and background data - each time I run this a different sample of randomPoints is selected and I am not sure if that is correct and to what extent it impacts the resulting models.
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
 k<-4
 group_pres<-kfold(sp, k)
 pres_train<-sp[group_pres!=1,]
@@ -153,7 +173,7 @@ env_all<-rbind(envtrain, envtest)
 
 Running the bioclim envelope model and evaluating it to get an AUC value
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
 #Bioclim
 bc <- bioclim(pred_nf, sp)
 ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
@@ -183,7 +203,7 @@ print(bioclim_auc)
 
 Running a gam and evaluating it to get an AUC value
 
-```{r, cache= TRUE, message=FALSE}
+```{r, cache= TRUE, message=FALSE, warning=FALSE}
 library(mgcv)
 gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
            s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
@@ -223,7 +243,7 @@ print(gam_auc)
 
 #####Random Forest
 
-Running the random forestenvelope model and evaluating it to get an AUC value
+Running the random forest envelope model and evaluating it to get an AUC value
 
 ```{r, cache= TRUE, message= FALSE, warning=FALSE}
 library(randomForest)
@@ -280,7 +300,9 @@ plot(wm)
 
 ```
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+Not sure if the way I am calculating the TSS threshold is correct
+
+```{r,eval=FALSE, warning=FALSE, message=FALSE}
 #thresholds - perhaps redundant for now?
 library(rgdal)
 
@@ -335,9 +357,9 @@ names<-c("non_weighted", "spec_sens", "kappa", "prevalence", "equal_sens_spec", 
 cbind(names, tholds)
 ```
 
-Using the ensemble model to predict suitability for each year - 1950-2016
+Using the ensemble model to predict suitability for each year - 1950-2016 and for each year creating a binary presence/absence map based on a few different thresholding techniques. Have used TSS in the rest of the analysis as per Allouche 2006 which said it outperformed kappa which I believe was previously most prominent.
 
-```{r, cache=TRUE, eval=FALSE}
+```{r, cache=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
 years<-1950:2016
 library(raster)
 library(mgcv)
@@ -379,8 +401,26 @@ for (i in 1:length(years)){
 }
 
 ```
-#Copying the 1950 files for the 900 year spin up
-```{r, eval=FALSE}
+
+
+Trends in habitat suitability 1950-2016
+
+```{r}
+years<-1950:2016
+t<-stack(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years,".tif", sep=""))
+s<-round(seq(1,67,len=16))
+
+plot(t[[s]])
+
+m<-cellStats(t, stat="mean")
+sd<-cellStats(t, stat="sd")
+
+plot(years,m, type="l", main="Average habitat suitability over time", ylim=c(0,0.5), ylab="Suitability index", xlab="Years")
+lines(years, m+(2*sd), col="red", lty=3)
+lines(years, m-(2*sd), col="red", lty=3)
+```
+#####Copying the 1950 files for the 900 year spin up
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
 spin_years<-1049:1949
 from_sdm<- paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif", sep="")
 to_sdm<-paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_",spin_years, ".tif", sep="")
@@ -458,7 +498,7 @@ Populations<-data.frame(na.omit(df))
 ```
 
 
-```{r, cache=TRUE, echo=FALSE}
+```{r, cache=TRUE, echo=FALSE, eval=FALSE, message=FALSE, warning=FALSE}
 
 #formatting the sdm data
 
@@ -521,7 +561,7 @@ no_yrs_mine<-1 #number of years each time period represents
 
 #####Comadre
 
-Accessing the population matrices from comadre
+Accessing the population matrices from comadre - there are 5 matrices available for the alpine ibex but four are for the same area and only represent survival over two time periods in good/bad conditions.
 
 ```{r, warning=FALSE, message=FALSE}
 #Population matrix set up
@@ -553,9 +593,10 @@ colnames(matrices)<- c("Reference_matrix")
 
 ```
 
+#####Demoniche setup
 Parameterising the demoniche model
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
 prob_scenario<-c(0.5,0.5)    #need to check this
 
 noise<-0.90     #not yet active in demoniche
@@ -598,11 +639,194 @@ K_weight<-c(rep(1, length(stages)))  #the weight with which carrying capacity af
 patch_map_mine[is.na(patch_map_mine)]<-0
 ```
 
-#####Demoniche setup
+#####Estimating carrying capacity from LPI data
 
-Running the demoniche model
+Code from piero to estimate carrying capacity based on LPI population trends, using MCMC. I have done this for each of the 9 populations, not sure if I have done it the correct way.
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
 
-```{r, cache=TRUE}
+ibex<-read.csv("LPI_pops_20160523_edited.csv")
+ibex<-ibex[ibex$ID == 539 | ibex$ID == 10692|ibex$ID == 10694|ibex$ID == 10695|ibex$ID == 10696|
+             ibex$ID == 10710 |ibex$ID == 10713|ibex$ID == 10714|ibex$ID == 10717 |ibex$ID == 10718,]
+
+pop_datab <- ibex[,c(65:130)]
+
+#539
+pop_539<-c(2767, 2873, 3367, 3541, 3370, 3674, 3822, 2803, 3222, 3537, 3266, 3513, 3822, 
+           3203,3431,3382, 2746, 3158, 3116, 3590, 3754, 2410, 3084, 3042, 3234,
+           3412, 3255, 3187, 3362, 3740, 3914, 4283, 4303, 4694, 4631, 4790, 4754, 4991, 4136,
+           4360, 3998, 3581, 3701, 3674, 3632)
+years_539<-1956:2000
+
+#10692
+pop_10692<-c(158,128,135,139,134,116,128,130,159,189,211,242,249,246,254,256,251,235,234,
+             222,204,211,232,256,270,277,304,275,287,268,256,253,247,241,NA,250)
+years_10692<-1950:1985
+df_10692<-data.frame(pop_10692, years_10692)
+
+
+pop_10692_gam<-mgcv:::gam(pop_10692 ~ s(years_10692, k=round(length(years_10692)/2)))
+pred_10692<-predict(pop_10692_gam,df_10692,type="response",se=FALSE) 
+pop_10692[which(is.na(pop_10692))]<-pred_10692[which(is.na(pop_10692))]
+
+#10694
+pop_10694<-c(45,36,34,34,36,38,37,44,44,48,51,58,63,61,58,54,51,51,51,54,51,47,46,44,44,42,33,30,26,26,25,21,21,21,23)
+years_10694<-1950:1984
+
+#10695 
+
+pop_10695<-c(211,237,269,299,323,355,377,398,415,437,448,439,432,424,415,408,399,392,384,375,377,
+             385,397,409,421,432,444,454,468,471,454)
+years_10695<-1950:1980
+
+#10696
+
+pop_10696<-c(16,13,13,13,13,11,13,18,25,32,39,51,54,56,65,65,66,70,78,82,92,111,127,146,153,156,
+             166,172,185,206,215,218,241,246,265)
+years_10696<-1950:1984
+
+
+#10710
+
+pop_10710<-c(14,28,NA,NA,NA,NA,63,88,92,NA,NA,NA,NA,185,210,284,341)
+years_10710<-1989:2005
+df_10710<-data.frame(pop_10710, years_10710)
+
+pop_10710_gam<-mgcv:::gam(pop_10710 ~ s(years_10710, k=round(length(years_10710)/2)))
+pred_10710<-predict(pop_10710_gam,df_10710,type="response",se=FALSE) 
+pop_10710[which(is.na(pop_10710))]<-pred_10710[which(is.na(pop_10710))]
+
+
+#10713
+
+pop_10713<-c(193,173,183,220,230,248,258,267,277,248,248,272,291,286,251,221,216,223,231,228,145,163,
+             179,194,176,157,178,148,178,169,169,182,193,205,225,233,214,240,279,229)
+years_10713<-1950:1989
+
+
+#10714
+
+pop_10714<-c(8,15,26,30,NA,31,32,47,50,58,64,66,72,75,90)
+
+years_10714<-1950:1964
+df_10714<-data.frame(pop_10714, years_10714)
+
+pop_10714_gam<-mgcv:::gam(pop_10714 ~ s(years_10714, k=round(length(years_10714)/2)))
+pred_10714<-predict(pop_10714_gam,df_10714,type="response",se=FALSE) 
+pop_10714[which(is.na(pop_10714))]<-pred_10714[which(is.na(pop_10714))]
+
+#10717
+pop_10717<-c(23,32,34,36,42,44,46,55,60,73)
+years_10717<-1955:1964
+
+#10718
+pop_10718<-c(652,353,387,464,481,515,626,523,531,694,762,531,821,855,787,889,
+             847,761,864,1034,NA,949,957,1017,1094,NA,1076,1042,923,735,649,658,
+             700,880,1067,999,1007,1212,1434,1519,1553,1596,1468,1280,1254,1152,1254,1263,
+             1237,1220,1237,1075,801)
+years_10718<-1950:2002
+df_10718<-data.frame(pop_10718, years_10718)
+
+pop_10718_gam<-mgcv:::gam(pop_10718 ~ s(years_10718, k=round(length(years_10718)/2)))
+pred_10718<-predict(pop_10718_gam,df_10718,type="response",se=FALSE) 
+pop_10718[which(is.na(pop_10718))]<-pred_10718[which(is.na(pop_10718))]
+
+
+library(filzbach)
+library(plotrix)
+# transitions says which
+
+
+pop_id<-pop_10718
+
+transitions=rep(TRUE,length(pop_id))# this says which data point to use for model fitting
+#transitions[c(3:5)]=FALSE # set to false years where elephants left KNP because of a drought
+loglike_var=function(r,k,mu,sigma){
+  res=matrix(nrow=nobs-1)
+  prob=matrix(nrow=nobs-1)
+  for (te in 2:nobs){
+    if (transitions[te-1]){
+      res[te-1]=(pop[te]/pop[te-1])-1-(r*(1-pop[te-1]/k))
+      prob[te-1]=dnorm(res[te-1],mean=mu,sd=sigma)
+      loglike=sum(log(prob),na.rm=TRUE)
+    }
+  }
+  return(loglike)
+} 
+
+filz.par_var=list(r=c(-0.05,0.25,0.1,0,-1,1), # 1 st argument lower bound, 2nd upper bound, 3rd best guess. these are the only thing you need to change
+                  k=c(300,2400,900,0,-1,1),
+                  mu=c(-0.1,0.1,0,0,-1,1),
+                  sigma=c(0,0.6,0.2,0,-1,1)) 
+
+
+pop=pop_id # set training dataset to kruger elephant data in the no-culling period
+t=length(pop_id)
+nobs=t
+No=pop_id[1] # starting population to the first data point
+parameters_var=matrix(nrow=0,ncol=4)
+
+
+
+# run MonteCarlo Markov Chain parameter optimization with 50,000 it burn-in and 40,000 sampling using the likelihood function
+# above and the input parameters in filx.par_var. sample 1 in 10 parameters from posterior distribution
+# run the sampler 5 times and rbind it all.
+for (i in 1:5){
+  parameters_var=rbind(parameters_var,runMCMC(50000,40000,loglike_var,nobs,filz.par_var,thinning=10)) 
+}
+
+summary(parameters_var) # growth rate, carrying capacity, mean and std of noise
+
+
+
+colMeans(parameters_var)
+
+hist(parameters_var[,1])
+hist(parameters_var[,2])
+hist(parameters_var[,3])
+hist(parameters_var[,4])
+
+
+quantile(parameters_var[,1],probs=c(0.025,0.5,0.975))
+
+
+k_539<-parameters_var[,2]
+k_10692<-parameters_var[,2]
+k_10694<-parameters_var[,2]
+k_10695<-parameters_var[,2]
+k_10696<-parameters_var[,2]
+k_10710<-parameters_var[,2]
+k_10713<-parameters_var[,2]
+k_10714<-parameters_var[,2]
+k_10717<-parameters_var[,2]
+k_10718<-parameters_var[,2]
+
+
+k_539m<-mean(k_539)
+k_10692m<-mean(k_10692)
+k_10694m<-mean(k_10694)
+k_10695m<-mean(k_10695)
+k_10696m<-mean(k_10696)
+k_10710m<-mean(k_10710)
+k_10713m<-mean(k_10713)
+k_10714m<-mean(k_10714)
+k_10717m<-mean(k_10717)
+k_10718m<-mean(k_10718)
+
+ID<-c(539,10692,10694,10695,10696,10710,10713,10714,10717,10718)
+ks<-c(k_539m,k_10692m, k_10694m, k_10695m, k_10696m, k_10710m, k_10713m, k_10714m, k_10717m, k_10718m)
+
+
+dfk<-data.frame(ID, ks)
+
+write.csv(dfk, "carrying_capacity_log_likelihood_capra_ibex.csv")
+
+
+```
+
+Scaling carrying capacity (as estimated above) in three different ways, linear, sigmoidal and linear threshold.
+
+
+```{r, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 #plotting functions linking k and hsi
 
 k<-1 #set to one when using filzbach estimates - otherwise set to a standard value across all pops
@@ -637,8 +861,6 @@ ks_df$PatchID<-ks_df$ID*100
 #sdms<-sdms[[901:967]]
 
 
-
-
 ks_xy<-merge(Populations, ks_df[,c(2:4)], by="PatchID")
 
 
@@ -658,14 +880,14 @@ plot(links[1,c(900:967)], type="l")
 
 ```
 
-
-```{r}
+Running the demoniche model - running 9 different models, for each method of scaling carrying capacity I have run demoniche with 3 different dispersal probabilities (0.1, 0.5 and 0.9).
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
 
 library(demoniche)
 source("demoniche_model_me.R")
 
 
-foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" ,"patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp")
+foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
 
 k_relationships<-rep(list(links, sigks, ltks), each=3)
@@ -703,10 +925,16 @@ plot(years,patch_run[,"Meanpop","Reference_matrix"], type="l", xlim=c(1949,2016)
 ```
 
 
-Converting pop output
-```{r}
+Extracting the predicted alpine ibex population trends for each population from the demoniche output.
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
 
+foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
+
+alpine<-lpi[lpi$ID == 10696 | lpi$ID == 10714 | lpi$ID == 10694 | lpi$ID == 10717 | lpi$ID == 10713 |lpi$ID == 10718 |lpi$ID == 10695 |lpi$ID == 539 |lpi$ID == 10710 ,]
+
+xy<-cbind(alpine$Longitude, alpine$Latitude)
 
 convert_pop_out<-function(foldername){
   
@@ -725,18 +953,22 @@ lapply(foldernames, convert_pop_out)
 
 ```
 
-```{r, eval=FALSE}
+
+Plots of the real trends vs predicted trends
+```{r, message=FALSE, warning=FALSE}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
 alpine<-lpi[lpi$ID == 10696 | lpi$ID == 10714 | lpi$ID == 10694 | lpi$ID == 10717 | lpi$ID == 10713 |lpi$ID == 10718 |lpi$ID == 10695 |lpi$ID == 539 |lpi$ID == 10710 ,]
 
 pop<-3
+years<-1950:2016
 
-plot(years, trends[pop,], type="l", ylim=c(0,5000), xlim=c(1950,2016))
+trends<-read.csv(paste(wd, "/patch_link_low_disp/pop_trend_output.csv", sep=""))
+
+plot(years, trends[pop,901:967], type="l", ylim=c(0,5000), xlim=c(1950,2016))
 lpi_pop<-alpine[,c(65:130)]
-lines(years[901:966], lpi_pop[pop,], type="l", col="red")
-
 pop_trends_pred<-data.frame(cbind(Populations$PatchID, trends))
+
 library(reshape)
 melt_pop<-melt(pop_trends_pred)
 
@@ -748,6 +980,7 @@ melt_lpi<-melt(lpi_pop, id.vars = "Populations.PatchID")
 
 
 melt_pop$ID<-as.factor(lpi_pop$Populations.PatchID)
+melt_pop<-melt_pop[-c(1:9),]
 melt_pop$Year<-rep(1050:2016 , each=9)
 
 melt_pop_1950<-subset(melt_pop, melt_pop$Year >=1950)
@@ -770,22 +1003,17 @@ ggplot(data = melt_lpi, aes(y= value, x= Year, group=Populations.PatchID, col=Po
 
 ```
 
-```{r}
+
+Comparison of the demoniche models to the lpi correlation models
+```{r, message=FALSE, warning=FALSE}
 library(lme4)
 dt<-read.csv("Mammals_scaled_ready_for_models.csv")
 
+foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
+
+m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt)
-
-
-# 
-# b1s<-coef(m1c)
-# 
-# icol <- which(colnames(dt)=="mean_slope_scale")
-# p.order <- c(icol,(1:ncol(dt))[-icol])
-# m <- c(0,mean(dt$Estimate))
-# s <- c(1,sd(dt$Estimate))
-# all.equal(m1c,rescale.coefs(b1s,m,s)) 
 
 
 capra_df<-dt[dt$ID == 10696 | dt$ID == 10714 |dt$ID == 10694 | dt$ID == 10717 | dt$ID == 10713 |dt$ID == 10718 |dt$ID == 10695 |dt$ID == 539 |dt$ID == 10710 ,]
@@ -798,11 +1026,20 @@ pred<-10^(predict(m0)[capras])
 pred_clim<-10^predict(m1c)[capras]   #climate only model
 pred_luc<-10^predict(m1b)[capras]   #land use only model
 real<-10^capra_df$lambda_mean
-  
-demoniche<-10^rowMeans(diff(as.matrix(log10(trends_df[,c(900:967)]))))
 
+dlnl<-read.csv(paste(wd, "/", foldernames[1], "/pop_trend_output.csv", sep=""))  
+dlnm<-read.csv(paste(wd, "/", foldernames[2], "/pop_trend_output.csv", sep=""))  
+dlnh<-read.csv(paste(wd, "/", foldernames[3], "/pop_trend_output.csv", sep=""))  
+dsgl<-read.csv(paste(wd, "/", foldernames[4], "/pop_trend_output.csv", sep=""))  
+dsgm<-read.csv(paste(wd, "/", foldernames[5], "/pop_trend_output.csv", sep=""))  
 
-lambda_preds<-cbind(pred, pred_clim,pred_luc, real, demoniche)
+demo_link_low<-10^rowMeans(diff(as.matrix(log10(dlnl[,c(900:967)]),nrow=9)))
+demo_link_mid<-10^rowMeans(diff(as.matrix(log10(dlnm[,c(900:967)]),nrow=9)))
+demo_link_high<-10^rowMeans(diff(as.matrix(log10(dlnh[,c(900:967)]),nrow=9)))
+demo_sigk_low<-10^rowMeans(diff(as.matrix(log10(dsgl[,c(900:967)]),nrow=9)))
+demo_sigk_mid<-10^rowMeans(diff(as.matrix(log10(dsgm[,c(900:967)]),nrow=9)))
+
+lambda_preds<-cbind(real,pred, pred_clim,pred_luc,  demo_link_low, demo_link_mid,demo_link_high,demo_sigk_low, demo_sigk_mid)
 
 
 pairs(lambda_preds)
@@ -811,7 +1048,7 @@ pairs(lambda_preds)
 ```
 
 
-```{r, eval=FALSE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 patch_run_dz <- demoniche_model_VE(modelname = "Capra_ibex_patch", Niche = TRUE, 
                                      Dispersal = T, repetitions = 1,
@@ -829,7 +1066,7 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 
 HSM - linear k - all stages
-```{r, eval=FALSE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, Nichemap = niche_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -873,7 +1110,7 @@ mean(diff(log10(link_years[900:967])), type="l")
 
 ```
 
-```{r, eval=FALSE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 spin_up<-1050:1949
 year0<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_1950.tif", sep="")
