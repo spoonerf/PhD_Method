@@ -1093,17 +1093,32 @@ dlnm<-read.csv(paste(wd, "/", foldernames[2], "/pop_trend_output.csv", sep=""))
 dlnh<-read.csv(paste(wd, "/", foldernames[3], "/pop_trend_output.csv", sep=""))  
 dsgl<-read.csv(paste(wd, "/", foldernames[4], "/pop_trend_output.csv", sep=""))  
 dsgm<-read.csv(paste(wd, "/", foldernames[5], "/pop_trend_output.csv", sep=""))  
+dsgh<-read.csv(paste(wd, "/", foldernames[6], "/pop_trend_output.csv", sep=""))  
+dltl<-read.csv(paste(wd, "/", foldernames[7], "/pop_trend_output.csv", sep=""))  
+dltm<-read.csv(paste(wd, "/", foldernames[8], "/pop_trend_output.csv", sep=""))  
+dlth<-read.csv(paste(wd, "/", foldernames[9], "/pop_trend_output.csv", sep=""))  
 
 demo_link_low<-10^rowMeans(diff(as.matrix(log10(dlnl[,c(900:967)]),nrow=9)))
 demo_link_mid<-10^rowMeans(diff(as.matrix(log10(dlnm[,c(900:967)]),nrow=9)))
 demo_link_high<-10^rowMeans(diff(as.matrix(log10(dlnh[,c(900:967)]),nrow=9)))
 demo_sigk_low<-10^rowMeans(diff(as.matrix(log10(dsgl[,c(900:967)]),nrow=9)))
 demo_sigk_mid<-10^rowMeans(diff(as.matrix(log10(dsgm[,c(900:967)]),nrow=9)))
+demo_sigk_high<-10^rowMeans(diff(as.matrix(log10(dsgh[,c(900:967)]),nrow=9)))
+demo_lt_low<-10^rowMeans(diff(as.matrix(log10(dltl[,c(900:967)]),nrow=9)))
+demo_lt_mid<-10^rowMeans(diff(as.matrix(log10(dltm[,c(900:967)]),nrow=9)))
+demo_lt_high<-10^rowMeans(diff(as.matrix(log10(dlth[,c(900:967)]),nrow=9)))
 
-lambda_preds<-cbind(real,pred, pred_clim,pred_luc,  demo_link_low, demo_link_mid,demo_link_high,demo_sigk_low, demo_sigk_mid)
+lambda_preds<-cbind(real,pred, pred_clim,pred_luc,  demo_link_low, demo_link_mid,demo_link_high,demo_sigk_low, demo_sigk_mid, demo_sigk_high,demo_lt_low,demo_lt_mid,demo_lt_high)
 
 
 pairs(lambda_preds)
+
+par(mfrow=c(3,4))
+
+for (i in 2:ncol(lambda_preds-1)){
+  plot(lambda_preds[,1], lambda_preds[,i], main=colnames(lambda_preds)[i], ylab=colnames(lambda_preds)[i], xlab=colnames(lambda_preds)[1])
+ print(i) 
+}
 
 
 ```
