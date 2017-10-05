@@ -956,7 +956,7 @@ years<-1950:2016
 
 trends<-read.csv(paste(wd, "/patch_link_low_disp/pop_trend_output.csv", sep=""))
 
-plot(years, trends[pop,901:967], type="l", ylim=c(0,5000), xlim=c(1950,2016))
+#plot(years, trends[pop,901:967], type="l", ylim=c(0,5000), xlim=c(1950,2016))
 lpi_pop<-alpine[,c(65:130)]
 pop_trends_pred<-data.frame(cbind(Populations$PatchID, trends))
 
