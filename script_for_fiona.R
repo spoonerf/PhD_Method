@@ -89,6 +89,7 @@ library(filzbach)
 library(plotrix)
 # transitions says which
 
+
 pop_id<-pop_10718
 
 transitions=rep(TRUE,length(pop_id))# this says which data point to use for model fitting
@@ -119,12 +120,14 @@ No=pop_id[1] # starting population to the first data point
 parameters_var=matrix(nrow=0,ncol=4)
 
 
+
 # run MonteCarlo Markov Chain parameter optimization with 50,000 it burn-in and 40,000 sampling using the likelihood function
 # above and the input parameters in filx.par_var. sample 1 in 10 parameters from posterior distribution
 # run the sampler 5 times and rbind it all.
 for (i in 1:5){
   parameters_var=rbind(parameters_var,runMCMC(50000,40000,loglike_var,nobs,filz.par_var,thinning=10)) 
 }
+
 summary(parameters_var) # growth rate, carrying capacity, mean and std of noise
 
 
