@@ -978,8 +978,8 @@ melt_pop_1950<-subset(melt_pop, melt_pop$Year >=1950)
 
 library(ggplot2)
 #plot of predicted trends
-ggplot(data = melt_pop_1950, aes(y= value, x= Year, group=ID, col=ID))+
-  geom_line()
+# ggplot(data = melt_pop_1950, aes(y= value, x= Year, group=ID, col=ID))+
+#   geom_line()
 
 col_years<-paste("Year_", 1950:2015, sep="")
 colnames(lpi_pop)<-col_years
@@ -998,7 +998,7 @@ melt_lpi<-melt_lpi[-1]
 
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
