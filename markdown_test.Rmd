@@ -885,14 +885,14 @@ k_relationships<-rep(list(links, sigks, ltks), each=3)  #need to change names of
 
 dispersal_levels<-rep(c(0.1,0.5,0.9), each=3)
 
-for (i in 2:length(foldernames)){
+for (i in 1:length(foldernames)){
 
   print(paste("processing of ", foldernames[i]," beginning, ", i, " of 9", sep=""))
   foldername = foldernames[i]
   dispersal = dispersal_levels[i]
   K = matrix(unlist(k_relationships[i]),nrow=9)
   
-  demoniche_setup(modelname = foldername,Populations = Populations, Nichemap =patch_map_mine,
+  demoniche_setup(modelname = foldername,Populations = Populations, Nichemap =niche_map_mine,
                 matrices = matrices, matrices_var = matrices_var, prob_scenario = prob_scenario,
                 stages = stages, proportion_initial = proportion_initial,
                 density_individuals = density_individuals,
@@ -1111,13 +1111,18 @@ demo_lt_high<-10^rowMeans(diff(as.matrix(log10(dlth[,c(900:967)]),nrow=9)))
 lambda_preds<-cbind(real,pred, pred_clim,pred_luc,  demo_link_low, demo_link_mid,demo_link_high,demo_sigk_low, demo_sigk_mid, demo_sigk_high,demo_lt_low,demo_lt_mid,demo_lt_high)
 
 
-pairs(lambda_preds)
+#pairs(lambda_preds)
 
+```
+
+Comparison of model predictions with the real values
+
+```{r}
 par(mfrow=c(3,4))
 
 for (i in 2:ncol(lambda_preds-1)){
   plot(lambda_preds[,1], lambda_preds[,i], main=colnames(lambda_preds)[i], ylab=colnames(lambda_preds)[i], xlab=colnames(lambda_preds)[1])
- print(i) 
+ #print(i) 
 }
 
 
@@ -1141,7 +1146,6 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 ```
 
 
-HSM - linear k - all stages
 ```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, Nichemap = niche_map_mine,
