@@ -1146,6 +1146,10 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 ```
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 881e1f055bdc625d708c6f1190f50f286a2d7765
 ```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, Nichemap = niche_map_mine,
