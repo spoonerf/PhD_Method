@@ -322,12 +322,12 @@ tr_bc_tss<-ev@t[which.max(ev@TPR + ev@TNR -1)]
 
 
 gam_ev<-dismo:::evaluate(pres_test, backg_test, gm1, pred_nf)
-tr_gam_noem<-threshold(gam_ev, 'no_emission')
+tr_gam_noem<-threshold(gam_ev, 'no_omission')
 tr_gam_k<-threshold(gam_ev, 'kappa')
 tr_gam_tss<-gam_ev@t[which.max(gam_ev@TPR + gam_ev@TNR -1)]
 
 rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
-tr_rf_noem<-threshold(rf_ev, 'no_emission')
+tr_rf_noem<-threshold(rf_ev, 'no_omission')
 tr_rf_k<-threshold(rf_ev, 'kappa')
 tr_rf_tss<-rf_ev@t[which.max(rf_ev@TPR + rf_ev@TNR -1)]
 
