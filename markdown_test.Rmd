@@ -138,15 +138,29 @@ pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif
 
 Creating training and testing presence and background data - each time I run this a different sample of randomPoints is selected and I am not sure if that is correct and to what extent it impacts the resulting models.
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
+
+set.seed(10)
+
 k<-4
-group_pres<-kfold(sp, k)
+#group_pres<-kfold(sp, k)
+#write.csv(group_pres, "k_folds_presence.csv")
+group_pres<-read.csv("k_folds_presence.csv")
+group_pres<-group_pres[,-1]
+
 pres_train<-sp[group_pres!=1,]
 pres_test<-sp[group_pres==1,]
 
-set.seed(10)
-backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
+#backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
+#write.csv(backg, "background_random_points.csv") 
+
+backg<-read.csv("background_random_points.csv")
+backg<-backg[,-1]
 colnames(backg) = c('lon', 'lat')
-group_back <- kfold(backg, k)
+#group_back <- kfold(backg, k)
+#write.csv(group_back, "k_folds_background.csv")
+group_back<-read.csv("k_folds_background.csv")
+group_back<-group_back[,-1]
+
 backg_train <- backg[group_back != 1, ]
 backg_test <- backg[group_back == 1, ]
 
@@ -174,11 +188,6 @@ env_all<-rbind(envtrain, envtest)
 Running the bioclim envelope model and evaluating it to get an AUC value
 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
-#Bioclim
-bc <- bioclim(pred_nf, sp)
-ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
-
-group_back <- kfold(backg, k)
 
 #group_back <- kfold(pb_train, k)
 evl<- list()
@@ -189,7 +198,7 @@ for (i in 1:k){
   #backg_train<-sp[group_back!=i,]
   backg_test<-backg[group_back==i,]
   bc <- bioclim(pred_nf,pres_train)
-  evl[[i]] <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
+  evl[[i]] <- dismo:::evaluate(pres_test, backg_test, bc,pred_nf)#test presence, test absence, model, predictor variables (raster stack)
   #print(i)
 }
 
@@ -212,10 +221,6 @@ gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985
 gp<-predict(pred_nf, gm1)
 r<-calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
 
-env_pres<-env_all[env_all$pa==1,]
-env_back<-env_all[env_all$pa==0,]
-group_pres<-  kfold(env_pres, k)
-group_back<- kfold(env_back, k)
 
 evl<- list()
 
@@ -310,17 +315,17 @@ bc <- bioclim(pred_nf, sp)
 gm1<-mgcv:::gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 rf1 <- randomForest:::randomForest(model, data=envtrain)
 
-k<-4
-group_pres<-kfold(sp, k)
-pres_train<-sp[group_pres!=1,]
-pres_test<-sp[group_pres==1,]
-
-set.seed(10)
-backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
-colnames(backg) = c('lon', 'lat')
-group_back <- kfold(backg, k)
-backg_train <- backg[group_back != 1, ]
-backg_test <- backg[group_back == 1, ]
+# k<-4
+# group_pres<-kfold(sp, k)
+# pres_train<-sp[group_pres!=1,]
+# pres_test<-sp[group_pres==1,]
+# 
+# set.seed(10)
+# backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
+# colnames(backg) = c('lon', 'lat')
+# group_back <- kfold(backg, k)
+# backg_train <- backg[group_back != 1, ]
+# backg_test <- backg[group_back == 1, ]
 
 ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
 tr_bc <- threshold(ev, 'spec_sens')
