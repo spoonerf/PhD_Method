@@ -52,6 +52,8 @@ library(dismo)
 library(demoniche)
 library(maps)
 library(mapdata)
+library(rgeos)
+
 
 #Extracting Alpine ibex data from GBIF
 wd<- getwd()
@@ -127,7 +129,7 @@ for (i in 1:19){
   bio_layer<-mean(all_years[[layers]])
   writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_1985_2016_average.tif",sep=""), overwrite=TRUE)
   bios<-bios+1
-  print(layers)
+  #print(layers)
 }
 
 #pulling out the bioclim layers i'm interested in
@@ -315,28 +317,49 @@ bc <- bioclim(pred_nf, sp)
 gm1<-mgcv:::gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
 rf1 <- randomForest:::randomForest(model, data=envtrain)
 
+# k<-4
+# group_pres<-kfold(sp, k)
+# pres_train<-sp[group_pres!=1,]
+# pres_test<-sp[group_pres==1,]
+# 
+# set.seed(10)
+# backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
+# colnames(backg) = c('lon', 'lat')
+# group_back <- kfold(backg, k)
+# backg_train <- backg[group_back != 1, ]
+# backg_test <- backg[group_back == 1, ]
+
 ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
-tr_bc_noem <- threshold(ev, 'no_omission')
+tr_bc <- threshold(ev, 'spec_sens')
 tr_bc_k <- threshold(ev, 'kappa')
+tr_bc_p <- threshold(ev, 'prevalence')
+tr_bc_e<-threshold(ev, 'equal_sens_spec')
 tr_bc_tss<-ev@t[which.max(ev@TPR + ev@TNR -1)]
 
 
 gam_ev<-dismo:::evaluate(pres_test, backg_test, gm1, pred_nf)
-tr_gam_noem<-threshold(gam_ev, 'no_emission')
+tr_gam<-threshold(gam_ev, 'spec_sens')
 tr_gam_k<-threshold(gam_ev, 'kappa')
+tr_gam_p<-threshold(gam_ev, 'prevalence')
+tr_gam_e<-threshold(gam_ev, 'equal_sens_spec')
 tr_gam_tss<-gam_ev@t[which.max(gam_ev@TPR + gam_ev@TNR -1)]
 
 rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
-tr_rf_noem<-threshold(rf_ev, 'no_emission')
+tr_rf<-threshold(rf_ev, 'spec_sens')
 tr_rf_k<-threshold(rf_ev, 'kappa')
+tr_rf_p<-threshold(rf_ev, 'prevalence')
+tr_rf_e<-threshold(rf_ev, 'equal_sens_spec')
 tr_rf_tss<-rf_ev@t[which.max(rf_ev@TPR + rf_ev@TNR -1)]
 
-thresh_noem<-mean(c(tr_bc_noem, tr_gam_noem, tr_rf_noem))
+thresh<-mean(c(tr_bc, tr_gam, tr_rf))
+thresh_weighted<-weighted.mean(c(tr_bc, tr_gam, tr_rf), w)
 thresh_weighted_k<-weighted.mean(c(tr_bc_k, tr_gam_k, tr_rf_k), w)
+thresh_weighted_p<-weighted.mean(c(tr_bc_p, tr_gam_p, tr_rf_p), w)
+thresh_weighted_e<-weighted.mean(c(tr_bc_e, tr_gam_e, tr_rf_e), w)
 thresh_weighted_tss<-weighted.mean(c(tr_bc_tss, tr_gam_tss, tr_rf_tss))
 
-tholds<-c(thresh_noem,  thresh_weighted_k, thresh_weighted_tss)
-names<-c("no emission", "kappa", "TSS")
+tholds<-c(thresh, thresh_weighted, thresh_weighted_k, thresh_weighted_p, thresh_weighted_e, thresh_weighted_tss)
+names<-c("non_weighted", "spec_sens", "kappa", "prevalence", "equal_sens_spec", "TSS")
 
 cbind(names, tholds)
 ```
