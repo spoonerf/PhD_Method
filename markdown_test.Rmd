@@ -318,7 +318,7 @@ gm1<-mgcv:::gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bi
 rf1 <- randomForest:::randomForest(model, data=envtrain)
 
 ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
-tr_bc <- threshold(ev, 'spec_sens')
+tr_bc_noem <- threshold(ev, 'no_omission')
 tr_bc_k <- threshold(ev, 'kappa')
 tr_bc_tss<-ev@t[which.max(ev@TPR + ev@TNR -1)]
 
@@ -406,24 +406,16 @@ spin_years<-1049:1949
 from_sdm<- paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif", sep="")
 to_sdm<-paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
-from_pa<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_1950.tif", sep="")
-to_pa<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
+from_pa<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_1950.tif", sep="")
+to_pa<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
 from_kap<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep="")
 to_kap<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
-from_prev<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_1950.tif", sep="")
-to_prev<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
-
-from_eq<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_1950.tif", sep="")
-to_eq<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
 file.copy(from_sdm,to_sdm)
 file.copy(from_pa,to_pa)
 file.copy(from_kap,to_kap)
-file.copy(from_prev,to_prev)
-file.copy(from_eq,to_eq)
-
 
 ```
 
