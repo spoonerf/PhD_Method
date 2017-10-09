@@ -369,9 +369,10 @@ for (i in 1:length(years)){
   pa_k<-wm>thresh_weighted_k
   pa_tss<- wm>thresh_weighted_tss
   
- writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa_noem , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa_tss, paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE )
+# writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+ # writeRaster(pa_noem , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  #writeRaster(pa_tss, paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE )
   
   print(years[i])
   # print(cellStats(pa, "max"))
@@ -393,37 +394,43 @@ s<-round(seq(1,67,len=16))
 
 plot(t[[s]])
 
+patch<-stack(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_", years,".tif", sep=""))
+plot(patch[[s]])
+
+patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
+plot(patch_kap[[s]])
+
+
 m<-cellStats(t, stat="mean")
 sd<-cellStats(t, stat="sd")
 
 plot(years,m, type="l", main="Average habitat suitability over time", ylim=c(0,0.5), ylab="Suitability index", xlab="Years")
 lines(years, m+(2*sd), col="red", lty=3)
 lines(years, m-(2*sd), col="red", lty=3)
+
+mk<-cellStats(patch_kap, stat="sum")
+lines(years,mk, type="l", main="Predicted patch presence", ylab="Suitable squares", xlab="Years", col="red")
+
+mno<-cellStats(patch, stat="sum")
+plot(years,mno, type="l", main="Predicted patch presence", ylab="Suitable squares", xlab="Years", ylim=c(0,1100))
+
 ```
 #####Copying the 1950 files for the 900 year spin up
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
-spin_years<-1049:1949
+spin_years<-1050:1949
 from_sdm<- paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif", sep="")
 to_sdm<-paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
-from_pa<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_1950.tif", sep="")
-to_pa<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
+from_pa<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_1950.tif", sep="")
+to_pa<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
 from_kap<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep="")
 to_kap<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
-from_prev<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_1950.tif", sep="")
-to_prev<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
-from_eq<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_1950.tif", sep="")
-to_eq<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
-
-file.copy(from_sdm,to_sdm)
-file.copy(from_pa,to_pa)
-file.copy(from_kap,to_kap)
-file.copy(from_prev,to_prev)
-file.copy(from_eq,to_eq)
-
+file.copy(from_sdm,to_sdm, overwrite = T)
+file.copy(from_pa,to_pa, overwrite = T)
+file.copy(from_kap,to_kap, overwrite = T)
 
 ```
 
