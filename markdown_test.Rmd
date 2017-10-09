@@ -890,7 +890,7 @@ k_relationships<-rep(list(links, sigks, ltks), each=3)  #need to change names of
 
 dispersal_levels<-rep(c(0.1,0.5,0.9), each=3)
 
-for (i in 2:length(foldernames)){
+for (i in 1:length(foldernames)){
 
   print(paste("processing of ", foldernames[i]," beginning, ", i, " of 9", sep=""))
   foldername = foldernames[i]
@@ -1116,13 +1116,18 @@ demo_lt_high<-10^rowMeans(diff(as.matrix(log10(dlth[,c(900:967)]),nrow=9)))
 lambda_preds<-cbind(real,pred, pred_clim,pred_luc,  demo_link_low, demo_link_mid,demo_link_high,demo_sigk_low, demo_sigk_mid, demo_sigk_high,demo_lt_low,demo_lt_mid,demo_lt_high)
 
 
-pairs(lambda_preds)
+#pairs(lambda_preds)
 
+```
+
+Comparison of model predictions with the real values
+
+```{r}
 par(mfrow=c(3,4))
 
 for (i in 2:ncol(lambda_preds-1)){
   plot(lambda_preds[,1], lambda_preds[,i], main=colnames(lambda_preds)[i], ylab=colnames(lambda_preds)[i], xlab=colnames(lambda_preds)[1])
- print(i) 
+ #print(i) 
 }
 
 
@@ -1149,7 +1154,7 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 ```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
-demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, Nichemap = niche_map_mine,
+demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                 stages = stages, proportion_initial = proportion_initial,
                 density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
@@ -1159,16 +1164,50 @@ demoniche_setup(modelname = "Capra_ibex_scale_link",Populations = Populations, N
                 transition_affected_demogr = transition_affected_demogr,
                 transition_affected_env=transition_affected_env,
                 env_stochas_type = env_stochas_type,
-                no_yrs = no_yrs_mine, K=link, Kweight = K_weight, 
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
                 sumweight =sumweight)
 
-RPyran_disp_niche_scale_link <- demoniche_model(modelname = "Capra_ibex_scale_link", Niche = TRUE, 
+c_ibex_k_16000 <- demoniche_model(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
                                      foldername = "non_damaris_function")
+
+
+c_ibex_k_4000 <- demoniche_model(modelname = "Capra_k_4000", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+c_ibex_k_2000 <- demoniche_model(modelname = "Capra_k_2000", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+c_ibex_k_1000 <- demoniche_model(modelname = "Capra_k_1000", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+plot(c_ibex_k_4000[,"Meanpop","Reference_matrix"], type="l")
+lines(c_ibex_k_2000[,"Meanpop","Reference_matrix"])
+
+p_16000<-(c_ibex_k_16000[,"Meanpop","Reference_matrix"])
+p_4000<-(c_ibex_k_4000[,"Meanpop","Reference_matrix"])
+p_2000<-(c_ibex_k_2000[,"Meanpop","Reference_matrix"])
+p_1000<-(c_ibex_k_1000[,"Meanpop","Reference_matrix"])
+
+plot(p_16000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", ylim=c(0,4700000))
+lines(p_4000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="",col="green")
+lines(p_2000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="red")
+lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blue")
+
+10^mean(diff(log10(p_16000[900:967])))
+10^mean(diff(log10(p_4000[900:967])))
+10^mean(diff(log10(p_2000[900:967])))
+10^mean(diff(log10(p_1000[900:967])))
+
+
 
 RPyran_disp_niche_scale <- demoniche_model(modelname = "Capra_ibex_scale", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
                                      foldername = "RPyran_disp_niche")
+
 
 
 years<-1950:2016
