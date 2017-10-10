@@ -61,7 +61,7 @@ capra <-gbif("capra", "ibex", geo=FALSE)
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA") 
 dups <- duplicated(capgeo[, c("lon", "lat")])
 capg <-capgeo[!dups, ]
-capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 & capg$lat < 47.9 & capg$year>=1985, ] 
+capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 & capg$lat < 47.9 & capg$year>=2006, ] 
 capg2<-data.frame(capg2$lon,capg2$lat)
 colnames(capg2)<-c("Longitude", "Latitude")
 
@@ -117,25 +117,25 @@ e<-extent(sp)+4
 
 lf<-list.files(paste(wd, "/Bioclim/", sep=""))
 
-first<-which(grepl("1985_bioclim", lf))
+first<-which(grepl("2006_bioclim", lf)) #was initially 1985
 last<-which(grepl("2016_bioclim", lf))
 all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
 
 bios<-seq(1,nlayers(all_years), by=19)
-
+cellStats(all_years[[bios]], stat="mean")
 #creating a 1985-2016 average of each bioclim variable
 for (i in 1:19){
   layers<-bios
   bio_layer<-mean(all_years[[layers]])
-  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_1985_2016_average.tif",sep=""), overwrite=TRUE)
+  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_2006_2016_average.tif",sep=""), overwrite=TRUE) #was initially 1985_2016
   bios<-bios+1
   #print(layers)
 }
 
 #pulling out the bioclim layers i'm interested in
 bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
-pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
-
+#pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
+pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif",sep="" ))
 ```
 
 Creating training and testing presence and background data - each time I run this a different sample of randomPoints is selected and I am not sure if that is correct and to what extent it impacts the resulting models.
@@ -144,13 +144,15 @@ Creating training and testing presence and background data - each time I run thi
 set.seed(10)
 
 k<-4
-#group_pres<-kfold(sp, k)
+group_pres<-kfold(sp, k)
 #write.csv(group_pres, "k_folds_presence.csv")
-group_pres<-read.csv("k_folds_presence.csv")
-group_pres<-group_pres[,-1]
+write.csv(group_pres, "k_folds_presence_2006.csv")
+#group_pres<-read.csv("k_folds_presence.csv")
+group_pres<-read.csv("k_folds_presence_2006.csv")
+group_pres<-group_pres[,-1]  #all presence points
 
-pres_train<-sp[group_pres!=1,]
-pres_test<-sp[group_pres==1,]
+sp_train<-sp[group_pres!=1,] #presence points split into training and test
+sp_test<-sp[group_pres==1,]
 
 #backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
 #write.csv(backg, "background_random_points.csv") 
@@ -161,28 +163,38 @@ colnames(backg) = c('lon', 'lat')
 #group_back <- kfold(backg, k)
 #write.csv(group_back, "k_folds_background.csv")
 group_back<-read.csv("k_folds_background.csv")
-group_back<-group_back[,-1]
+group_back<-group_back[,-1]   #all background points
 
-backg_train <- backg[group_back != 1, ]
-backg_test <- backg[group_back == 1, ]
+sp_backg_train <- backg[group_back != 1, ] #background points split into training and test
+sp_backg_test <- backg[group_back == 1, ]
 
-pres_train<-data.frame(pres_train)[,c(2,3)]
-colnames(pres_train)<-c("lon", "lat")
-train <- rbind(pres_train, backg_train)
+sp_train<-data.frame(sp_train)[,c(2,3)] #presence training points
+colnames(sp_train)<-c("lon", "lat")
+train <- rbind(sp_train, sp_backg_train)  #presence and background training points combined
 
-pres_test<-data.frame(pres_test)[,c(2,3)]
-colnames(pres_test)<-c("lon", "lat")
-test<-rbind(pres_test, backg_test)
+sp_test<-data.frame(sp_test)[,c(2,3)]  #presence test points
+colnames(sp_test)<-c("lon", "lat")
+test<-rbind(sp_test, sp_backg_test)    #presence and background test points combined
 
-pb_train <- c(rep(1, nrow(pres_train)), rep(0, nrow(backg_train)))
+pb_train <- c(rep(1, nrow(sp_train)), rep(0, nrow(sp_backg_train)))  
 envtrain <- extract(pred_nf, train)
-envtrain <- data.frame( cbind(pa=pb_train, envtrain) )
+envtrain <- data.frame( cbind(pa=pb_train, envtrain) ) #training points with environmental  variables
 
-pb_test<-c(rep(1, nrow(pres_test)), rep(0, nrow(backg_test)))
+pb_test<-c(rep(1, nrow(sp_test)), rep(0, nrow(sp_backg_test)))
 envtest <- extract(pred_nf, test)
-envtest <- data.frame( cbind(pa=pb_test, envtest) )
+envtest <- data.frame( cbind(pa=pb_test, envtest) ) #test points with environmental  variables
 
-env_all<-rbind(envtrain, envtest)
+env_all<-rbind(envtrain, envtest) #all of the training and test data with environmental variables
+
+env_pres<-extract(pred_nf, sp)
+pa<-rep(1, nrow(env_pres))
+env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
+colnames(env_pres)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
+
+env_back<-extract(pred_nf, backg)
+ap<-rep(0, nrow(env_back))
+env_back<-data.frame(ap, env_back) #background points with environmental variables
+colnames(env_back)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
 ```
 
 #####Bioclim
@@ -216,9 +228,15 @@ Running a gam and evaluating it to get an AUC value
 
 ```{r, cache= TRUE, message=FALSE, warning=FALSE}
 library(mgcv)
-gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
-           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+#gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
+#           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+#           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+
+gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
+           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
+           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=env_all)
+
+
 
 gp<-predict(pred_nf, gm1)
 r<-calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
@@ -232,10 +250,14 @@ for (i in 1:k){
   back_test<-env_back[(group_back==i),]
   back_train<-env_back[(group_back!=i),]
   envtrain<-rbind(pres_train, back_train)
-  gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ 
-             s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ 
-             s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-             s(Bio_19_1985_2016_average),family= binomial(link = "logit") , data=envtrain)
+ # gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ 
+  #           s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ 
+   #          s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+    #         s(Bio_19_1985_2016_average),family= binomial(link = "logit") , data=envtrain)
+  gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
+           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
+           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=envtrain)
+
   evl[[i]] <- dismo:::evaluate(pres_test, back_test, gm1)
   #print(i)
 }
@@ -255,9 +277,14 @@ Running the random forest envelope model and evaluating it to get an AUC value
 ```{r, cache= TRUE, message= FALSE, warning=FALSE}
 library(randomForest)
 
-model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ 
-  Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ 
-  Bio_18_1985_2016_average+ Bio_19_1985_2016_average
+#model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ 
+#  Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ 
+#  Bio_18_1985_2016_average+ Bio_19_1985_2016_average
+
+model<-pa~  Bio_1_2006_2016_average+Bio_5_2006_2016_average+ 
+  Bio_6_2006_2016_average+ Bio_13_2006_2016_average+ Bio_15_2006_2016_average+ 
+  Bio_18_2006_2016_average+ Bio_19_2006_2016_average
+
 
 evl<- list()
 
@@ -286,9 +313,13 @@ Creating a weighted ensemble averaged suitability model for 1985-2016 which can 
 ```{r, cache=TRUE, warning=FALSE, message=FALSE}
 #total models
 bc <- bioclim(pred_nf, sp)
-gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
-           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+#gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
+#           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+#           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
+           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
+           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=env_all)
+
 rf1 <- randomForest(model, data=env_all)
 
 pb <- predict(pred_nf, bc, ext=e, progress='') #bioclim predict
@@ -354,7 +385,8 @@ for (i in 1:length(years)){
   
   pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))  
   pred_nf<-pred_nf[[bio_layer_pred]]
-  names(pred_nf)<-c("Bio_1_1985_2016_average","Bio_5_1985_2016_average", "Bio_6_1985_2016_average", "Bio_13_1985_2016_average" ,"Bio_15_1985_2016_average","Bio_18_1985_2016_average", "Bio_19_1985_2016_average")
+ # names(pred_nf)<-c("Bio_1_1985_2016_average","Bio_5_1985_2016_average", "Bio_6_1985_2016_average", "Bio_13_1985_2016_average" ,"Bio_15_1985_2016_average","Bio_18_1985_2016_average", "Bio_19_1985_2016_average")
+  names(pred_nf)<-c("Bio_1_2006_2016_average","Bio_5_2006_2016_average", "Bio_6_2006_2016_average", "Bio_13_2006_2016_average" ,"Bio_15_2006_2016_average","Bio_18_2006_2016_average", "Bio_19_2006_2016_average")
   
   pb <- predict(pred_nf, bc, ext=e, progress='')
   pg <- predict(pred_nf, gm1, ext=e) #gam predict
@@ -369,10 +401,10 @@ for (i in 1:length(years)){
   pa_k<-wm>thresh_weighted_k
   pa_tss<- wm>thresh_weighted_tss
   
-# writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
- # writeRaster(pa_noem , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  #writeRaster(pa_tss, paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE )
+ writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_noem , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_tss, paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE )
   
   print(years[i])
   # print(cellStats(pa, "max"))
@@ -869,17 +901,21 @@ source("demoniche_model_me.R")
 
 foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
+foldernames<-c("patch_low_disp" ,"patch_mid_disp" ,"patch_high_disp")
+
 
 k_relationships<-rep(list(links, sigks, ltks), each=3)  #need to change names of folders to match this
+k_relationships<-4000 #need to change names of folders to match this
 
-dispersal_levels<-rep(c(0.1,0.5,0.9), each=3)
+dispersal_levels<-rep(c(0.001,0.01,0.1, each=1))
 
 for (i in 1:length(foldernames)){
 
-  print(paste("processing of ", foldernames[i]," beginning, ", i, " of 9", sep=""))
+  print(paste("processing of ", foldernames[i]," beginning, ", i, " of ", length(foldernames), sep=""))
   foldername = foldernames[i]
   dispersal = dispersal_levels[i]
-  K = matrix(unlist(k_relationships[i]),nrow=9)
+  #K = matrix(unlist(k_relationships[i]),nrow=9)
+  K = k_relationships
   
   demoniche_setup(modelname = foldername,Populations = Populations, Nichemap =patch_map_mine,
                 matrices = matrices, matrices_var = matrices_var, prob_scenario = prob_scenario,
