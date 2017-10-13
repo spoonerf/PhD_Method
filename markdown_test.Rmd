@@ -61,7 +61,7 @@ capra <-gbif("capra", "ibex", geo=FALSE)
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA") 
 dups <- duplicated(capgeo[, c("lon", "lat")])
 capg <-capgeo[!dups, ]
-capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 & capg$lat < 47.9 & capg$year>=2006, ] 
+capg2 <- capg[capg$lon > 0 & capg$lon<16 & capg$lat > 43 & capg$lat < 47.9 & capg$year>=2006, ] 
 capg2<-data.frame(capg2$lon,capg2$lat)
 colnames(capg2)<-c("Longitude", "Latitude")
 
@@ -362,10 +362,10 @@ Not sure if the way I am calculating the TSS threshold is correct
 #thresholds - perhaps redundant for now?
 
 thresh_noem<-weighted.mean(c(bc_noem, gam_noem, rf_noem),w)
-thresh_weighted_k<-weighted.mean(c(bc_kap, gam_kap, rf_kap), w)
+thresh_weighted_kap<-weighted.mean(c(bc_kap, gam_kap, rf_kap), w)
 thresh_weighted_tss<-weighted.mean(c(bc_tss, gam_tss, rf_tss),w)
 
-tholds<-c(thresh_noem, thresh_weighted_k, thresh_weighted_tss)
+tholds<-c(thresh_noem, thresh_weighted_kap, thresh_weighted_tss)
 names<-c("no omission", "kappa", "TSS")
 
 cbind(names, tholds)
@@ -376,8 +376,8 @@ Using the ensemble model to predict suitability for each year - 1950-2016 and fo
 ```{r, cache=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
 
 bc <- bioclim(pred_nf, sp)
-gm1<-mgcv:::gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
-rf1 <- randomForest:::randomForest(model, data=envtrain)
+gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average), data=env_all)
+rf1 <- randomForest:::randomForest(model, data=env_all)
 
 
 years<-1950:2016
@@ -401,7 +401,7 @@ for (i in 1:length(years)){
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
   pa_noem<-wm>thresh_noem
-  pa_k<-wm>thresh_weighted_k
+  pa_k<-wm>thresh_weighted_kap
   pa_tss<- wm>thresh_weighted_tss
   
  writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
@@ -414,7 +414,7 @@ for (i in 1:length(years)){
   # print(cellStats(pa_k, "max"))
   # print(cellStats(pa_p, "max"))
   # print(cellStats(pa_e, "max"))
-  #plot(wm, main=years[i])
+  plot(wm, main=years[i])
 }
 
 ```
@@ -435,6 +435,8 @@ plot(patch[[s]])
 patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch_kap[[s]])
 
+patch_tss<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
+
 
 m<-cellStats(t, stat="mean")
 sd<-cellStats(t, stat="sd")
@@ -444,10 +446,10 @@ lines(years, m+(2*sd), col="red", lty=3)
 lines(years, m-(2*sd), col="red", lty=3)
 
 mk<-cellStats(patch_kap, stat="sum")
-lines(years,mk, type="l", main="Predicted patch presence", ylab="Suitable squares", xlab="Years", col="red")
+plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
 
 mno<-cellStats(patch, stat="sum")
-plot(years,mno, type="l", main="Predicted patch presence", ylab="Suitable squares", xlab="Years", ylim=c(0,1100))
+plot(years,mno, type="l", main="Predicted patch presence - no omission", ylab="Suitable squares", xlab="Years")
 
 ```
 #####Copying the 1950 files for the 900 year spin up
