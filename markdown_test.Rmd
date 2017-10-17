@@ -312,7 +312,7 @@ for (i in 1:k){
   
   }
 
-auc_rf <- sapply( evl, function(x){slot(x, "auc")} )
+auc_rf <- sapply( evl_rf, function(x){slot(x, "auc")} )
 print(auc_rf)
 kap_rf<-sapply( evl_rf, function(x){threshold(x)['kappa']} )
 noem_rf<-sapply( evl_rf, function(x){threshold(x)['no_omission']} )
@@ -436,7 +436,7 @@ patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted
 plot(patch_kap[[s]])
 
 patch_tss<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
-
+plot(patch_tss[[s]])
 
 m<-cellStats(t, stat="mean")
 sd<-cellStats(t, stat="sd")
@@ -445,13 +445,71 @@ plot(years,m, type="l", main="Average habitat suitability over time", ylim=c(0,0
 lines(years, m+(2*sd), col="red", lty=3)
 lines(years, m-(2*sd), col="red", lty=3)
 
-mk<-cellStats(patch_kap, stat="sum")
-plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
 
-mno<-cellStats(patch, stat="sum")
-plot(years,mno, type="l", main="Predicted patch presence - no omission", ylab="Suitable squares", xlab="Years")
+
 
 ```
+
+Patches
+```{r}
+year_patch<-data.frame(years = years, patch_num = numeric(length(years)) )
+
+for (i in 1:length(years)){
+c<-clump(patch[[i]])
+year_patch[i,2]<-max(na.omit(values(c)))
+print(i)
+}
+
+year_patch_kap<-data.frame(years = years, patch_num = numeric(length(years)) )
+
+for (i in 1:length(years)){
+c<-clump(patch_kap[[i]])
+year_patch_kap[i,2]<-max(na.omit(values(c)))
+print(i)
+}
+
+year_patch_tss<-data.frame(years = years, patch_num = numeric(length(years)) )
+
+for (i in 1:length(years)){
+c<-clump(patch_tss[[i]])
+year_patch_tss[i,2]<-max(na.omit(values(c)))
+print(i)
+}
+par(mar=c(4,4,4,5))
+
+mk<-cellStats(patch_kap, stat="sum")
+plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
+par(new=TRUE)
+par(mar=c(4,4,4,5))
+plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" Number of Patches")
+axis(4)
+mtext("y2",side=4,line=3)
+legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+
+mno<-cellStats(patch, stat="sum")
+par(mar=c(4,4,4,5))
+plot(years,mno, type="l", main="Predicted patch presence - no omission", ylab="Suitable squares", xlab="Years", col="red")
+par(new=TRUE)
+par(mar=c(4,4,4,5))
+plot(year_patch$years, year_patch$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
+axis(4)
+mtext("Number of Patches",side=4,line=3)
+legend("left",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+
+
+mtss<-cellStats(patch_tss, stat="sum")
+plot(years,mtss, type="l", main="Predicted patch presence - true skill statistic", ylab="Suitable squares", xlab="Years", col="red")
+par(new=TRUE)
+par(mar=c(4,4,4,5))
+plot(year_patch_tss$years, year_patch_tss$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
+axis(4)
+mtext("Number of Patches",side=4,line=3)
+legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+
+
+```
+
+
 #####Copying the 1950 files for the 900 year spin up
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 spin_years<-1050:1949
@@ -532,10 +590,10 @@ for (i in 1:length(years)){
   #a selection of different threshold techniques for presence absence, as well as a suitability surface
   sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i],".tif", sep="")) #15.4%  
-  #patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
+  patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i],".tif", sep="")) #14,3%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i],".tif", sep=""))  #13.1%
-  patch<-raster(paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  #patch<-raster(paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
     vec_pat<-as.data.frame(patch, xy=TRUE)
@@ -846,7 +904,7 @@ Scaling carrying capacity (as estimated above) in three different ways, linear, 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 #plotting functions linking k and hsi
 
-k<-1 #set to one when using filzbach estimates - otherwise set to a standard value across all pops
+k<-4000 #set to one when using filzbach estimates - otherwise set to a standard value across all pops
 lin<-function(x){
   x*k
   }
@@ -906,11 +964,11 @@ source("demoniche_model_me.R")
 
 foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
+k_relationships<-rep(list(links, sigks, ltks), each=3)  #need to change names of folders to match this
+
 foldernames<-c("patch_low_disp" ,"patch_mid_disp" ,"patch_high_disp")
 
-
-k_relationships<-rep(list(links, sigks, ltks), each=3)  #need to change names of folders to match this
-k_relationships<-4000 #need to change names of folders to match this
+k_relationships<-40000 #need to change names of folders to match this
 
 dispersal_levels<-rep(c(0.001,0.01,0.1, each=1))
 
