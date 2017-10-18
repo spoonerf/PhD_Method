@@ -68,9 +68,8 @@ nrow(dfd)
  #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
-df2<-subset(dfd, !is.na(Estimate) #& r_sq >= 0.4999999  
-            &length_time >=5& System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Mammalia")
+df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Aves")
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
@@ -173,6 +172,7 @@ length(unique(dt$loc_id))
 
 nrow(dt)
 
+write.csv(dt, "Mammals_scaled_ready_for_models.csv")
 
 source("rsquaredglmm.R")
 
@@ -395,8 +395,8 @@ colSums(na.omit(lambda_preds - real))
 sp_ran<-data.frame(ranef(m0)[2])
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 head(LPI)
-ord<-data.frame(LPI$Binomial, LPI$Family)
-colnames(ord)<-c("Binomial", "Family")
+ord<-data.frame(LPI$Binomial, LPI$Family, LPI$Order)
+colnames(ord)<-c("Binomial", "Family", "Order")
 sp_ran$Binomial<-rownames(sp_ran)
 sp_ran<-data.frame(sp_ran)
 colnames(sp_ran)<-c("Intercept","Binomial")
@@ -405,10 +405,19 @@ unique(merge(ord, sp_ran, by="Binomial"))
 sp_ord<-unique(merge(ord, sp_ran, by="Binomial"))
 sp_ord<-sp_ord[sp_ord$Family != "",]
 plot(sp_ord$Intercept, col=sp_ord$Family)
-ord_int<-aggregate(sp_ord$Intercept,by=list(sp_ord$Family) ,FUN="mean")
+fam_int<-aggregate(sp_ord$Intercept,by=list(sp_ord$Family) ,FUN="mean")
+fam_int$pgr<-10^fam_int$x
+fam_int
+colnames(fam_int)<-c("Family", "Intercept", "Lambda")
+ord_int<-aggregate(sp_ord$Intercept,by=list(sp_ord$Order) ,FUN="mean")
 ord_int$pgr<-10^ord_int$x
 ord_int
+colnames(ord_int)<-c("Order", "Intercept", "Lambda")
+
+boxplot(10^sp_ord$Intercept ~ sp_ord$Order)
 
 which.min(fitted.values(m0))
 
 dt[285,]
+
+
