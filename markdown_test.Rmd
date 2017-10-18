@@ -61,7 +61,7 @@ capra <-gbif("capra", "ibex", geo=FALSE)
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA") 
 dups <- duplicated(capgeo[, c("lon", "lat")])
 capg <-capgeo[!dups, ]
-capg2 <- capg[capg$lon > 0 & capg$lon<25 & capg$lat > 43 & capg$lat < 47.9 & capg$year>=1985, ] 
+capg2 <- capg[capg$lon > 0 & capg$lon<16 & capg$lat > 43 & capg$lat < 47.9 & capg$year>=2006, ] 
 capg2<-data.frame(capg2$lon,capg2$lat)
 colnames(capg2)<-c("Longitude", "Latitude")
 
@@ -117,25 +117,28 @@ e<-extent(sp)+4
 
 lf<-list.files(paste(wd, "/Bioclim/", sep=""))
 
-first<-which(grepl("1985_bioclim", lf))
+first<-which(grepl("2006_bioclim", lf)) #was initially 1985
 last<-which(grepl("2016_bioclim", lf))
 all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
 
 bios<-seq(1,nlayers(all_years), by=19)
-
+cellStats(all_years[[bios]], stat="mean")
 #creating a 1985-2016 average of each bioclim variable
 for (i in 1:19){
   layers<-bios
   bio_layer<-mean(all_years[[layers]])
-  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_1985_2016_average.tif",sep=""), overwrite=TRUE)
+  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_2006_2016_average.tif",sep=""), overwrite=TRUE) #was initially 1985_2016
   bios<-bios+1
   #print(layers)
 }
 
 #pulling out the bioclim layers i'm interested in
 bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
-pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
+#pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
+```
 
+```{r}
+pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif",sep="" ))
 ```
 
 Creating training and testing presence and background data - each time I run this a different sample of randomPoints is selected and I am not sure if that is correct and to what extent it impacts the resulting models.
@@ -146,11 +149,13 @@ set.seed(10)
 k<-4
 #group_pres<-kfold(sp, k)
 #write.csv(group_pres, "k_folds_presence.csv")
-group_pres<-read.csv("k_folds_presence.csv")
-group_pres<-group_pres[,-1]
+#write.csv(group_pres, "k_folds_presence_2006.csv")
+#group_pres<-read.csv("k_folds_presence.csv")
+group_pres<-read.csv("k_folds_presence_2006.csv")
+group_pres<-group_pres[,-1]  #all presence points
 
-pres_train<-sp[group_pres!=1,]
-pres_test<-sp[group_pres==1,]
+sp_train<-sp[group_pres!=1,] #presence points split into training and test
+sp_test<-sp[group_pres==1,]
 
 #backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
 #write.csv(backg, "background_random_points.csv") 
@@ -161,28 +166,38 @@ colnames(backg) = c('lon', 'lat')
 #group_back <- kfold(backg, k)
 #write.csv(group_back, "k_folds_background.csv")
 group_back<-read.csv("k_folds_background.csv")
-group_back<-group_back[,-1]
+group_back<-group_back[,-1]   #all background points
 
-backg_train <- backg[group_back != 1, ]
-backg_test <- backg[group_back == 1, ]
+sp_backg_train <- backg[group_back != 1, ] #background points split into training and test
+sp_backg_test <- backg[group_back == 1, ]
 
-pres_train<-data.frame(pres_train)[,c(2,3)]
-colnames(pres_train)<-c("lon", "lat")
-train <- rbind(pres_train, backg_train)
+sp_train<-data.frame(sp_train)[,c(2,3)] #presence training points
+colnames(sp_train)<-c("lon", "lat")
+train <- rbind(sp_train, sp_backg_train)  #presence and background training points combined
 
-pres_test<-data.frame(pres_test)[,c(2,3)]
-colnames(pres_test)<-c("lon", "lat")
-test<-rbind(pres_test, backg_test)
+sp_test<-data.frame(sp_test)[,c(2,3)]  #presence test points
+colnames(sp_test)<-c("lon", "lat")
+test<-rbind(sp_test, sp_backg_test)    #presence and background test points combined
 
-pb_train <- c(rep(1, nrow(pres_train)), rep(0, nrow(backg_train)))
+pb_train <- c(rep(1, nrow(sp_train)), rep(0, nrow(sp_backg_train)))  
 envtrain <- extract(pred_nf, train)
-envtrain <- data.frame( cbind(pa=pb_train, envtrain) )
+envtrain <- data.frame( cbind(pa=pb_train, envtrain) ) #training points with environmental  variables
 
-pb_test<-c(rep(1, nrow(pres_test)), rep(0, nrow(backg_test)))
+pb_test<-c(rep(1, nrow(sp_test)), rep(0, nrow(sp_backg_test)))
 envtest <- extract(pred_nf, test)
-envtest <- data.frame( cbind(pa=pb_test, envtest) )
+envtest <- data.frame( cbind(pa=pb_test, envtest) ) #test points with environmental  variables
 
-env_all<-rbind(envtrain, envtest)
+env_all<-rbind(envtrain, envtest) #all of the training and test data with environmental variables
+
+env_pres<-extract(pred_nf, sp)
+pa<-rep(1, nrow(env_pres))
+env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
+colnames(env_pres)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
+
+env_back<-extract(pred_nf, backg)
+ap<-rep(0, nrow(env_back))
+env_back<-data.frame(ap, env_back) #background points with environmental variables
+colnames(env_back)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
 ```
 
 #####Bioclim
@@ -192,22 +207,29 @@ Running the bioclim envelope model and evaluating it to get an AUC value
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
 
 #group_back <- kfold(pb_train, k)
-evl<- list()
-
+evl_bc<- list()
+tss_bc<-list()
 for (i in 1:k){
   pres_train<-sp[group_pres!=i,]
   pres_test<-sp[group_pres==i,]
   #backg_train<-sp[group_back!=i,]
   backg_test<-backg[group_back==i,]
   bc <- bioclim(pred_nf,pres_train)
-  evl[[i]] <- dismo:::evaluate(pres_test, backg_test, bc,pred_nf)#test presence, test absence, model, predictor variables (raster stack)
+  evl_bc[[i]] <- dismo:::evaluate(pres_test, backg_test, bc,pred_nf,type="response")#test presence, test absence, model, predictor variables (raster stack)
+   tss_bc[[i]]<-evl_bc[[i]]@t[which.max(evl_bc[[i]]@TPR + evl_bc[[i]]@TNR -1)]
   #print(i)
 }
 
-auc <- sapply( evl, function(x){slot(x, "auc")} )
-print(auc)
-bioclim_auc<-mean(auc)
-print(bioclim_auc)
+auc_bc <- sapply( evl_bc, function(x){slot(x, "auc")} )
+print(auc_bc)
+
+kap_bc<-sapply( evl_bc, function(x){threshold(x)['kappa']} )
+noem_bc<-sapply( evl_bc, function(x){threshold(x)['no_omission']} )
+
+bc_auc<-mean(auc_bc)
+bc_kap<-mean(unlist(kap_bc))
+bc_noem<-mean(unlist(noem_bc))
+bc_tss<-mean(unlist(tss_bc))
 ```
 
 #####GAM
@@ -216,35 +238,47 @@ Running a gam and evaluating it to get an AUC value
 
 ```{r, cache= TRUE, message=FALSE, warning=FALSE}
 library(mgcv)
-gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
-           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+#gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
+#           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+#           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+
+gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
+           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
+           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=env_all)
 
 gp<-predict(pred_nf, gm1)
 r<-calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
 
-
-evl<- list()
-
+evl_gam<- list()
+tss_gam<-list()
 for (i in 1:k){
   pres_train<-env_pres[group_pres!=i ,]
   pres_test<-env_pres[(group_pres==i) ,]
   back_test<-env_back[(group_back==i),]
   back_train<-env_back[(group_back!=i),]
   envtrain<-rbind(pres_train, back_train)
-  gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ 
-             s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ 
-             s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-             s(Bio_19_1985_2016_average),family= binomial(link = "logit") , data=envtrain)
-  evl[[i]] <- dismo:::evaluate(pres_test, back_test, gm1)
-  #print(i)
+ # gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ 
+  #           s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ 
+   #          s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+    #         s(Bio_19_1985_2016_average),family= binomial(link = "logit") , data=envtrain)
+  gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
+           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
+           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=envtrain)
+
+  evl_gam[[i]] <- dismo:::evaluate(pres_test, back_test, gm1, type="response")
+  tss_gam[[i]]<-evl_gam[[i]]@t[which.max(evl_gam[[i]]@TPR + evl_gam[[i]]@TNR -1)]
+  print(i)
 }
 
-auc <- sapply( evl, function(x){slot(x, "auc")} )
-print(auc)
-
-gam_auc<-mean(auc)
-print(gam_auc)
+auc_gam <- sapply( evl_gam, function(x){slot(x, "auc")} )
+print(auc_gam)
+kap_gam<-sapply( evl_gam, function(x){threshold(x)['kappa']} )
+noem_gam<-sapply( evl_gam, function(x){threshold(x)['no_omission']} )
+print(kap_gam)
+gam_auc<-mean(auc_gam)
+gam_kap<-mean(unlist(kap_gam))
+gam_noem<-mean(unlist(noem_gam))
+gam_tss<-mean(unlist(tss_gam))
 
 ```
 
@@ -255,12 +289,17 @@ Running the random forest envelope model and evaluating it to get an AUC value
 ```{r, cache= TRUE, message= FALSE, warning=FALSE}
 library(randomForest)
 
-model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ 
-  Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ 
-  Bio_18_1985_2016_average+ Bio_19_1985_2016_average
+#model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ 
+#  Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ 
+#  Bio_18_1985_2016_average+ Bio_19_1985_2016_average
 
-evl<- list()
+model<-pa~  Bio_1_2006_2016_average+Bio_5_2006_2016_average+ 
+  Bio_6_2006_2016_average+ Bio_13_2006_2016_average+ Bio_15_2006_2016_average+ 
+  Bio_18_2006_2016_average+ Bio_19_2006_2016_average
 
+
+evl_rf<- list()
+tss_rf<- list()
 for (i in 1:k){
   pres_train<-env_pres[group_pres!=i,]
   pres_test<-env_pres[(group_pres==i) ,]
@@ -268,14 +307,20 @@ for (i in 1:k){
   back_train<-env_back[group_back !=i,]
   envtrain<-rbind(pres_train, back_train)
   rf1 <- randomForest(model, data=envtrain)
-  evl[[i]] <- dismo:::evaluate(pres_test, back_test, rf1)
-}
+  evl_rf[[i]] <- dismo:::evaluate(pres_test, back_test, rf1,type="response")
+  tss_rf[[i]]<-evl_rf[[i]]@t[which.max(evl_rf[[i]]@TPR + evl_rf[[i]]@TNR -1)]
+  
+  }
 
-auc <- sapply( evl, function(x){slot(x, "auc")} )
-print(auc)
+auc_rf <- sapply( evl_rf, function(x){slot(x, "auc")} )
+print(auc_rf)
+kap_rf<-sapply( evl_rf, function(x){threshold(x)['kappa']} )
+noem_rf<-sapply( evl_rf, function(x){threshold(x)['no_omission']} )
 
-rf_auc<-mean(auc)
-print(rf_auc)
+rf_auc<-mean(auc_rf)
+rf_kap<-mean(unlist(kap_rf))
+rf_noem<-mean(unlist(noem_rf))
+rf_tss<-mean(unlist(tss_rf))
 ```
 
 
@@ -286,9 +331,13 @@ Creating a weighted ensemble averaged suitability model for 1985-2016 which can 
 ```{r, cache=TRUE, warning=FALSE, message=FALSE}
 #total models
 bc <- bioclim(pred_nf, sp)
-gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
-           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+#gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
+#           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
+#           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
+gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
+           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
+           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=env_all)
+
 rf1 <- randomForest(model, data=env_all)
 
 pb <- predict(pred_nf, bc, ext=e, progress='') #bioclim predict
@@ -300,7 +349,7 @@ models <- stack(pb, pgl, pr)
 names(models) <- c("bioclim", "gam", "random forest")
 plot(models)
 
-auc<-c(bioclim_auc, gam_auc, rf_auc)
+auc<-c(bc_auc, gam_auc, rf_auc)
 w <- (auc-0.5)^2
 wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
 plot(wm)
@@ -311,33 +360,12 @@ Not sure if the way I am calculating the TSS threshold is correct
 
 ```{r,eval=FALSE, warning=FALSE, message=FALSE}
 #thresholds - perhaps redundant for now?
-library(rgdal)
 
-bc <- bioclim(pred_nf, sp)
-gm1<-mgcv:::gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+s(Bio_18_1985_2016_average)+ s(Bio_19_1985_2016_average), data=envtrain)
-rf1 <- randomForest:::randomForest(model, data=envtrain)
+thresh_noem<-weighted.mean(c(bc_noem, gam_noem, rf_noem),w)
+thresh_weighted_kap<-weighted.mean(c(bc_kap, gam_kap, rf_kap), w)
+thresh_weighted_tss<-weighted.mean(c(bc_tss, gam_tss, rf_tss),w)
 
-ev <- dismo:::evaluate(pres_test, backg_test, bc, pred_nf)
-tr_bc_noem <- threshold(ev, 'no_omission')
-tr_bc_k <- threshold(ev, 'kappa')
-tr_bc_tss<-ev@t[which.max(ev@TPR + ev@TNR -1)]
-
-
-gam_ev<-dismo:::evaluate(pres_test, backg_test, gm1, pred_nf)
-tr_gam_noem<-threshold(gam_ev, 'no_omission')
-tr_gam_k<-threshold(gam_ev, 'kappa')
-tr_gam_tss<-gam_ev@t[which.max(gam_ev@TPR + gam_ev@TNR -1)]
-
-rf_ev<-dismo:::evaluate(pres_test, backg_test, rf1, pred_nf)
-tr_rf_noem<-threshold(rf_ev, 'no_omission')
-tr_rf_k<-threshold(rf_ev, 'kappa')
-tr_rf_tss<-rf_ev@t[which.max(rf_ev@TPR + rf_ev@TNR -1)]
-
-thresh_noem<-mean(c(tr_bc_noem, tr_gam_noem, tr_rf_noem))
-thresh_weighted_k<-weighted.mean(c(tr_bc_k, tr_gam_k, tr_rf_k), w)
-thresh_weighted_tss<-weighted.mean(c(tr_bc_tss, tr_gam_tss, tr_rf_tss))
-
-tholds<-c(thresh_noem, thresh_weighted_k, thresh_weighted_tss)
+tholds<-c(thresh_noem, thresh_weighted_kap, thresh_weighted_tss)
 names<-c("no omission", "kappa", "TSS")
 
 cbind(names, tholds)
@@ -346,6 +374,12 @@ cbind(names, tholds)
 Using the ensemble model to predict suitability for each year - 1950-2016 and for each year creating a binary presence/absence map based on a few different thresholding techniques. Have used TSS in the rest of the analysis as per Allouche 2006 which said it outperformed kappa which I believe was previously most prominent.
 
 ```{r, cache=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
+
+bc <- bioclim(pred_nf, sp)
+gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average), data=env_all)
+rf1 <- randomForest:::randomForest(model, data=env_all)
+
+
 years<-1950:2016
 library(raster)
 library(mgcv)
@@ -354,7 +388,8 @@ for (i in 1:length(years)){
   
   pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))  
   pred_nf<-pred_nf[[bio_layer_pred]]
-  names(pred_nf)<-c("Bio_1_1985_2016_average","Bio_5_1985_2016_average", "Bio_6_1985_2016_average", "Bio_13_1985_2016_average" ,"Bio_15_1985_2016_average","Bio_18_1985_2016_average", "Bio_19_1985_2016_average")
+ # names(pred_nf)<-c("Bio_1_1985_2016_average","Bio_5_1985_2016_average", "Bio_6_1985_2016_average", "Bio_13_1985_2016_average" ,"Bio_15_1985_2016_average","Bio_18_1985_2016_average", "Bio_19_1985_2016_average")
+  names(pred_nf)<-c("Bio_1_2006_2016_average","Bio_5_2006_2016_average", "Bio_6_2006_2016_average", "Bio_13_2006_2016_average" ,"Bio_15_2006_2016_average","Bio_18_2006_2016_average", "Bio_19_2006_2016_average")
   
   pb <- predict(pred_nf, bc, ext=e, progress='')
   pg <- predict(pred_nf, gm1, ext=e) #gam predict
@@ -366,20 +401,20 @@ for (i in 1:length(years)){
   wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
   
   pa_noem<-wm>thresh_noem
-  pa_k<-wm>thresh_weighted_k
+  pa_k<-wm>thresh_weighted_kap
   pa_tss<- wm>thresh_weighted_tss
   
-# writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
- # writeRaster(pa_noem , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
-  #writeRaster(pa_tss, paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE )
+ writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_noem , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  writeRaster(pa_tss, paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE )
   
   print(years[i])
   # print(cellStats(pa, "max"))
   # print(cellStats(pa_k, "max"))
   # print(cellStats(pa_p, "max"))
   # print(cellStats(pa_e, "max"))
-  #plot(wm, main=years[i])
+  plot(wm, main=years[i])
 }
 
 ```
@@ -389,17 +424,19 @@ Trends in habitat suitability 1950-2016
 
 ```{r}
 years<-1950:2016
-t<-stack(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years,".tif", sep=""))
+t<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,67,len=16))
 
 plot(t[[s]])
 
-patch<-stack(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch[[s]])
 
-patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch_kap[[s]])
 
+patch_tss<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
+plot(patch_tss[[s]])
 
 m<-cellStats(t, stat="mean")
 sd<-cellStats(t, stat="sd")
@@ -408,13 +445,71 @@ plot(years,m, type="l", main="Average habitat suitability over time", ylim=c(0,0
 lines(years, m+(2*sd), col="red", lty=3)
 lines(years, m-(2*sd), col="red", lty=3)
 
-mk<-cellStats(patch_kap, stat="sum")
-lines(years,mk, type="l", main="Predicted patch presence", ylab="Suitable squares", xlab="Years", col="red")
 
-mno<-cellStats(patch, stat="sum")
-plot(years,mno, type="l", main="Predicted patch presence", ylab="Suitable squares", xlab="Years", ylim=c(0,1100))
+
 
 ```
+
+Patches
+```{r}
+year_patch<-data.frame(years = years, patch_num = numeric(length(years)) )
+
+for (i in 1:length(years)){
+c<-clump(patch[[i]])
+year_patch[i,2]<-max(na.omit(values(c)))
+print(i)
+}
+
+year_patch_kap<-data.frame(years = years, patch_num = numeric(length(years)) )
+
+for (i in 1:length(years)){
+c<-clump(patch_kap[[i]])
+year_patch_kap[i,2]<-max(na.omit(values(c)))
+print(i)
+}
+
+year_patch_tss<-data.frame(years = years, patch_num = numeric(length(years)) )
+
+for (i in 1:length(years)){
+c<-clump(patch_tss[[i]])
+year_patch_tss[i,2]<-max(na.omit(values(c)))
+print(i)
+}
+par(mar=c(4,4,4,5))
+
+mk<-cellStats(patch_kap, stat="sum")
+plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
+par(new=TRUE)
+par(mar=c(4,4,4,5))
+plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" Number of Patches")
+axis(4)
+mtext("y2",side=4,line=3)
+legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+
+mno<-cellStats(patch, stat="sum")
+par(mar=c(4,4,4,5))
+plot(years,mno, type="l", main="Predicted patch presence - no omission", ylab="Suitable squares", xlab="Years", col="red")
+par(new=TRUE)
+par(mar=c(4,4,4,5))
+plot(year_patch$years, year_patch$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
+axis(4)
+mtext("Number of Patches",side=4,line=3)
+legend("left",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+
+
+mtss<-cellStats(patch_tss, stat="sum")
+plot(years,mtss, type="l", main="Predicted patch presence - true skill statistic", ylab="Suitable squares", xlab="Years", col="red")
+par(new=TRUE)
+par(mar=c(4,4,4,5))
+plot(year_patch_tss$years, year_patch_tss$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
+axis(4)
+mtext("Number of Patches",side=4,line=3)
+legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+
+
+```
+
+
 #####Copying the 1950 files for the 900 year spin up
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 spin_years<-1050:1949
@@ -495,10 +590,10 @@ for (i in 1:length(years)){
   #a selection of different threshold techniques for presence absence, as well as a suitability surface
   sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i],".tif", sep="")) #15.4%  
-  #patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
+  patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i],".tif", sep="")) #14,3%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i],".tif", sep=""))  #13.1%
-  patch<-raster(paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  #patch<-raster(paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
     vec_pat<-as.data.frame(patch, xy=TRUE)
@@ -809,7 +904,7 @@ Scaling carrying capacity (as estimated above) in three different ways, linear, 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 #plotting functions linking k and hsi
 
-k<-1 #set to one when using filzbach estimates - otherwise set to a standard value across all pops
+k<-4000 #set to one when using filzbach estimates - otherwise set to a standard value across all pops
 lin<-function(x){
   x*k
   }
@@ -869,17 +964,21 @@ source("demoniche_model_me.R")
 
 foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
-
 k_relationships<-rep(list(links, sigks, ltks), each=3)  #need to change names of folders to match this
 
-dispersal_levels<-rep(c(0.1,0.5,0.9), each=3)
+foldernames<-c("patch_low_disp" ,"patch_mid_disp" ,"patch_high_disp")
+
+k_relationships<-40000 #need to change names of folders to match this
+
+dispersal_levels<-rep(c(0.001,0.01,0.1, each=1))
 
 for (i in 1:length(foldernames)){
 
-  print(paste("processing of ", foldernames[i]," beginning, ", i, " of 9", sep=""))
+  print(paste("processing of ", foldernames[i]," beginning, ", i, " of ", length(foldernames), sep=""))
   foldername = foldernames[i]
   dispersal = dispersal_levels[i]
-  K = matrix(unlist(k_relationships[i]),nrow=9)
+  #K = matrix(unlist(k_relationships[i]),nrow=9)
+  K = k_relationships
   
   demoniche_setup(modelname = foldername,Populations = Populations, Nichemap =patch_map_mine,
                 matrices = matrices, matrices_var = matrices_var, prob_scenario = prob_scenario,
