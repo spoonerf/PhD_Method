@@ -227,9 +227,14 @@ kap_bc<-sapply( evl_bc, function(x){threshold(x)['kappa']} )
 noem_bc<-sapply( evl_bc, function(x){threshold(x)['no_omission']} )
 
 bc_auc<-mean(auc_bc)
-bc_kap<-mean(unlist(kap_bc))
-bc_noem<-mean(unlist(noem_bc))
-bc_tss<-mean(unlist(tss_bc))
+# bc_kap<-mean(unlist(kap_bc))
+# bc_noem<-mean(unlist(noem_bc))
+# bc_tss<-mean(unlist(tss_bc))
+
+bc_kap<-max(unlist(kap_bc))
+bc_noem<-max(unlist(noem_bc))
+bc_tss<-max(unlist(tss_bc))
+
 ```
 
 #####GAM
@@ -276,9 +281,14 @@ kap_gam<-sapply( evl_gam, function(x){threshold(x)['kappa']} )
 noem_gam<-sapply( evl_gam, function(x){threshold(x)['no_omission']} )
 print(kap_gam)
 gam_auc<-mean(auc_gam)
-gam_kap<-mean(unlist(kap_gam))
-gam_noem<-mean(unlist(noem_gam))
-gam_tss<-mean(unlist(tss_gam))
+# gam_kap<-mean(unlist(kap_gam))
+# gam_noem<-mean(unlist(noem_gam))
+# gam_tss<-mean(unlist(tss_gam))
+
+gam_kap<-max(unlist(kap_gam))
+gam_noem<-max(unlist(noem_gam))
+gam_tss<-max(unlist(tss_gam))
+
 
 ```
 
@@ -318,9 +328,14 @@ kap_rf<-sapply( evl_rf, function(x){threshold(x)['kappa']} )
 noem_rf<-sapply( evl_rf, function(x){threshold(x)['no_omission']} )
 
 rf_auc<-mean(auc_rf)
-rf_kap<-mean(unlist(kap_rf))
-rf_noem<-mean(unlist(noem_rf))
-rf_tss<-mean(unlist(tss_rf))
+# rf_kap<-mean(unlist(kap_rf))
+# rf_noem<-mean(unlist(noem_rf))
+# rf_tss<-mean(unlist(tss_rf))
+
+rf_kap<-max(unlist(kap_rf))
+rf_noem<-max(unlist(noem_rf))
+rf_tss<-max(unlist(tss_rf))
+
 ```
 
 
@@ -435,7 +450,7 @@ plot(patch[[s]])
 patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch_kap[[s]])
 
-patch_tss<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch_tss<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch_tss[[s]])
 
 m<-cellStats(t, stat="mean")
@@ -481,9 +496,9 @@ mk<-cellStats(patch_kap, stat="sum")
 plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
 par(new=TRUE)
 par(mar=c(4,4,4,5))
-plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" Number of Patches")
+plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab="")
 axis(4)
-mtext("y2",side=4,line=3)
+mtext("Number of Patches",side=4,line=3)
 legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
 
 mno<-cellStats(patch, stat="sum")
