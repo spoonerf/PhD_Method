@@ -14,7 +14,7 @@ library(zoo)
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -42,7 +42,7 @@ nrow(LPI_pop2)
 
 Calculating lambdas
 
-```{r}
+```{r, cache=TRUE}
 
 library(taRifx)
 library(zoo)
@@ -113,7 +113,7 @@ all_df_list <- lapply(unique(LPI_pop2$ID), doFit)
 
 ```
 
-```{r}
+```{r, cache=TRUE}
 all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
 colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
@@ -124,7 +124,7 @@ colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum"
 
 Step 2 - Extracting the Climate data for each population
 
-```{r}
+```{r, cache=TRUE}
 library(raster)
 library(doParallel)
 library(lubridate)
@@ -132,7 +132,7 @@ library(reshape2)
 
 ```
 
-```{r}
+```{r, cache=TRUE}
 CR30s<-brick("cru_ts3.23.1931.1940.tmp.dat.nc")
 CR40s<-brick("cru_ts3.23.1941.1950.tmp.dat.nc")
 CR50s<-brick("cru_ts3.23.1951.1960.tmp.dat.nc")
@@ -147,7 +147,7 @@ plot(CR50s[[11]], main="Mean Temperature, Novermber 1951")
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -170,7 +170,7 @@ length(xy_df)
 
 ```
 
-```{r}
+```{r, cache=TRUE}
 
 n<-2#number of cores to use - not sure how many I can go up to - 6 at UCL
 cl<-makeCluster(n)
@@ -186,7 +186,7 @@ buff<- function (year,b)  {
 
 ```
 
-```{r}
+```{r, cache=TRUE}
 diam<-0 #size of buffer to use - in metres
 lyr<-1:nlayers(CR)
 
@@ -199,7 +199,7 @@ stopCluster(cl)
 
 ```
 
-```{r}
+```{r, cache=TRUE}
 
 dates<-seq(ymd('1931-01-16'),ymd('2014-12-16'), by = 'months')
 
@@ -225,7 +225,7 @@ LPIclim<-merge(srm3, LPI_ID, by=c("Longitude", "Latitude"))
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 LPIclim<-read.csv("Global_Mean_Temp_All_LPI_nobuff_1931_moreLPI.csv")
   
 LPIclim$Date<-as.Date(LPIclim$Date, "%Y-%m-%d")
@@ -258,13 +258,13 @@ LPIsp2<-LPIsp2[LPIsp2$ID %in% LPIclim$ID,]
 
 ```
 
-```{r}
+```{r, cache=TRUE}
 library(broom)
 library(plyr)
 library(taRifx)
 ```
 
-```{r}
+```{r, cache=TRUE}
 lag<-0 #number of years before start date of pop records which I want climate data from
 
 doMean = function(sp_name) {
@@ -316,7 +316,7 @@ doMean = function(sp_name) {
 all_df_list <- lapply(unique(LPIsp2$ID), doMean)
 ```
 
-```{r}
+```{r, cache=TRUE}
 all_matrix <- matrix(unlist(all_df_list), ncol=7, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "Sum_Mean_Change","Term","Estimate","SE","Statistic","p.val")
@@ -387,7 +387,7 @@ plot(nat_2005 - nat_1940)
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 ###########LPI data
 
 LPI_LUC<-read.csv("LPI_pops_20160523_edited.csv")
@@ -434,7 +434,7 @@ nrow(grid_crop2)
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 library(taRifx)
 library(zoo)
 
@@ -511,7 +511,7 @@ for (i in 1:length(grid_crop2$ID)){
 
 ```
 
-```{r}
+```{r, cache=TRUE}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 bm<-read.csv("Amniote_Database_Aug_2015.csv")
 bm$Binomial<-paste(bm$genus, bm$species, sep="_")
@@ -537,7 +537,7 @@ lpibm2$Log_Body_Mass_g<-log10(lpibm2$Body_mass_g)
 
 Setting up the modelling
 
-```{r}
+```{r, cache=TRUE}
 
 temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 
@@ -612,7 +612,7 @@ nrow(dt)
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 source("rsquaredglmm.R")
 
   library(lme4) 
@@ -748,8 +748,5 @@ p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw()
 p1<- p1 + scale_color_manual(values=c("black", "black"))
 
 print(p1)
-
-
-
 
 ```
