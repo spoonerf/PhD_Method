@@ -170,7 +170,7 @@ length(xy_df)
 
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval=FALSE}
 
 n<-2#number of cores to use - not sure how many I can go up to - 6 at UCL
 cl<-makeCluster(n)
@@ -186,7 +186,7 @@ buff<- function (year,b)  {
 
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval=FALSE}
 diam<-0 #size of buffer to use - in metres
 lyr<-1:nlayers(CR)
 
@@ -199,7 +199,7 @@ stopCluster(cl)
 
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval=FALSE}
 
 dates<-seq(ymd('1931-01-16'),ymd('2014-12-16'), by = 'months')
 
