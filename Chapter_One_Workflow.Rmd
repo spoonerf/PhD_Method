@@ -6,7 +6,7 @@ output: html_document
 ---
 
 Step 1 - Calculating Lambdas for each population
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(plyr)
 library(taRifx)
 library(mgcv)
@@ -105,7 +105,7 @@ doFit = function(sp_name) {
 
 res_df = data.frame(sp_name=sp_name, points=points, SmoothParm=SmoothParm, r_sq=R_sq2, model=model,lambda_sum=lambda_sum2,lambda_mean=lambda_mean2,time=time, missing=missing)
 
-print(res_df)
+#print(res_df)
 return(res_df)
 }
 
@@ -124,7 +124,7 @@ colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum"
 
 Step 2 - Extracting the Climate data for each population
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
 library(raster)
 library(doParallel)
 library(lubridate)
@@ -258,7 +258,7 @@ LPIsp2<-LPIsp2[LPIsp2$ID %in% LPIclim$ID,]
 
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
 library(broom)
 library(plyr)
 library(taRifx)
@@ -309,11 +309,13 @@ doMean = function(sp_name) {
     #mean_df<-data.frame(mean_df)
   }
   
-  print(mean_df)  
+  #print(mean_df)  
   return(mean_df)
 }
 
 all_df_list <- lapply(unique(LPIsp2$ID), doMean)
+
+
 ```
 
 ```{r, cache=TRUE}
@@ -329,14 +331,13 @@ mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 
 Calculating land use change
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 #install.packages("devtools")
 library(devtools)
-install_github("timnewbold/GISOperations")
+#install_github("timnewbold/GISOperations")
 library(GISOperations)
-
-
 library(raster)
+
 crop1940<-raster("crop1940AD.asc")
 gras1940<-raster("gras1940AD.asc")
 
@@ -373,7 +374,7 @@ for (map in rlist){
   map_pcnt_m<-matrix(map_pcnt, nrow=nrow(map), ncol=ncol(map), byrow=TRUE)
   map_pcnt_r<-raster(map_pcnt_m, xmn=map@extent[1], xmx=map@extent[2], ymn=map@extent[3], ymx=map@extent[4])
   writeRaster(map_pcnt_r, paste(names(map),"raster.tif", sep="_"),overwrite=TRUE)
-  print(names(map))
+  #print(names(map))
 }
 
 
@@ -383,7 +384,14 @@ gras_s<-stack(list.files(path = getwd(), pattern = "^.*gras*.*.tif$"))
 
 nat_1940<-(1 - (crop_s[[1]] + gras_s[[1]]))
 nat_2005<-(1 - (crop_s[[7]] + gras_s[[7]]))
-plot(nat_2005 - nat_1940)
+plot(nat_2005 - nat_1940, main="Change in Natural Land Use 1940 - 2005")
+
+anth_1940<- (crop_s[[1]] + gras_s[[1]])
+anth_2005<-(crop_s[[7]] + gras_s[[7]])
+
+plot(anth_2005 - anth_1940, main="Change in Cropland and Pasture Land Use 1940 - 2005")
+
+
 ```
 
 
@@ -434,7 +442,7 @@ nrow(grid_crop2)
 ```
 
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval=FALSE}
 library(taRifx)
 library(zoo)
 
@@ -511,7 +519,7 @@ for (i in 1:length(grid_crop2$ID)){
 
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, warning=FALSE}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 bm<-read.csv("Amniote_Database_Aug_2015.csv")
 bm$Binomial<-paste(bm$genus, bm$species, sep="_")
@@ -537,27 +545,29 @@ lpibm2$Log_Body_Mass_g<-log10(lpibm2$Body_mass_g)
 
 Setting up the modelling
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
 
 temp<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 
 body4<-read.csv("LPI_BodyMass_Amniote_Database.csv")
 
+body4<-body4[,-3]
 hyde<-read.csv("Hyde_crop_pasture_annual_change.csv")
 
 hyde2<-read.csv("Hyde_crop_pasture_annual_change_sum.csv")
 
+temp<-temp[,c("ID", "Estimate")]
 temp<-merge(temp, hyde[,c(2,3)], by="ID")
 
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
-temp<-temp[,c("ID", "Estimate")]
+
 
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
-df<-merge(merge(temp,body4[,c(2:4)], by="Binomial", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,body4[,c(2:4)], by="Binomial"), merge(LPI, pop, by="ID"),by="ID")
 
 
 dfd<-merge(df, hyde[,c(-1,-3)], by="ID")
@@ -566,18 +576,15 @@ head(dfd)
 
 nrow(df)
 nrow(dfd) 
+dfu<-unique(dfd)
 
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
+df2<-subset(dfu, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Aves")
 nrow(df2)
 
 colnames(df2)[2]<-"Binomial"
 
-nrow(df_mammal)
-
-nrow(df2)
-
-df2[is.na(df2$lambda_mean),]$lambda_mean<-0
+#df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
 nrow(df2)
 
@@ -612,7 +619,7 @@ nrow(dt)
 ```
 
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
 source("rsquaredglmm.R")
 
   library(lme4) 
@@ -647,10 +654,11 @@ source("rsquaredglmm.R")
 ```
   
 Model Comparison
-```{r}
-    # #Weights
+```{r, warning=FALSE, message=FALSE}
+  # #Weights
   library(MuMIn)
-  
+  library(lme4)  
+
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
 
@@ -691,8 +699,8 @@ Model Comparison
   library(plotrix)
   
   plotCI(1:5, y=coef_pcnt$coef_av, ui=coef_pcnt$highCI, li=coef_pcnt$lowCI, ylab="Annual Population Change (%)", xlab="" ,xaxt = "n", 
-         main="Birds and Mammals", lwd=1, ylim=c(min(coef_pcnt$lowCI*1.1), max(coef_pcnt$highCI*1.2)))
-  axis(1, at=1:4, labels=rownames(coef_pcnt), las=2)
+         main="Birds", lwd=1, ylim=c(min(coef_pcnt$lowCI*1.1), max(coef_pcnt$highCI*1.2)))
+  axis(1, at=1:5, labels=rownames(coef_pcnt), las=2)
   abline(h=0, col="red", lty =2)
 
   #AIC
@@ -726,7 +734,9 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
 #coef_pcntm<-coef_pcnt  
 
 
+```
 
+```{r, eval=FALSE}
 coef_both<-rbind(coef_pcntb[,c(1,2,3,4,7)], coef_pcntm[,c(1,2,3,4,7)])
 
 coef_both$Var_name
