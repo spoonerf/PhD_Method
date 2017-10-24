@@ -1,0 +1,43 @@
+---
+title: "Chapter Two Workflow"
+author: "Fiona Spooner"
+date: "19 October 2017"
+output: html_document
+---
+
+Europe
+```{r}
+
+
+
+```
+
+Spatial Predictions
+```{r}
+
+
+
+```
+
+Future Predictions
+```{r}
+
+
+
+```
+
+Harmonized LUH dataset
+
+```{r}
+
+
+
+```
+
+ESA dataset
+
+```{r}
+
+
+
+```

@@ -13,6 +13,7 @@ library(mgcv)
 library(zoo)
 ```
 
+Subsetting the data to exclude fish, populations in marine systems and those without specific locations
 
 ```{r, cache=TRUE}
 
@@ -146,7 +147,7 @@ CR10s<-brick("cru_ts3.23.2011.2014.tmp.dat.nc")
 plot(CR50s[[11]], main="Mean Temperature, Novermber 1951")
 ```
 
-
+Subsetting the data to exclude fish, populations in marine systems and those without specific locations
 ```{r, cache=TRUE}
 
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
@@ -155,7 +156,7 @@ LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopt
 
 CR<-stack(CR30s,CR40s,CR50s,CR60s,CR70s,CR80s,CR90s,CR00s,CR10s)
 
-plot(CR[[1]])
+plot(CR[[1]], "Location of LPI Populations")
 points(LPIsp$Longitude, LPIsp$Latitude)
 
 xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
@@ -166,6 +167,7 @@ xy_df<-data.frame(xy)
 colnames(xy_df)<-c("lon", "lat")
 coordinates(xy_df) <- c("lon", "lat")
 
+print("number of populations remaining after subsetting")
 length(xy_df)
 
 ```
@@ -736,7 +738,7 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
 
 ```
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, echo=FALSE}
 coef_both<-rbind(coef_pcntb[,c(1,2,3,4,7)], coef_pcntm[,c(1,2,3,4,7)])
 
 coef_both$Var_name
