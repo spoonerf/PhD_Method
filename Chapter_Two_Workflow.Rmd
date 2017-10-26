@@ -146,7 +146,7 @@ for (i in 1:nlayers(xmean)) {
 }
 
 ```
-```{r, eval=FALSE Europe}
+```{r, eval=FALSE, Europe}
 colnames(all_EU_mean_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Mean_Temp")
 
 write.csv(all_EU_mean_data, paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_E-OBS_50k_buff.csv", sep=""))
@@ -161,9 +161,12 @@ write.csv(all_EU_mean_data_na_omit, paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_
 library(plyr)
 library(broom)
 
+LPI_EU2<-LPI_EU[LPI_EU$ID %in% all_EU_mean_data_na_omit$id & LPI_EU$ID!=18236 &  LPI_EU$ID!=18239 ,]
+nrow(LPI_EU2)
+
 doMean = function(sp_name) {
-  spid2 = subset(LPI_EU, ID == sp_name)   #subsetting the population data by each population
-  spid = spid2[,64:126]                     #subsetting only the dates
+  spid2 = subset(LPI_EU2, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,66:128]                     #subsetting only the dates
   colnames(spid)<-1950:2012              #renaming the date column names as R doesn't like numbered column names
   climid=subset(all_EU_mean_data_na_omit, id == sp_name)  #subsetting the climate data by each population
   
@@ -208,16 +211,19 @@ doMean = function(sp_name) {
   mean_df$Mon_var<-Mon_var
   mean_df$Year_var<-Year_var
 
-  #print(mean_df)  
+  print(id)  
   return(mean_df)
 }
 
-all_df_list <- lapply(unique(LPI_EU$ID), doMean)
+all_df_list <- lapply(LPI_EU2$ID, doMean)
+```
 
+```{r, eval=FALSE}
 all_matrix <- matrix(unlist(all_df_list), ncol=8, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var", "Year_var")
 
+write.csv(mean_df, paste(wd,"/Chapter_Two/Europe/" ,"Rate_Mean_Temp_Change.csv", sep=""))
 
 ```
 
@@ -246,6 +252,11 @@ proj4string(r) <- crs.geo
 
 ```{r}
 library(rgdal)
+
+xy<-cbind(LPI_EU$Longitude, LPI_EU$Latitude)
+
+id<-LPI_EU$ID
+
 xy_eu<-project(xy,"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
 
 check_xy<-data.frame(id,xy_eu)      #subsetting the populations so that only those within the landuse raster are included - means that non-EU27 populations are lost
@@ -285,14 +296,15 @@ grid_crop2<-subset(grid_crop2, Specific_location ==1)
 ```
 
 ```{r}
+
 result <- data.frame() #empty result dataframe
 
 
 for (i in 1:length(grid_crop2$ID)) {
   
-ID<-grid_crop2[i,1]
+  ID<-grid_crop2[i,1]
   Binomial<-as.character(grid_crop2[i,7])
-  spid = grid_crop2[i,68:130]                     #subsetting only the dates
+  spid = grid_crop2[i,70:132]                     #subsetting only the dates
   colnames(spid)<-1950:2012
   
   Date<-as.numeric(colnames(spid))
@@ -329,7 +341,7 @@ ID<-grid_crop2[i,1]
   
   change_rate<-sum(na.omit(crop_df$change=="TRUE"))/length(na.omit(crop_df$change))
   
-  print(change_rate)
+  #print(change_rate)
   
   final<-cbind(ID,Binomial,change_rate) 
   result<-rbind(final,result)
@@ -373,19 +385,78 @@ write.csv(lpibm2, paste(wd, "/Chapter_Two/Europe/" ,"LPI_BodyMass_Amniote_Databa
 ```
 
 ```{r}
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
+lpi<-lpi[,c(1,32,31)]
 pop<-read.csv(paste(wd,"/Chapter_Two/Europe/", "Global_Population_Lambdas.csv", sep=""))
-clim<-read.csv(paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_E-OBS_50k_buff_na_omitted.csv", sep=""))
+pop<-pop[,c(2,5,8,9)]
+clim<-read.csv(paste(wd,"/Chapter_Two/Europe/" ,"Rate_Mean_Temp_Change.csv", sep=""))
+clim<-clim[,c(2,4)]
 luc<- read.csv(paste(wd,"/Chapter_Two/Europe/" ,"LPI_LandUse_121_18_09_2015.csv", sep="" ))
+luc<-luc[,c(2,4)]
 bm<- read.csv(paste(wd, "/Chapter_Two/Europe/", "LPI_BodyMass_Amniote_Database.csv", sep=""))
+bm<-bm[,-1]
 
 df<-merge(merge(pop, luc,by="ID", all=T), merge(clim, bm, by="ID", all=T), by="ID", all=T)
+df<-merge(df, lpi, by="ID")
 
-df_f<-filter(df, !is.na())
-
+df_f<-subset(df, !is.na(lambda_mean)& !is.na(change_rate) & !is.na(Estimate) & !is.na(Binomial) & length_time > 5)
+nrow(df_f)
 
 ```
 
+```{r}
 
+library(data.table)
+
+sp_dups<-data.frame(ddply(df_f,.(Longitude,Latitude),nrow))
+sp_dups$loc_id<-1:length(sp_dups$Longitude)
+df_f<-merge(sp_dups, df_f, by=c("Longitude","Latitude"))
+
+
+parm_df<-df_f[,c("ID","change_rate", "Estimate", "Log_Body_Mass_g")]  ##ID, land use, and climate
+
+parm_mat<-as.matrix(parm_df)
+parm_scale<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+
+parm_id<-parm_mat[,"ID"]
+
+parm_df_scale<-data.frame(parm_id,parm_scale)
+
+colnames(parm_df_scale)<-c("ID","change_rate_scale","mean_slope_scale", "body_mass_scale" )
+
+sp_df_scale<-merge(df_f, parm_df_scale, by="ID")
+
+dt<-data.table(sp_df_scale)
+
+```
+
+```{r}
+
+source("rsquaredglmm.R")
+
+  library(lme4) 
+  library(MuMIn)
+  
+  m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  msAICc$model<-rownames(msAICc)
+  msAICc<-data.frame(msAICc)
+  msAICc
+  
+  AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull)
+
+
+
+```
 
 #Spatial Predictions
 ```{r}
