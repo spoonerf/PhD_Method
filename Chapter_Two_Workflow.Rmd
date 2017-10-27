@@ -612,6 +612,8 @@ print(p1)
   
 
 ```
+
+
 #Spatial Predictions
 ```{r}
 
