@@ -6,7 +6,7 @@ output: html_document
 ---
 
 #Europe
-```{r, warning=FALSE, message=FALSE,Europe}
+```{r, warning=FALSE, message=FALSE}
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPI_pop<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi"& ID != 4438)
@@ -26,7 +26,7 @@ LPI_EU2[LPI_EU2 == 'NULL'] = NA
 
 ```
 
-```{r, message = FALSE, warning = FALSE,Europe}
+```{r, message = FALSE, warning = FALSE}
 library(taRifx)
 library(mgcv)
 library(zoo)
@@ -92,21 +92,22 @@ all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
 
 ```
 
-```{r,Europe}
+```{r}
 all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
 colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
+wd<-getwd()
 ```
 
-```{r,Europe}
-wd<-getwd()
+```{r}
 write.csv(all_df, paste(wd,"/Chapter_Two/Europe/", "Global_Population_Lambdas.csv", sep=""))
 
 ```
 
 Download climate data from here - http://www.ecad.eu/download/ensembles/download.php
 
-```{r, eval=FALSE,Europe}
+```{r, eval=FALSE}
+
 rmean<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/MeanT/tg_0.25deg_reg_v11.0.nc", varname = "tg")
 
 tm <- seq(as.Date('1950-01-01'), as.Date('2014-12-31'), 'day')
@@ -118,7 +119,9 @@ writeRaster(xmean, filename="Europe_mean_mon.grd", bandorder='BIL', overwrite=TR
 ```
 
 
-```{r,Europe}
+```{r}
+
+library(raster)
 
 xy<-cbind(LPI_EU$Longitude, LPI_EU$Latitude)
 
@@ -130,7 +133,7 @@ xmean<- brick(paste(wd,"/Chapter_Two/Europe/", "Europe_mean_mon.grd", sep=""))
 
 ```
 
-```{r,eval=FALSE,Europe}
+```{r,eval=FALSE}
 all_EU_mean_data<-data.frame(id=numeric(0), Binomial=character(0),xy=numeric(0), year=numeric(0), month=numeric(0), rasterex=numeric(0))
 
 
@@ -140,20 +143,30 @@ for (i in 1:nlayers(xmean)) {
   date<-names(xmean[[i]])
   date2 <- as.yearmon(date, "%b.%Y")
   dataex<-data.frame(id, binomial,xy, format(date2, "%Y"),format(date2, "%b"), rasterex)   
-  print(date2)
+ # print(date2)
   all_EU_mean_data = rbind(all_EU_mean_data, dataex)
   
 }
 
 ```
-```{r, eval=FALSE, Europe}
-colnames(all_EU_mean_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Mean_Temp")
 
-write.csv(all_EU_mean_data, paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_E-OBS_50k_buff.csv", sep=""))
+```{r, eval=FALSE}
+colnames(all_EU_mean_data)[c(2:7)]<-c("Binomial","Longitude","Latitude", "Year", "Month", "Mean_Temp")
 
 all_EU_mean_data_na_omit<-na.omit(all_EU_mean_data)
 
+write.csv(all_EU_mean_data, paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_E-OBS_50k_buff.csv", sep=""))
+
 write.csv(all_EU_mean_data_na_omit, paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_E-OBS_50k_buff_na_omitted.csv", sep=""))
+
+
+```
+
+
+```{r}
+
+all_EU_mean_data_na_omit<-read.csv(paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_E-OBS_50k_buff_na_omitted.csv", sep=""))
+
 
 ```
 
@@ -190,8 +203,7 @@ doMean = function(sp_name) {
   Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   
   Mean_mon<-climid[climid$Year %in% Year, ]$Mean_Temp
-  Mon_var<-var(Mean_mon)
-  
+
   Mean_anom<-year_temp$anom_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
   Mean<-year_temp$mean_mean[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
 
@@ -208,10 +220,8 @@ doMean = function(sp_name) {
   mean_df<-data.frame(mean_df)
   }
   
-  mean_df$Mon_var<-Mon_var
-  mean_df$Year_var<-Year_var
 
-  print(id)  
+  #print(id)  
   return(mean_df)
 }
 
@@ -219,9 +229,9 @@ all_df_list <- lapply(LPI_EU2$ID, doMean)
 ```
 
 ```{r, eval=FALSE}
-all_matrix <- matrix(unlist(all_df_list), ncol=8, byrow=TRUE)
+all_matrix <- matrix(unlist(all_df_list), ncol=6, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
-colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val", "Mon_var", "Year_var")
+colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
 
 write.csv(mean_df, paste(wd,"/Chapter_Two/Europe/" ,"Rate_Mean_Temp_Change.csv", sep=""))
 
@@ -359,7 +369,7 @@ LPI_LUC<-merge(LPI_EU_sel, result[,c(1,3)], by="ID",all = TRUE)
 
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE, eval=FALSE}
 
 bm<-read.csv("Amniote_Database_Aug_2015.csv")
 bm$Binomial<-paste(bm$genus, bm$species, sep="_")
@@ -386,7 +396,7 @@ write.csv(lpibm2, paste(wd, "/Chapter_Two/Europe/" ,"LPI_BodyMass_Amniote_Databa
 
 ```{r}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
-lpi<-lpi[,c(1,32,31)]
+lpi<-lpi[,c(1,15,32,31)]
 pop<-read.csv(paste(wd,"/Chapter_Two/Europe/", "Global_Population_Lambdas.csv", sep=""))
 pop<-pop[,c(2,5,8,9)]
 clim<-read.csv(paste(wd,"/Chapter_Two/Europe/" ,"Rate_Mean_Temp_Change.csv", sep=""))
@@ -398,22 +408,26 @@ bm<-bm[,-1]
 
 df<-merge(merge(pop, luc,by="ID", all=T), merge(clim, bm, by="ID", all=T), by="ID", all=T)
 df<-merge(df, lpi, by="ID")
+head(df)
+```
 
-df_f<-subset(df, !is.na(lambda_mean)& !is.na(change_rate) & !is.na(Estimate) & !is.na(Binomial) & length_time > 5)
-nrow(df_f)
+#Mammals
+```{r}
+df_mammal<-subset(df, !is.na(lambda_mean)& !is.na(change_rate) & !is.na(Estimate) & !is.na(Binomial) & length_time > 5 & Class=="Mammalia")
+nrow(df_mammal)
 
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 library(data.table)
 
-sp_dups<-data.frame(ddply(df_f,.(Longitude,Latitude),nrow))
+sp_dups<-data.frame(ddply(df_mammal,.(Longitude,Latitude),nrow))
 sp_dups$loc_id<-1:length(sp_dups$Longitude)
-df_f<-merge(sp_dups, df_f, by=c("Longitude","Latitude"))
+df_mammal<-merge(sp_dups, df_mammal, by=c("Longitude","Latitude"))
 
 
-parm_df<-df_f[,c("ID","change_rate", "Estimate", "Log_Body_Mass_g")]  ##ID, land use, and climate
+parm_df<-df_mammal[,c("ID","change_rate", "Estimate", "Log_Body_Mass_g")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
@@ -424,40 +438,180 @@ parm_df_scale<-data.frame(parm_id,parm_scale)
 
 colnames(parm_df_scale)<-c("ID","change_rate_scale","mean_slope_scale", "body_mass_scale" )
 
-sp_df_scale<-merge(df_f, parm_df_scale, by="ID")
+sp_df_scale<-merge(df_mammal, parm_df_scale, by="ID")
 
-dt<-data.table(sp_df_scale)
+dt_mammal<-data.table(sp_df_scale)
 
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 source("rsquaredglmm.R")
 
   library(lme4) 
   library(MuMIn)
   
-  m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
-  msAICc$model<-rownames(msAICc)
-  msAICc<-data.frame(msAICc)
-  msAICc
+  mm0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mm1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mmnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  mmsAICc <- model.sel(mm0,mm0a,mm0b,mm0c,mm0d,mm1,mm1a,mm1b,mm1c,mmnull)
+  mmsAICc$model<-rownames(mmsAICc)
+  mmsAICc<-data.frame(mmsAICc)
+  mmsAICc
   
-  AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull)
+  AIC(mm0,mm0a,mm0b,mm0c,mm0d,mm1,mm1a,mm1b,mm1c,mmnull)
 
+  mmodels_list<-list(mm0,mm0a,mm0b,mm0c,mm0d,mm1,mm1a,mm1b,mm1c,mmnull)
+  mmodelsR<-lapply(mmodels_list,rsquared.glmm)
+  mmodelsRsq <- matrix(unlist(mmodelsR), ncol=6, byrow=T)
+  rownames(mmodelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
+
+  mmodelsRsq
+```
+
+```{r}
+  library(MuMIn)
+  mvar_imp<-summary(model.avg(mmodels_list))
+
+  #mav<-model.avg(models_list, subset = cumsum(weight) <= 0.95)
+  mmav<-model.avg(mmodels_list, subset = delta <= 6)
+  
+  msmav<-summary(mmav)
+  
+  mcoef_av<-msmav$coefmat.subset[1:5,"Estimate"]
+  mcoef_df<-data.frame(mcoef_av)
+  mcoef_df$lowCI<-confint(mmav)[1:5,1]
+  mcoef_df$highCI<-confint(mmav)[1:5,2]
+  mcoef_df
+  
+  
+  mcoef_pcnt<-data.frame(((10^mcoef_df) - 1)*100)
+  mcoef_pcnt
+
+``` 
+
+#Birds
+```{r}
+df_birds<-subset(df, !is.na(lambda_mean)& !is.na(change_rate) & !is.na(Estimate) & !is.na(Binomial) & length_time > 5 & Class=="Aves")
+nrow(df_birds)
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+library(data.table)
+
+sp_dups<-data.frame(ddply(df_birds,.(Longitude,Latitude),nrow))
+sp_dups$loc_id<-1:length(sp_dups$Longitude)
+df_birds<-merge(sp_dups, df_birds, by=c("Longitude","Latitude"))
+
+
+parm_df<-df_birds[,c("ID","change_rate", "Estimate", "Log_Body_Mass_g")]  ##ID, land use, and climate
+
+parm_mat<-as.matrix(parm_df)
+parm_scale<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+
+parm_id<-parm_mat[,"ID"]
+
+parm_df_scale<-data.frame(parm_id,parm_scale)
+
+colnames(parm_df_scale)<-c("ID","change_rate_scale","mean_slope_scale", "body_mass_scale" )
+
+sp_df_scale<-merge(df_birds, parm_df_scale, by="ID")
+
+dt_birds<-data.table(sp_df_scale)
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+source("rsquaredglmm.R")
+
+  library(lme4) 
+  library(MuMIn)
+  
+  bm0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bm1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bmnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt_birds, REML=F)
+  bmsAICc <- model.sel(bm0,bm0a,bm0b,bm0c,bm0d,bm1,bm1a,bm1b,bm1c,bmnull)
+  bmsAICc$model<-rownames(bmsAICc)
+  bmsAICc<-data.frame(bmsAICc)
+  bmsAICc
+  
+  AIC(bm0,bm0a,bm0b,bm0c,bm0d,bm1,bm1a,bm1b,bm1c,bmnull)
+
+  bmodels_list<-list(bm0,bm0a,bm0b,bm0c,bm0d,bm1,bm1a,bm1b,bm1c,bmnull)
+  bmodelsR<-lapply(bmodels_list,rsquared.glmm)
+  bmodelsRsq <- matrix(unlist(bmodelsR), ncol=6, byrow=T)
+  rownames(bmodelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
+
+  bmodelsRsq
+    
 
 
 ```
 
+```{r}
+  library(MuMIn)
+  bvar_imp<-summary(model.avg(bmodels_list))
+
+  #mav<-model.avg(models_list, subset = cumsum(weight) <= 0.95)
+  bmav<-model.avg(bmodels_list, subset = delta <= 6)
+  
+  bsmav<-summary(bmav)
+  
+  bcoef_av<-bsmav$coefmat.subset[1:5,"Estimate"]
+  bcoef_df<-data.frame(bcoef_av)
+  bcoef_df$lowCI<-confint(bmav)[1:5,1]
+  bcoef_df$highCI<-confint(bmav)[1:5,2]
+  bcoef_df
+  
+  
+  bcoef_pcnt<-data.frame(((10^bcoef_df) - 1)*100)
+  bcoef_pcnt
+
+```  
+    
+    
+    
+```{r, warning=FALSE}
+bcoef_pcnt$Class<-"Birds"  
+mcoef_pcnt$Class<-"Mammals"  
+
+bcoef_pcnt$Var<-rownames(bcoef_pcnt)
+mcoef_pcnt$Var<-rownames(mcoef_pcnt)
+colnames(bcoef_pcnt)[1]<-"ave"
+colnames(mcoef_pcnt)[1]<-"ave"
+
+coef_pcnt<-rbind(bcoef_pcnt, mcoef_pcnt)
+
+library(ggplot2)
+p1<-ggplot(coef_pcnt, aes(colour=Class))
+p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
+p1<- p1 + geom_linerange(aes(x=Var, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
+p1<- p1 + geom_pointrange(aes(x= Var, y=ave, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
+#p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw() + labs(y = "Population Change (%)", x = "") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=8) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+#p1<- p1 + scale_color_manual(values=c("black", "black"))
+p1<-p1+coord_flip()
+print(p1)
+
+  
+
+```
 #Spatial Predictions
 ```{r}
 
