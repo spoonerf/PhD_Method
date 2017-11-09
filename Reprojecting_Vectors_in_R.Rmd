@@ -9,11 +9,15 @@ output: html_document
 library(rgdal)
 library(mapdata)
 library(ggplot2)
+library(raster)
+```
+
+```{r}
 x<-runif(100, -180, 180)
 y<-runif(100,-90, -83)
 ```
 
-```{r}
+```{r, message=FALSE}
 d <- data.frame(lon=x, lat=y)
 ant<-getData(name="GADM", country="ATA", level=0)
 ant_df<-fortify(ant)
@@ -35,7 +39,7 @@ d_new<- spTransform(d, CRS.new)
 ant_new<- spTransform(ant, CRS.new)
 ```
 
-```{r}
+```{r, message=FALSE}
 ant_new_df<-fortify(ant_new)
 d_df<-data.frame(d_new)
 ```
