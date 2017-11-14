@@ -46,7 +46,7 @@ Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
-temp<-temp[,c("ID", "Estimate")]
+temp<-temp[,c("ID","Binomial", "Estimate")]
 #temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
 
 LPI<-LPI[,c("ID","Binomial","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
@@ -56,6 +56,10 @@ df<-merge(merge(temp,body4[,c(2:4)], by="Binomial", all=TRUE), merge(LPI, pop, b
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(df, hyde[,c(-1,-3)], by="ID")
+
+dfd<-dfd[,-2]
+colnames(dfd)[5]<-"Binomial"
+
 
 head(dfd)
 
@@ -69,14 +73,14 @@ nrow(dfd)
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
 df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Aves")
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g) & Class=="Mammalia")
 
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 nrow(df2)
 
-colnames(df2)[2]<-"Binomial"
+#colnames(df2)[2]<-"Binomial"
 #just picking out the populations that are in the data set
 #df2<-df2[df2$ID %in% esa$ID,]
 
@@ -173,7 +177,7 @@ length(unique(dt$loc_id))
 
 nrow(dt)
 
-write.csv(dt, "Mammals_scaled_ready_for_models.csv")
+#write.csv(dt, "Mammals_scaled_ready_for_models.csv")
 
 source("rsquaredglmm.R")
 
