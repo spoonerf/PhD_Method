@@ -1,0 +1,55 @@
+---
+title: "Reprojecting Vectors in R"
+author: "Fiona Spooner"
+date: "9 November 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rgdal)
+library(mapdata)
+library(ggplot2)
+library(raster)
+```
+
+```{r}
+x<-runif(100, -180, 180)
+y<-runif(100,-90, -83)
+```
+
+```{r, message=FALSE}
+d <- data.frame(lon=x, lat=y)
+ant<-getData(name="GADM", country="ATA", level=0)
+ant_df<-fortify(ant)
+```
+
+```{r}
+ggplot() + 
+  geom_polygon(data=ant_df, aes(long,lat,group=group), fill="grey")+
+  geom_point(data=d, aes(lon, lat), col="black" )+
+  coord_equal()+
+  theme_bw()
+```
+
+```{r}
+coordinates(d) <- c("lon", "lat")
+proj4string(d) <- CRS("+init=epsg:4326") # WGS 84 UTM 35S
+CRS.new <- CRS("+init=epsg:3031")
+d_new<- spTransform(d, CRS.new)
+ant_new<- spTransform(ant, CRS.new)
+```
+
+```{r, message=FALSE}
+ant_new_df<-fortify(ant_new)
+d_df<-data.frame(d_new)
+```
+
+```{r}
+ggplot() + 
+  geom_polygon(data=ant_new_df, aes(long,lat,group=group), fill="grey")+
+  geom_point(data=d_df, aes(lon, lat), col="black" )+
+  coord_equal()+
+  theme_bw()
+
+```
+
