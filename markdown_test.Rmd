@@ -20,10 +20,10 @@ library(dismo)
 
 #####Creating Bioclim varibles for each year 1950-2016 for Europe - this only needs to be done once
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
-rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
-tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
-tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
-tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
+rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
+tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
+tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
+tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
 #dates<-as.Date((gsub("X", "",names(rr))), format="%Y.%m.%d")
 
 
@@ -466,7 +466,7 @@ lines(years, m-(2*sd), col="red", lty=3)
 ```
 
 Patches
-```{r}
+```{r, warning=FALSE}
 year_patch<-data.frame(years = years, patch_num = numeric(length(years)) )
 
 for (i in 1:length(years)){
@@ -645,7 +645,16 @@ colnames(patch_map_mine)[4:length(colnames(patch_map_mine))]<-col_years
 no_yrs_mine<-1 #number of years each time period represents 
 
 
-#plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
+plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
+
+years_short<-1950:2016
+plot(years_short,colMeans(na.omit(niche_map_mine)[904:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
+
+niche_map_mine<-na.omit(niche_map_mine)
+patch_map_mine<-na.omit(patch_map_mine)
+
+plot(years_short,colMeans(na.omit(patch_map_mine)[904:length(colnames(patch_map_mine))]), type="l", ylab="Mean suitability index")
+
 
 ```
 
@@ -1102,7 +1111,7 @@ melt_lpi<-melt_lpi[-1]
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-
+library(reshape2)
 foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
 bdf<-data.frame()
@@ -1265,6 +1274,45 @@ demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap 
                 no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
                 sumweight =sumweight)
 
+demoniche_setup(modelname = "Capra_k_4000",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(0.7,0.7,0.1,2),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=4000, Kweight = K_weight, 
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_k_2000",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(0.7,0.7,0.1,2),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=2000, Kweight = K_weight, 
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_k_1000",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(0.7,0.7,0.1,2),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=1000, Kweight = K_weight, 
+                sumweight =sumweight)
+
 c_ibex_k_16000 <- demoniche_model(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
                                      foldername = "non_damaris_function")
@@ -1300,11 +1348,195 @@ lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blu
 10^mean(diff(log10(p_2000[900:967])))
 10^mean(diff(log10(p_1000[900:967])))
 
+```
 
 
-RPyran_disp_niche_scale <- demoniche_model(modelname = "Capra_ibex_scale", Niche = TRUE, 
+```{r, eval=FALSE, echo=FALSE, warning=FALSE, "Dispersal Kernel"}
+
+demoniche_setup(modelname = "Capra_disp_5",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(1,1,1,5),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_disp_1",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(1,1,1,1),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight,
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_disp_1_lt",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(1,1,0.1,1),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight,
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_disp_1_st",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(1,0.1,1,1),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight,
+                sumweight =sumweight)
+
+
+c_ibex_disp_5 <- demoniche_model(modelname = "Capra_disp_5", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = "RPyran_disp_niche")
+                                     foldername = "non_damaris_function")
+
+
+c_ibex_disp_1 <- demoniche_model(modelname = "Capra_disp_1", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+
+c_ibex_disp_1_lt <- demoniche_model(modelname = "Capra_disp_1_lt", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+c_ibex_disp_1_st <- demoniche_model(modelname = "Capra_disp_1_st", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+
+p_d_5<-(c_ibex_disp_5[,"Meanpop","Reference_matrix"])
+p_d_1<-(c_ibex_disp_1[,"Meanpop","Reference_matrix"])
+p_d_1_lt<-(c_ibex_disp_1_lt[,"Meanpop","Reference_matrix"])
+p_d_1_st<-(c_ibex_disp_1_st[,"Meanpop","Reference_matrix"])
+
+plot(p_d_5[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", ylim=c(0,5000000))
+lines(p_d_1[900:967], type="l", ylab="Number of Alpine Ibex", xlab="",col="green")
+lines(p_d_1_lt[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="red")
+lines(p_d_1_st[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blue")
+
+10^mean(diff(log10(p_d_5[900:967])))
+10^mean(diff(log10(p_d_1[900:967])))
+10^mean(diff(log10(p_d_1_lt[900:967])))
+10^mean(diff(log10(p_d_1_st[900:967])))
+
+```
+
+```{r, eval=FALSE, echo=FALSE, warning=FALSE, "Dispersal Proportion"}
+
+demoniche_setup(modelname = "Capra_disp_lsll",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.1,
+                dispersal_constants = c(1,1,1,5),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_disp_hsll",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.1, fraction_SDD = 0.9,
+                dispersal_constants = c(1,1,1,5),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight,
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_disp_lshl",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.9, fraction_SDD = 0.1,
+                dispersal_constants = c(1,1,1,5),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight,
+                sumweight =sumweight)
+
+demoniche_setup(modelname = "Capra_disp_hshl",Populations = Populations, Nichemap = patch_map_mine,
+              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                stages = stages, proportion_initial = proportion_initial,
+                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                fraction_LDD = 0.9, fraction_SDD = 0.9,
+                dispersal_constants = c(1,1,1,5),
+                transition_affected_niche = "all",
+                transition_affected_demogr = transition_affected_demogr,
+                transition_affected_env=transition_affected_env,
+                env_stochas_type = env_stochas_type,
+                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight,
+                sumweight =sumweight)
+
+
+c_ibex_disp_lsll <- demoniche_model(modelname = "Capra_disp_lsll", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+
+c_ibex_disp_hsll <- demoniche_model(modelname = "Capra_disp_hsll", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+
+c_ibex_disp_lshl <- demoniche_model(modelname = "Capra_disp_lshl", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+c_ibex_disp_hshl <- demoniche_model(modelname = "Capra_disp_hshl", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = "non_damaris_function")
+
+
+p_d_lsll<-(c_ibex_disp_lsll[,"Meanpop","Reference_matrix"])
+p_d_hsll<-(c_ibex_disp_hsll[,"Meanpop","Reference_matrix"])
+p_d_lshl<-(c_ibex_disp_lshl[,"Meanpop","Reference_matrix"])
+p_d_hshl<-(c_ibex_disp_hshl[,"Meanpop","Reference_matrix"])
+
+plot(p_d_lsll[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", ylim=c(0,12000000))
+lines(p_d_hsll[900:967], type="l", ylab="Number of Alpine Ibex", xlab="",col="green")
+lines(p_d_lshl[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="red")
+lines(p_d_hshl[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blue")
+
+10^mean(diff(log10(p_d_lsll[900:967])))
+10^mean(diff(log10(p_d_hsll[900:967])))
+10^mean(diff(log10(p_d_lshl[900:967])))
+10^mean(diff(log10(p_d_hshl[900:967])))
+
+```
+
+```{r, eval=FALSE}
+# RPyran_disp_niche_scale <- demoniche_model(modelname = "Capra_ibex_scale", Niche = TRUE, 
+#                                      Dispersal = TRUE, repetitions = 1,
+#                                      foldername = "RPyran_disp_niche")
 
 
 
