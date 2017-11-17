@@ -3,6 +3,7 @@ title: "Reprojecting Vectors in R"
 author: "Fiona Spooner"
 date: "9 November 2017"
 output: html_document
+theme: yeti
 ---
 
 ```{r setup, include=FALSE}
