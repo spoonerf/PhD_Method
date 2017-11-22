@@ -5,7 +5,9 @@ date: "19 October 2017"
 output: html_document
 ---
 
-#Europe
+####Europe####
+
+Have ignored the bootstrapping of the models and the use of max, min and precipitation data, and the dredging!
 ```{r, warning=FALSE, message=FALSE}
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -252,6 +254,8 @@ r_2010b<-crop(r_2010, r_1950)    #the 2010 raster is larger than the other years
 
 r<-stack(r_1950,r_1960,r_1970,r_1980,r_1990,r_2000,r_2010b)
 
+#writeRaster(r, paste(wd,"/Chapter_Two/Europe/" ,"Land_Use_1950_2010.grd", sep=""))
+
 names(r)<-seq(1950,2010, by=10)
 
 crs.geo <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
@@ -421,6 +425,7 @@ nrow(df_mammal)
 ```{r, message=FALSE, warning=FALSE}
 
 library(data.table)
+library(plyr)
 
 sp_dups<-data.frame(ddply(df_mammal,.(Longitude,Latitude),nrow))
 sp_dups$loc_id<-1:length(sp_dups$Longitude)
@@ -430,11 +435,11 @@ df_mammal<-merge(sp_dups, df_mammal, by=c("Longitude","Latitude"))
 parm_df<-df_mammal[,c("ID","change_rate", "Estimate", "Log_Body_Mass_g")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale_m<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
-parm_df_scale<-data.frame(parm_id,parm_scale)
+parm_df_scale<-data.frame(parm_id,parm_scale_m)
 
 colnames(parm_df_scale)<-c("ID","change_rate_scale","mean_slope_scale", "body_mass_scale" )
 
@@ -516,11 +521,11 @@ df_birds<-merge(sp_dups, df_birds, by=c("Longitude","Latitude"))
 parm_df<-df_birds[,c("ID","change_rate", "Estimate", "Log_Body_Mass_g")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale_b<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
-parm_df_scale<-data.frame(parm_id,parm_scale)
+parm_df_scale<-data.frame(parm_id,parm_scale_b)
 
 colnames(parm_df_scale)<-c("ID","change_rate_scale","mean_slope_scale", "body_mass_scale" )
 
@@ -574,6 +579,14 @@ source("rsquaredglmm.R")
   
   bsmav<-summary(bmav)
   
+  nums<-c("1", "2", "3", "12", "13", "23", "123", "234", "1234", "(Null)")
+  mods<-c("bm0d", "bm1b", "bm1c", "bm0b", "bm0c", "bm1a", "bm0a", "bm1", "bm0", "bmnull")
+  mod_num<-cbind(nums, mods)
+  b_models<-rownames(bvar_imp$msTable)
+  b_weights<-Weights(bmav)
+  b_mod_weights<-cbind(b_models, b_weights)
+  b_model_weights<-merge(b_mod_weights, mod_num, by.x="b_models", by.y="nums")  
+  
   bcoef_av<-bsmav$coefmat.subset[1:5,"Estimate"]
   bcoef_df<-data.frame(bcoef_av)
   bcoef_df$lowCI<-confint(bmav)[1:5,1]
@@ -614,18 +627,204 @@ print(p1)
 ```
 
 
-#Spatial Predictions
-```{r}
+####Spatial Predictions - Europe####
+
+```{r Prediction maps - climate}
+mean_t<- brick(paste(wd,"/Chapter_Two/Europe/" ,"Europe_mean_mon.grd", sep=""))
+mean_t2<-trim(mean_t)
+
+x<-seq(-38.625, 75.125, by=0.25)
+y<-seq(25.375, 71.875, by=0.25)
+
+xy<-expand.grid(x,y)
+colnames(xy)<-c("Lon", "Lat")
+
+
+time<-1:nlayers(mean_t)
+## add 1 for a model with an intercept
+X <- cbind(1, time)
+
+## pre-computing constant part of least squares
+invXtX <- solve(t(X) %*% X) %*% t(X)
+
+## much reduced regression model; [2] is to get the slope
+quickfun <- function(y) (invXtX %*% y)[2]
+x4 <- calc(mean_t, quickfun)
 
 ```
-#Future Predictions
+
+```{r, eval=FALSE}
+writeRaster(x4, filename=paste(wd,"/Chapter_Two/Europe/" ,"climate_change_slope.tif", sep=""), format="GTiff", overwrite=TRUE)
+
+```
+
+```{r, eval=FALSE}
+r<-brick(paste(wd,"/Chapter_Two/Europe/" ,"Land_Use_1950_2010.grd", sep=""))
+
+crs.geo <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+
+proj4string(r) <- crs.geo
+
+names(r)<-seq(1950,2010, by=10)
+plot(r)
+
+r_df<-data.frame(as.matrix(r))
+
+r_df$a<-as.numeric(r_df[,1] != r_df[,2])   #checking for each decade if there is a change in land use category
+r_df$b<-as.numeric(r_df[,2] != r_df[,3])
+r_df$c<-as.numeric(r_df[,3] != r_df[,4])
+r_df$d<-as.numeric(r_df[,4] != r_df[,5])
+r_df$e<-as.numeric(r_df[,5] != r_df[,6])
+r_df$f<-as.numeric(r_df[,6] != r_df[,7])
+
+r_df$total_change<-rowSums(r_df[,c(8:13)])   #total number of category changes - a way of quantifying how unstable a landscape is?
+
+
+r_rast<-raster(matrix(r_df$total_change, nrow=4075,ncol=4011, byrow=T))
+
+plot(r_rast)
+
+extent(r_rast)<-c(2554419, 6565419, 1260409, 5335409)
+crs(r_rast)<-"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+
+r_rast
+
+n <- c(0,0.99,0,1,6,1)
+m <- matrix(n, ncol=3, byrow=TRUE)
+
+rc <- reclassify(r_rast, m)     #reclassifying to binary rather than number of changes
+
+f<-rep.int(1, 121)
+m<-matrix(f, nrow=11)
+
+my_fun2 <- function(x) {
+  result <- sum(na.omit(x))/length(na.omit(x))
+  return(result)
+}
+
+
+rm <- focal(rc, w=matrix(1,nrow=11,ncol=11), fun=my_fun2)    #looking at amount of change in the surrounding area
+
+plot(rm)
+
+
+
+```
+
+```{r, eval=FALSE}
+writeRaster(rm, paste(wd,"/Chapter_Two/Europe/" ,"land_use_change.tif", sep=""), format="GTiff", overwrite=TRUE )
+
+
+```
+
+
+Spatial Prediction - Europe Birds
+
+```{r}
+
+library(raster)
+LU<-raster( paste(wd,"/Chapter_Two/Europe/" ,"land_use_change.tif", sep=""))
+TM<-raster(paste(wd,"/Chapter_Two/Europe/" ,"climate_change_slope.tif", sep=""))
+
+crs_laea<-"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+extent(LU)<-c(2554419, 6565419, 1260409, 5335409)
+crs(LU)<-crs_laea
+
+TM<-projectRaster(TM, crs = crs_laea)
+#plot(TM)
+
+centre_temp_b<-attr(parm_scale_b, 'scaled:center')[2]
+centre_luc_b<-attr(parm_scale_b, 'scaled:center')[1]
+scale_temp_b<-attr(parm_scale_b, 'scaled:scale')[2] 
+scale_luc_b<-attr(parm_scale_b, 'scaled:scale')[1] 
+
+LU_b<-(LU  - centre_luc_b )/scale_luc_b
+TM_b<-(TM -centre_temp_b)/ scale_temp_b
+LU_bt<-trim(LU_b)
+TM_b2<-resample(TM_b, LU_bt)
+#LU_bt2<-resample(LU_ust,TM_us)
+
+#bm<-reclassify(TM_b, c(-1,max(na.omit(values(TM_b))),0))
+bird_stack<-stack(TM_b2,LU_bt)
+
+names(bird_stack)<-c("mean_slope_scale","change_rate_scale")
+
+# bird_average<-function(model, weight){
+#   pred<-predict(bird_stack,model, re.form=NA)
+#   pred_weight<-pred*weight
+#   return(pred_weight)
+#   }
+# 
+# b_mod_weights$b_weights<-as.numeric(as.character(b_model_weights$b_weights))
+# 
+# mapply(bird_average, model=bmodels_list, weight=b_model_weights$b_weights)
+
+pred<-predict(bird_stack,bm1, re.form=NA)
+
+plot(trim(10^pred))
+
+xy <- data.frame(lon=dt_birds$Longitude, lat=dt_birds$Latitude)
+coordinates(xy) <- c("lon", "lat")
+proj4string(xy) <- CRS("+init=epsg:4326") # WGS 84 UTM 35S
+CRS.new <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+xy_new<- spTransform(xy, CRS.new)
+points(xy_new)
+
+```
+
+
+Spatial Prediction - Europe Mammals
+```{r}
+
+library(raster)
+LU<-raster( paste(wd,"/Chapter_Two/Europe/" ,"land_use_change.tif", sep=""))
+TM<-raster(paste(wd,"/Chapter_Two/Europe/" ,"climate_change_slope.tif", sep=""))
+
+crs_laea<-"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+extent(LU)<-c(2554419, 6565419, 1260409, 5335409)
+crs(LU)<-crs_laea
+
+TM<-projectRaster(TM, crs = crs_laea)
+#plot(TM)
+
+centre_temp_m<-attr(parm_scale_m, 'scaled:center')[2]
+centre_luc_m<-attr(parm_scale_m, 'scaled:center')[1]
+scale_temp_m<-attr(parm_scale_m, 'scaled:scale')[2] 
+scale_luc_m<-attr(parm_scale_m, 'scaled:scale')[1] 
+
+LU_m<-(LU  - centre_luc_m )/scale_luc_m
+TM_m<-(TM -centre_temp_m)/ scale_temp_m
+LU_mt<-trim(LU_m)
+TM_m2<-resample(TM_m, LU_mt)
+
+mammal_stack<-stack(TM_m2,LU_mt)
+
+names(mammal_stack)<-c("mean_slope_scale","change_rate_scale")
+
+
+pred<-predict(mammal_stack,mm1, re.form=NA)
+
+plot(trim(10^pred))
+
+xy <- data.frame(lon=dt_mammal$Longitude, lat=dt_mammal$Latitude)
+coordinates(xy) <- c("lon", "lat")
+proj4string(xy) <- CRS("+init=epsg:4326") # WGS 84 UTM 35S
+CRS.new <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+xy_new<- spTransform(xy, CRS.new)
+points(xy_new)
+```
+
+
+
+####Harmonized LUH dataset - Global / CRU Temps Global Climate####
+
 ```{r}
 
 
 
 ```
 
-#Harmonized LUH dataset
+#ESA dataset - Global
 
 ```{r}
 
@@ -633,8 +832,7 @@ print(p1)
 
 ```
 
-ESA dataset
-
+#Future Predictions - Global
 ```{r}
 
 
