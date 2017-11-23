@@ -1058,7 +1058,7 @@ library(ggplot2)
 ggplot(dfm, aes(xm,ym))+
   geom_line(size=2)+
   geom_ribbon(aes(ymin=lcim, ymax=ucim), alpha=0.3, colour=NA)+
-  labs(y = "Bird Population Index", x = "")+
+  labs(y = "Mammal Population Index", x = "")+
   scale_y_continuous(breaks=seq(0, 1, 0.25))+
   theme_bw()+
   theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
@@ -1068,5 +1068,179 @@ ggplot(dfm, aes(xm,ym))+
 plot(y=10^cumsum(pop_pred_m$fit2), x=2006:2099, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 8.5")
 lines(y=10^cumsum(pop_pred_m$fit2 - 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
 lines(y=10^cumsum(pop_pred_m$fit2 + 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
+
+```
+
+
+```{r}
+################function for doing it all spatially
+
+x = c(1:150)
+
+funm<-function(y){
+  
+  z<-matrix(y)
+  if (sum(is.na(z))<1){
+    g<-mgcv:::gam(matrix(z) ~ s(x, k=8), fx=TRUE)
+    g_pred<-predict(g)
+    g_pred<-g_pred[55:148]
+    #g_pred<-g_pred[55:100] #2050
+    d<-diff(g_pred)
+    gam_diff<-scale(d, center = centre_tempm, scale = scale_tempm)
+    ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
+    colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
+    pop_pred<-predict(m1_m, ave_mod, re.form=NA, se.fit=T)
+  } else{
+    
+    #pop_pred$fit<-rep(NA,45) #2050
+    pop_pred$fit<-rep(NA,93)
+  }
+  return(pop_pred$fit)
+}
+
+#gam_pred_rast_2050<-calc(obs_mod_ann, fun)
+#gam_pred_rast<-calc(obs_mod_ann, fun)
+
+pred_rast_mammal<-calc(obs_mod_ann, funm)
+
+
+ave_lam_mammal<-calc(pred_rast_mammal, fun=mean)
+plot(10^ave_lam_mammal)
+
+pgr_mammal<-10^pred_rast_mammal
+prod_lam_mammal<-calc(pgr_mammal, fun=prod)
+plot(prod_lam_mammal)
+```
+
+```{r}
+################function for doing it all spatially
+
+x = c(1:150)
+
+funb<-function(y){
+  
+  z<-matrix(y)
+  if (sum(is.na(z))<1){
+    g<-mgcv:::gam(matrix(z) ~ s(x, k=8), fx=TRUE)
+    g_pred<-predict(g)
+    g_pred<-g_pred[55:148]
+    #g_pred<-g_pred[55:100] #2050
+    d<-diff(g_pred)
+    gam_diff<-scale(d, center = centre_tempb, scale = scale_tempb)
+    ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
+    colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
+    pop_pred<-predict(m1c_b, ave_mod, re.form=NA, se.fit=T)
+  } else{
+    
+    #pop_pred$fit<-rep(NA,45) #2050
+    pop_pred$fit<-rep(NA,93)
+  }
+  return(pop_pred$fit)
+}
+
+#gam_pred_rast_2050<-calc(obs_mod_ann, fun)
+#gam_pred_rast<-calc(obs_mod_ann, fun)
+
+pred_rast_bird<-calc(obs_mod_ann, funb)
+
+ave_lam_b<-calc(pred_rast_bird, fun=mean)
+plot(10^ave_lam_b)
+
+pgr_b<-10^pred_rast_bird
+prod_lam_b<-calc(pgr_b, fun=prod)
+plot(prod_lam_b)
+
+
+```
+
+#Future Spatial Predictions
+
+```{r}
+
+pop_index_2100<-function(x){10^cumsum(x)}
+
+index_2100_bird<-calc(pred_rast_bird, pop_index_2100)
+index_2100_mammal<-calc(pred_rast_mammal, pop_index_2100)
+
+```
+
+```{r}
+library(RColorBrewer)
+library(rgdal)
+library(ggplot2)
+library(rgeos)
+world<-readOGR(dsn=getwd(), layer="ne_10m_land") #download from http://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/
+e<-c(-180, 180, -63, 83.6341)
+world_c<-crop(world, e)
+plot(world_c)
+world_df<-fortify(world_c)
+colnames(world_df)[c(1:2)]<-c("Longitude", "Latitude")
+
+```
+
+```{r}
+pred_2100_bird<-rasterToPoints(index_2100_bird)
+#pred_2100_df<-rasterToPoints(log10(pred_2100))
+pred_2100_bird2<-data.frame(pred_2100_bird)
+colnames(pred_2100_bird2)<-c("Longitude", "Latitude", "Population_Decline")
+
+```
+
+```{r}
+theme_opts<-list(theme(panel.grid.minor = element_blank(),
+                       panel.grid.major = element_blank(),
+                       panel.background = element_rect(fill = 'white', colour = NA),
+                       plot.background = element_rect(),
+                       axis.line = element_blank(),
+                       axis.text.x = element_blank(),
+                       axis.text.y = element_blank(),
+                       axis.ticks = element_blank(),
+                       axis.title.x = element_blank(),
+                       axis.title.y = element_blank()))
+
+ggplot(data=pred_2100_bird2, aes(Longitude, Latitude))+
+  geom_raster(aes(fill=Population_Decline))+
+  scale_fill_gradientn(colors=brewer.pal(7, "RdYlGn"), guide=guide_colourbar(title=""))+ 
+  #labels=c("-99%", "-50%", "0%", "+50%", "+100%"), breaks=c(0.01,0.5, 1, 1.5, 2))+   
+  #labels=c("-99.9999%", "-99.99%", "-99%","0%"))+
+  geom_path(data=world_df, aes(Longitude, Latitude, group=group))+
+  coord_fixed(ratio = 1)+
+  theme_bw()+
+  labs(title="Bird Population Index 2100 - (2005 = 1)")+
+  theme(text = element_text(size=20))
+
+```
+
+
+```{r}
+pred_2100_mammal<-rasterToPoints(index_2100_mammal)
+#pred_2100_df<-rasterToPoints(log10(pred_2100))
+pred_2100_mammal2<-data.frame(pred_2100_mammal)
+colnames(pred_2100_mammal2)<-c("Longitude", "Latitude", "Population_Decline")
+
+```
+
+```{r}
+theme_opts<-list(theme(panel.grid.minor = element_blank(),
+                       panel.grid.major = element_blank(),
+                       panel.background = element_rect(fill = 'white', colour = NA),
+                       plot.background = element_rect(),
+                       axis.line = element_blank(),
+                       axis.text.x = element_blank(),
+                       axis.text.y = element_blank(),
+                       axis.ticks = element_blank(),
+                       axis.title.x = element_blank(),
+                       axis.title.y = element_blank()))
+
+ggplot(data=pred_2100_mammal2, aes(Longitude, Latitude))+
+  geom_raster(aes(fill=Population_Decline))+
+  scale_fill_gradientn(colors=brewer.pal(7, "RdYlGn"), guide=guide_colourbar(title=""))+ 
+  #labels=c("-99%", "-50%", "0%", "+50%", "+100%"), breaks=c(0.01,0.5, 1, 1.5, 2))+   
+  #labels=c("-99.9999%", "-99.99%", "-99%","0%"))+
+  geom_path(data=world_df, aes(Longitude, Latitude, group=group))+
+  coord_fixed(ratio = 1)+
+  theme_bw()+
+  labs(title="Mammal Population Index 2100 - (2005 = 1)")+
+  theme(text = element_text(size=20))
 
 ```
