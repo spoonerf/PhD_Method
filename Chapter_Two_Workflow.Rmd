@@ -904,7 +904,7 @@ CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 
 obs<-stack(CR40s[[109:120]], CR50s, CR60s, CR70s, CR80s, CR90s,CR00s[[1:48]] )
 
-###85 rcp
+### rcp 85
 
 #####HadGEM ES
 
@@ -915,12 +915,25 @@ ts85_80_00<-brick("ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_208012-210011.nc")
 
 ts85_05_00<-stack(ts85_05_30,ts85_30_55,ts85_55_80,ts85_80_00)
 #ts_05_00<-brick(ts_05_00)
+
+### rcp 26
+
+ts26_05_30<-brick("ts_Amon_HadGEM2-ES_rcp26_r1i1p1_200512-203011.nc")
+ts26_30_55<-brick("ts_Amon_HadGEM2-ES_rcp26_r1i1p1_203012-205511.nc")
+ts26_55_80<-brick("ts_Amon_HadGEM2-ES_rcp26_r1i1p1_205512-208011.nc")
+ts26_80_00<-brick("ts_Amon_HadGEM2-ES_rcp26_r1i1p1_208012-209911.nc")
+ts26_00_12<-brick("ts_Amon_HadGEM2-ES_rcp26_r1i1p1_209912-212411.nc")
+
+ts26_05_00<-stack(ts26_05_30,ts26_30_55,ts26_55_80,ts26_80_00, ts26_00_12[[1:12]])
+#ts_05_00<-brick(ts_05_00)
+
 ```
 
 ```{r}
+#rcp85
 modelcc<-rotate(ts85_05_00)
 
-obs_r<-resample(obs, modelcc)
+obs_r<-suppressWarnings(resample(obs, modelcc))
 
 obs_rk<-obs_r+273.15
 
@@ -940,6 +953,32 @@ plot(obs_mod_mon_mean)
 
 
 ```{r}
+#rcp26
+modelcc_26<-rotate(ts26_05_00)
+
+obs_r_26<-suppressWarnings(resample(obs, modelcc_26))
+
+
+obs_rk_26<-obs_r_26+273.15
+
+mask_mod_26<-mask(modelcc_26, obs_rk_26[[1]])
+
+#obs_mod<-stack(obs_rk, modelcc)
+
+obs_mod_26<-stack(obs_rk_26, mask_mod_26)
+
+obs_mod_mon_mean_26<-matrix(cellStats(obs_mod_26, mean))
+
+plot(obs_mod_mon_mean_26)
+
+#############################################
+
+```
+
+
+
+```{r}
+#rcp85
 year_mon<-rep(1:(nlayers(obs_mod)/12), each=12)
 
 #changing from monthly to annual data
@@ -951,16 +990,45 @@ plot(obs_mat_ann)
 ```
 
 ```{r}
+#rcp26
+year_mon_26<-rep(1:(nlayers(obs_mod_26)/12), each=12)
+
+#changing from monthly to annual data
+obs_mod_ann_26<-stackApply(obs_mod_26, indices=year_mon_26, fun=mean, na.rm=TRUE)
+
+obs_mat_ann_26<-matrix(cellStats(obs_mod_ann_26, mean))
+
+plot(obs_mat_ann_26)
+```
+
+
+```{r}
+#rcp85
 x = c(1:150)
 g = mgcv:::gam(obs_mat_ann~s(x, k=8), fx=TRUE)
 plot(g)
 
 g_pred = predict(g)
-g_pred = g_pred[55:148]
+g_pred = g_pred[55:150]
 d = diff(g_pred)
 plot(g_pred)
 plot(d)
 ```
+
+
+```{r}
+#rcp26
+x = c(1:150)
+g_26 = mgcv:::gam(obs_mat_ann_26~s(x, k=8), fx=TRUE)
+plot(g_26)
+
+g_pred_26 = predict(g_26)
+g_pred_26 = g_pred_26[55:150]
+d_26 = diff(g_pred_26)
+plot(g_pred_26)
+plot(d_26)
+```
+
 
 ```{r}
 #bird values
@@ -974,6 +1042,7 @@ scale_tempm<-0.079118974
 
 
 ```{r}
+#rcp85
 gam_diff_b<-scale(d, center=centre_tempb, scale=scale_tempb)
 plot(gam_diff_b)
 
@@ -982,25 +1051,61 @@ plot(gam_diff_m)
 ```
 
 ```{r}
+#rcp26
+gam_diff_b_26<-scale(d_26, center=centre_tempb, scale=scale_tempb)
+plot(gam_diff_b_26)
+
+gam_diff_m_26<-scale(d_26, center=centre_tempm, scale=scale_tempm)
+plot(gam_diff_m_26)
+```
+
+
+
+```{r}
+#rcp85
 ave_mod_b<-data.frame(gam_diff_b, rep(0, length(gam_diff_b)), rep(0, length(gam_diff_b)))
 colnames(ave_mod_b)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
-pop_pred_b<-predict(m1c_b, ave_mod_b, re.form=NA, se.fit=T)
+pop_pred_b<-stats:::predict(m1c_b, ave_mod_b, re.form=NA, se.fit=TRUE)
 
 ave_mod_m<-data.frame(gam_diff_m, rep(0, length(gam_diff_m)), rep(0, length(gam_diff_m)))
 colnames(ave_mod_m)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
 pop_pred_m<-predict(m1_m, ave_mod_m, re.form=NA, se.fit=T)
 ```
 
+```{r, warning=FALSE, message=FALSE}
+#rcp26
+ave_mod_b_26<-data.frame(gam_diff_b_26, rep(0, length(gam_diff_b_26)), rep(0, length(gam_diff_b_26)))
+colnames(ave_mod_b_26)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
+pop_pred_b_26<-predict(m1c_b, ave_mod_b_26, re.form=NA, se.fit=T)
+
+ave_mod_m_26<-data.frame(gam_diff_m_26, rep(0, length(gam_diff_m_26)), rep(0, length(gam_diff_m_26)))
+colnames(ave_mod_m_26)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
+pop_pred_m_26<-stats:::predict(m1_m, ave_mod_m_26, re.form=NA, se.fit=T)
+```
+
 
 ```{r}
-plot(pop_pred_b$fit, ylim=c(-0.045, 0.005), main="Birds", type="l")
+#rcp85
+plot(pop_pred_b$fit, ylim=c(-0.045, 0.005), main="Birds RCP 8.5", type="l")
 lines(pop_pred_b$fit + 1.96*pop_pred_b$se.fit, col="red", lty=2)
 lines(pop_pred_b$fit - 1.96*pop_pred_b$se.fit, col="red", lty=2)
 
-plot(pop_pred_m$fit, ylim=c(-0.015, 0.01), main="Mammals",  type="l")
+plot(pop_pred_m$fit, ylim=c(-0.015, 0.01), main="Mammals RCP 8.5",  type="l")
 lines(pop_pred_m$fit + 1.96*pop_pred_m$se.fit, col="red", lty=2)
 lines(pop_pred_m$fit - 1.96*pop_pred_m$se.fit, col="red", lty=2)
 ```
+
+```{r}
+#rcp26
+plot(pop_pred_b_26$fit, ylim=c(-0.045, 0.005), main="Birds RCP 2.6", type="l")
+lines(pop_pred_b_26$fit + 1.96*pop_pred_b_26$se.fit, col="red", lty=2)
+lines(pop_pred_b_26$fit - 1.96*pop_pred_b_26$se.fit, col="red", lty=2)
+
+plot(pop_pred_m_26$fit, ylim=c(-0.015, 0.01), main="Mammals RCP 2.6",  type="l")
+lines(pop_pred_m_26$fit + 1.96*pop_pred_m_26$se.fit, col="red", lty=2)
+lines(pop_pred_m_26$fit - 1.96*pop_pred_m_26$se.fit, col="red", lty=2)
+```
+
 
 ```{r}
 10^sum(pop_pred_b$fit + 1.96*pop_pred_b$se.fit)
