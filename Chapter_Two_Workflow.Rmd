@@ -904,9 +904,9 @@ CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 
 obs<-stack(CR40s[[109:120]], CR50s, CR60s, CR70s, CR80s, CR90s,CR00s[[1:48]] )
 
-### rcp 85
-
 #####HadGEM ES
+
+### rcp 85
 
 ts85_05_30<-brick("ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_200512-203011.nc")
 ts85_30_55<-brick("ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_203012-205511.nc")
@@ -914,7 +914,6 @@ ts85_55_80<-brick("ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_205512-208011.nc")
 ts85_80_00<-brick("ts_Amon_HadGEM2-ES_esmrcp85_r1i1p1_208012-210011.nc")
 
 ts85_05_00<-stack(ts85_05_30,ts85_30_55,ts85_55_80,ts85_80_00)
-#ts_05_00<-brick(ts_05_00)
 
 ### rcp 26
 
@@ -1090,18 +1089,18 @@ plot(pop_pred_b$fit, ylim=c(-0.045, 0.005), main="Birds RCP 8.5", type="l")
 lines(pop_pred_b$fit + 1.96*pop_pred_b$se.fit, col="red", lty=2)
 lines(pop_pred_b$fit - 1.96*pop_pred_b$se.fit, col="red", lty=2)
 
-plot(pop_pred_m$fit, ylim=c(-0.015, 0.01), main="Mammals RCP 8.5",  type="l")
+plot(pop_pred_m$fit, ylim=c(-0.02, 0.01), main="Mammals RCP 8.5",  type="l")
 lines(pop_pred_m$fit + 1.96*pop_pred_m$se.fit, col="red", lty=2)
 lines(pop_pred_m$fit - 1.96*pop_pred_m$se.fit, col="red", lty=2)
 ```
 
 ```{r}
 #rcp26
-plot(pop_pred_b_26$fit, ylim=c(-0.045, 0.005), main="Birds RCP 2.6", type="l")
+plot(pop_pred_b_26$fit, ylim=c(-0.045, 0.025), main="Birds RCP 2.6", type="l")
 lines(pop_pred_b_26$fit + 1.96*pop_pred_b_26$se.fit, col="red", lty=2)
 lines(pop_pred_b_26$fit - 1.96*pop_pred_b_26$se.fit, col="red", lty=2)
 
-plot(pop_pred_m_26$fit, ylim=c(-0.015, 0.01), main="Mammals RCP 2.6",  type="l")
+plot(pop_pred_m_26$fit, ylim=c(-0.015, 0.015), main="Mammals RCP 2.6",  type="l")
 lines(pop_pred_m_26$fit + 1.96*pop_pred_m_26$se.fit, col="red", lty=2)
 lines(pop_pred_m_26$fit - 1.96*pop_pred_m_26$se.fit, col="red", lty=2)
 ```
@@ -1118,6 +1117,7 @@ lines(pop_pred_m_26$fit - 1.96*pop_pred_m_26$se.fit, col="red", lty=2)
 ```
 
 ```{r}
+#rcp85
 pop_pred_b$fit2<-c(0, pop_pred_b$fit)
 pop_pred_b$se.fit2<-c(0, pop_pred_b$se.fit)
 
@@ -1126,14 +1126,31 @@ pop_pred_m$se.fit2<-c(0, pop_pred_m$se.fit)
 ```
 
 ```{r}
-plot(y=10^cumsum(pop_pred_b$fit2), x=2006:2099, ylim=c(0, 1.5), type="l", ylab="Bird Population Index", xlab="Year", main="Predicted Bird Population Index Under Scenario RCP 8.5")
-lines(y=10^cumsum(pop_pred_b$fit2 - 1.96*pop_pred_b$se.fit2), x=2006:2099, lty=2, col="Red")
-lines(y=10^cumsum(pop_pred_b$fit2 + 1.96*pop_pred_b$se.fit2), x=2006:2099, lty=2, col="Red")
+#rcp26
+pop_pred_b_26$fit2<-c(0, pop_pred_b_26$fit)
+pop_pred_b_26$se.fit2<-c(0, pop_pred_b_26$se.fit)
+
+pop_pred_m_26$fit2<-c(0, pop_pred_m_26$fit)
+pop_pred_m_26$se.fit2<-c(0, pop_pred_m_26$se.fit)
 ```
 
 ```{r}
+plot(y=10^cumsum(pop_pred_b$fit2), x=2005:2100, ylim=c(0, 1.5), type="l", ylab="Bird Population Index", xlab="Year", main="Predicted Bird Population Index Under Scenario RCP 8.5")
+lines(y=10^cumsum(pop_pred_b$fit2 - 1.96*pop_pred_b$se.fit2), x=2005:2100, lty=2, col="Red")
+lines(y=10^cumsum(pop_pred_b$fit2 + 1.96*pop_pred_b$se.fit2), x=2005:2100, lty=2, col="Red")
+```
+
+```{r}
+plot(y=10^cumsum(pop_pred_m$fit2), x=2005:2100, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 8.5")
+lines(y=10^cumsum(pop_pred_m$fit2 - 1.96*pop_pred_m$se.fit2), x=2005:2100, lty=2, col="Red")
+lines(y=10^cumsum(pop_pred_m$fit2 + 1.96*pop_pred_m$se.fit2), x=2005:2100, lty=2, col="Red")
+
+```
+
+```{r}
+#Birds RCP 8.5
 yb<-10^cumsum(pop_pred_b$fit2)
-xb<-2006:2099
+xb<-2005:2100
 lcib<-10^cumsum(pop_pred_b$fit2 - 1.96*pop_pred_b$se.fit2)
 ucib<-10^cumsum(pop_pred_b$fit2 + 1.96*pop_pred_b$se.fit2)
 
@@ -1144,15 +1161,37 @@ library(ggplot2)
 ggplot(dfb, aes(xb,yb))+
   geom_line(size=2)+
   geom_ribbon(aes(ymin=lcib, ymax=ucib), alpha=0.3, colour=NA)+
-  labs(y = "Bird Population Index", x = "")+
+  labs(y = "Bird Population Index RCP 8.5", x = "")+
   scale_y_continuous(breaks=seq(0, 1, 0.25))+
   theme_bw()+
-  theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
 ```
 
 ```{r}
+#Birds RCP 2.6
+yb_26<-10^cumsum(pop_pred_b_26$fit2)
+xb_26<-2005:2100
+lcib_26<-10^cumsum(pop_pred_b_26$fit2 - 1.96*pop_pred_b_26$se.fit2)
+ucib_26<-10^cumsum(pop_pred_b_26$fit2 + 1.96*pop_pred_b_26$se.fit2)
+
+dfb_26<-data.frame(xb_26,yb_26, lcib_26, ucib_26)
+
+library(ggplot2)
+
+ggplot(dfb_26, aes(xb_26,yb_26))+
+  geom_line(size=2)+
+  geom_ribbon(aes(ymin=lcib_26, ymax=ucib_26), alpha=0.3, colour=NA)+
+  labs(y = "Bird Population Index RCP 2.6", x = "")+
+  #scale_y_continuous(breaks=seq(0, 1, 0.25))+
+  theme_bw()+
+  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+```
+
+```{r}
+#Mammals RCP 8.5
+
 ym<-10^cumsum(pop_pred_m$fit2)
-xm<-2006:2099
+xm<-2005:2100
 lcim<-10^cumsum(pop_pred_m$fit2 - 1.96*pop_pred_m$se.fit2)
 ucim<-10^cumsum(pop_pred_m$fit2 + 1.96*pop_pred_m$se.fit2)
 
@@ -1163,23 +1202,38 @@ library(ggplot2)
 ggplot(dfm, aes(xm,ym))+
   geom_line(size=2)+
   geom_ribbon(aes(ymin=lcim, ymax=ucim), alpha=0.3, colour=NA)+
-  labs(y = "Mammal Population Index", x = "")+
-  scale_y_continuous(breaks=seq(0, 1, 0.25))+
+  labs(y = "Mammal Population Index RCP 8.5", x = "")+
+  #scale_y_continuous(breaks=seq(0, 1, 0.5))+
   theme_bw()+
-  theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
 ```
 
 ```{r}
-plot(y=10^cumsum(pop_pred_m$fit2), x=2006:2099, ylim=c(0, 3), type="l", ylab="Mammal Population Index", xlab="Year", main="Predicted Mammal Population Trends Under RCP 8.5")
-lines(y=10^cumsum(pop_pred_m$fit2 - 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
-lines(y=10^cumsum(pop_pred_m$fit2 + 1.96*pop_pred_m$se.fit2), x=2006:2099, lty=2, col="Red")
+#Mammals RCP 2.6
 
+ym_26<-10^cumsum(pop_pred_m_26$fit2)
+xm_26<-2005:2100
+lcim_26<-10^cumsum(pop_pred_m_26$fit2 - 1.96*pop_pred_m_26$se.fit2)
+ucim_26<-10^cumsum(pop_pred_m_26$fit2 + 1.96*pop_pred_m_26$se.fit2)
+
+dfm_26<-data.frame(xm_26,ym_26, lcim_26, ucim_26)
+
+library(ggplot2)
+
+ggplot(dfm_26, aes(xm_26,ym_26))+
+  geom_line(size=2)+
+  geom_ribbon(aes(ymin=lcim_26, ymax=ucim_26), alpha=0.3, colour=NA)+
+  labs(y = "Mammal Population Index RCP 2.6", x = "")+
+  #scale_y_continuous(breaks=seq(0, 1, 0.25))+
+  theme_bw()+
+  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
 ```
+#Future Spatial Predictions
 
 
 ```{r}
 ################function for doing it all spatially
-
+#mammals 
 x = c(1:150)
 
 funm<-function(y){
@@ -1206,8 +1260,11 @@ funm<-function(y){
 #gam_pred_rast_2050<-calc(obs_mod_ann, fun)
 #gam_pred_rast<-calc(obs_mod_ann, fun)
 
-pred_rast_mammal<-calc(obs_mod_ann, funm)
+```
 
+```{r}
+#rcp 8.5
+pred_rast_mammal<-calc(obs_mod_ann, funm)
 
 ave_lam_mammal<-calc(pred_rast_mammal, fun=mean)
 plot(10^ave_lam_mammal)
@@ -1218,8 +1275,22 @@ plot(prod_lam_mammal)
 ```
 
 ```{r}
-################function for doing it all spatially
+#rcp 2.6
+pred_rast_mammal_26<-calc(obs_mod_ann_26, funm)
 
+ave_lam_mammal_26<-calc(pred_rast_mammal_26, fun=mean)
+plot(10^ave_lam_mammal_26)
+
+pgr_mammal_26<-10^pred_rast_mammal_26
+prod_lam_mammal_26<-calc(pgr_mammal_26, fun=prod)
+plot(prod_lam_mammal_26)
+```
+
+
+
+```{r}
+################function for doing it all spatially
+#birds rcp 8.5
 x = c(1:150)
 
 funb<-function(y){
@@ -1245,7 +1316,9 @@ funb<-function(y){
 
 #gam_pred_rast_2050<-calc(obs_mod_ann, fun)
 #gam_pred_rast<-calc(obs_mod_ann, fun)
+```
 
+```{r}
 pred_rast_bird<-calc(obs_mod_ann, funb)
 
 ave_lam_b<-calc(pred_rast_bird, fun=mean)
@@ -1257,6 +1330,20 @@ plot(prod_lam_b)
 
 
 ```
+
+```{r}
+pred_rast_bird_26<-calc(obs_mod_ann_26, funb)
+
+ave_lam_b_26<-calc(pred_rast_bird_26, fun=mean)
+plot(10^ave_lam_b_26)
+
+pgr_b_26<-10^pred_rast_bird_26
+prod_lam_b_26<-calc(pgr_b_26, fun=prod)
+plot(prod_lam_b_26)
+
+
+```
+
 
 #Future Spatial Predictions
 
