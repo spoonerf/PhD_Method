@@ -581,14 +581,20 @@ nrow(dfd)
 dfu<-unique(dfd)
 
 df2<-subset(dfu, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Aves")
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Mammalia")
 nrow(df2)
+
+table(df2$Protected_status)
+df2$Protected_status[df2$Protected_status == "No (large survey area)"]<-"No"
+df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"]<-"No"
 
 colnames(df2)[2]<-"Binomial"
 
 #df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
 nrow(df2)
+
+#write.csv(df2, "mammal_data_for_prediction.csv")
 
 library(plyr)
 sp_dups<-data.frame(ddply(df2,.(Longitude,Latitude),nrow))
@@ -627,31 +633,31 @@ source("rsquaredglmm.R")
   library(lme4) 
   
   m0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Bodymass_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 
   m0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0af<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0af<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Bodymass_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m0b<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0bf<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0bf<-lmer(lambda_mean ~ change_rate_scale+Bodymass_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m0c<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0cf<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0cf<-lmer(lambda_mean ~ mean_slope_scale+Bodymass_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m0d<-lmer(lambda_mean ~ Bodymass_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m0df<-lmer(lambda_mean ~ Bodymass_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m0df<-lmer(lambda_mean ~ Bodymass_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 
   m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1af<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1af<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 
   m1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1bf<-lmer(lambda_mean ~ change_rate_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)  
+  m1bf<-lmer(lambda_mean ~ change_rate_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)  
 
   m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  m1cf<-lmer(lambda_mean ~ mean_slope_scale+Family+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  m1cf<-lmer(lambda_mean ~ mean_slope_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   mnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 ```
   
@@ -662,19 +668,19 @@ Model Comparison
   library(lme4)  
 
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
-  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf,mnull)
 
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   msAICc
   
-  AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull)
+  AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
   
   #Rsq
-  models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
+  models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
+  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull","m0f","m0af","m0bf","m0cf","m0df","m1f","m1af","m1bf","m1cf")
 
   modelsRsq
     
@@ -686,10 +692,10 @@ Model Comparison
   
   smav<-summary(mav)
   
-  coef_av<-smav$coefmat.subset[1:5,"Estimate"]
+  coef_av<-smav$coefmat.subset[,"Estimate"]
   coef_df<-data.frame(coef_av)
-  coef_df$lowCI<-confint(mav)[1:5,1]
-  coef_df$highCI<-confint(mav)[1:5,2]
+  coef_df$lowCI<-confint(mav)[,1]
+  coef_df$highCI<-confint(mav)[,2]
   coef_df
   
   
