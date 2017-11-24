@@ -581,7 +581,7 @@ nrow(dfd)
 dfu<-unique(dfd)
 
 df2<-subset(dfu, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Mammalia")
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)& Class=="Aves")
 nrow(df2)
 
 table(df2$Protected_status)
@@ -668,7 +668,8 @@ Model Comparison
   library(lme4)  
 
   #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
-  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf,mnull)
+  #msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf,mnull)  
+  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
 
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
@@ -677,10 +678,11 @@ Model Comparison
   AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
   
   #Rsq
-  models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
+  #models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
+  models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull","m0f","m0af","m0bf","m0cf","m0df","m1f","m1af","m1bf","m1cf")
+  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
 
   modelsRsq
     
@@ -749,21 +751,21 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
 coef_both<-rbind(coef_pcntb[,c(1,2,3,4,7)], coef_pcntm[,c(1,2,3,4,7)])
 
 coef_both$Var_name
-coef_both$Var_name[coef_both$Var_name == "(Intercept)"] <- "aIntercept"
+coef_both$Var_name[coef_both$Var_name == "(Intercept)"] <- "Intercept"
 coef_both$Var_name[coef_both$Var_name == "mean_slope_scale"] <- "MTC"
 coef_both$Var_name[coef_both$Var_name == "change_rate_scale"] <- "LUC"
 coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <- "MTC*LUC"
 coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "BM"
 
-#write.csv(coef_both, "Model_Average_coefs3.csv")
-coefs_both<-read.csv("Model_Average_coefs3.csv")
+#write.csv(coef_both, "Model_Average_coefs4.csv")
+coefs_both<-read.csv("Model_Average_coefs4.csv")
 
 library(ggplot2)
 p1<-ggplot(coefs_both, aes(colour=Class))
 p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
 p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
-p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw() + labs(y = "Population Change (%)", x = "") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw() + labs(y = "Annual Population Rate of Population Change (%)", x = "") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
 p1<- p1 + scale_color_manual(values=c("black", "black"))
 
 print(p1)
