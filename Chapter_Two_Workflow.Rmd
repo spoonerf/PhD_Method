@@ -832,7 +832,7 @@ points(xy_new)
 
 ```
 
-#Future Predictions - Global
+#Spatial Current and Future Predictions - Global
 ```{r, warning=FALSE}
 
 df_bird<-read.csv("bird_data_for_prediction.csv")
@@ -903,7 +903,31 @@ CR90s<-brick("cru_ts3.23.1991.2000.tmp.dat.nc")
 CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 
 obs<-stack(CR40s[[109:120]], CR50s, CR60s, CR70s, CR80s, CR90s,CR00s[[1:48]] )
+year_mon<-rep(1:(nlayers(obs)/12), each=12)
 
+
+#changing from monthly to annual data
+year_s<-stackApply(obs, indices=year_mon, fun=mean, na.rm=TRUE)
+
+years<-1950:2004
+names(year_s)<-years
+
+X <- cbind(1, years)
+
+## pre-computing constant part of least squares
+invXtX <- solve(t(X) %*% X) %*% t(X)
+
+## much reduced regression model; [2] is to get the slope
+quickfun <- function(y) (invXtX %*% y)[2]
+
+x4 <- calc(year_s, quickfun)
+
+plot(x4)
+
+
+```
+
+```{r}
 #####HadGEM ES
 
 ### rcp 85
@@ -1228,6 +1252,40 @@ ggplot(dfm_26, aes(xm_26,ym_26))+
   theme_bw()+
   theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
 ```
+
+
+#Spatial prediction on observed trends
+```{r}
+################function for doing it all spatially
+#birds observed
+x = c(1:nlayers(year_s))
+
+funob<-function(y){
+  
+  z<-matrix(y)
+  if (sum(is.na(z))<1){
+    g<-mgcv:::gam(matrix(z) ~ s(x, k=8), fx=TRUE)
+    g_pred<-predict(g)
+    #g_pred<-g_pred[55:148]
+    #g_pred<-g_pred[55:100] #2050
+    d<-diff(g_pred)
+    gam_diff<-scale(d, center = centre_tempb, scale = scale_tempb)
+    ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
+    colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
+    pop_pred<-predict(m1c_b, ave_mod, re.form=NA, se.fit=T)
+  } else{
+    
+    #pop_pred$fit<-rep(NA,45) #2050
+    pop_pred$fit<-rep(NA,nlayers(year_s))
+  }
+  return(pop_pred$fit)
+}
+
+obs_bird<-calc(year_s, funob)
+
+```
+
+
 #Future Spatial Predictions
 
 
@@ -1285,8 +1343,6 @@ pgr_mammal_26<-10^pred_rast_mammal_26
 prod_lam_mammal_26<-calc(pgr_mammal_26, fun=prod)
 plot(prod_lam_mammal_26)
 ```
-
-
 
 ```{r}
 ################function for doing it all spatially
