@@ -653,7 +653,6 @@ plot(years_short,colMeans(na.omit(niche_map_mine)[904:length(colnames(niche_map_
 niche_map_mine<-na.omit(niche_map_mine)
 patch_map_mine<-na.omit(patch_map_mine)
 
-plot(years_short,colMeans(na.omit(patch_map_mine)[904:length(colnames(patch_map_mine))]), type="l", ylab="Mean suitability index")
 
 
 ```
@@ -1257,9 +1256,9 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 ```
 
+#Varying the carrying capacity - 16000, 4000, 2000, 1000
 
-
-```{r, eval=FALSE, echo=FALSE, warning=FALSE}
+```{r, eval=TRUE,  warning=FALSE}
 
 demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -1350,8 +1349,9 @@ lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blu
 
 ```
 
+#Changing the shape of the dispersal kernel
 
-```{r, eval=FALSE, echo=FALSE, warning=FALSE, "Dispersal Kernel"}
+```{r, eval=TRUE,  warning=FALSE, "Dispersal Kernel"}
 
 demoniche_setup(modelname = "Capra_disp_5",Populations = Populations, Nichemap = patch_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -1442,7 +1442,10 @@ lines(p_d_1_st[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="b
 
 ```
 
-```{r, eval=FALSE, echo=FALSE, warning=FALSE, "Dispersal Proportion"}
+#Changing the proportion dispersed
+
+
+```{r, eval=TRUE,  warning=FALSE, "Dispersal Proportion"}
 
 demoniche_setup(modelname = "Capra_disp_lsll",Populations = Populations, Nichemap = patch_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
