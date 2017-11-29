@@ -909,21 +909,6 @@ year_mon<-rep(1:(nlayers(obs)/12), each=12)
 #changing from monthly to annual data
 year_s<-stackApply(obs, indices=year_mon, fun=mean, na.rm=TRUE)
 
-years<-1950:2004
-names(year_s)<-years
-
-X <- cbind(1, years)
-
-## pre-computing constant part of least squares
-invXtX <- solve(t(X) %*% X) %*% t(X)
-
-## much reduced regression model; [2] is to get the slope
-quickfun <- function(y) (invXtX %*% y)[2]
-
-x4 <- calc(year_s, quickfun)
-
-plot(x4)
-
 
 ```
 
@@ -1276,9 +1261,9 @@ funob<-function(y){
   } else{
     
     #pop_pred$fit<-rep(NA,45) #2050
-    pop_pred$fit<-rep(NA,nlayers(year_s))
+    pop_pred_10694<-rep(NA,nlayers(year_s))
   }
-  return(pop_pred$fit)
+  return(pop_pred)
 }
 
 obs_bird<-calc(year_s, funob)
