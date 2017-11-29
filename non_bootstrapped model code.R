@@ -33,6 +33,9 @@ temp<-merge(temp, hyde[,c(2,3)], by="ID")
 
 #LPI<-read.csv("LPI_populations_IP_fishedit_20140310_nonconf.csv")
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
+LPI_bin<-LPI[,c("ID", "Binomial")]
+
+body4<-merge(body4, LPI_bin, by="Binomial")
 
 #Realm<-read.csv("selected_pops_Ecoregion.csv")
 Realm<-read.csv("Realm.csv", na.strings="")
@@ -49,9 +52,9 @@ pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 temp<-temp[,c("ID", "Estimate")]
 #temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
 
-LPI<-LPI[,c("ID","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
+LPI<-LPI[,c("ID","Binomial","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest", "Confidential")]
 
-df<-merge(merge(temp,body4[,c(2:4)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,body4[,c(2:5)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
@@ -73,14 +76,11 @@ nrow(dfd)
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
 df2<-subset(dfd, !is.na(Estimate)     &length_time >=5& System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g) & Class =="Mammalia" )
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g) & Class=="Mammalia" )
 
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
-nrow(df2)
-
-
 nrow(df2)
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
@@ -97,10 +97,6 @@ library(data.table)
 dt = as.data.table(sp_dups_df)
 
 parm_df<-sp_dups_df[,c("ID","Estimate", "both_change", "Log_Body_Mass_g")]  ##ID, land use, and climate  use "LUC_dist" or "Nat_change" for purely annual change in summed primary, secondary and other
-
-
-#av_cc<-data.frame(99999, 0.013, mean(parm_df$both_change), mean(parm_df$Bodymass))
-#colnames(av_cc)<-colnames(parm_df)
 
 parm_mat<-as.matrix(parm_df)
 parm_scale<-scale(parm_mat[,c("Estimate", "both_change", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
@@ -204,6 +200,8 @@ source("rsquaredglmm.R")
   msAICc<-data.frame(msAICc)
   msAICc
   
+  ((10^msAICc[,c(1:5)]) - 1)*100
+  
   AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull)
   
   #Rsq
@@ -284,10 +282,10 @@ coef_both<-rbind(coef_pcntb[,c(1,2,3,4,7)], coef_pcntm[,c(1,2,3,4,7)])
 
 coef_both$Var_name
 coef_both$Var_name[coef_both$Var_name == "(Intercept)"] <- "aIntercept"
-coef_both$Var_name[coef_both$Var_name == "mean_slope_scale"] <- "MTC"
-coef_both$Var_name[coef_both$Var_name == "change_rate_scale"] <- "LUC"
-coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <- "MTC*LUC"
-coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "BM"
+coef_both$Var_name[coef_both$Var_name == "mean_slope_scale"] <- "bMTC"
+coef_both$Var_name[coef_both$Var_name == "change_rate_scale"] <- "cLUC"
+coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <- "dMTC*LUC"
+coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "eBM"
 
 #write.csv(coef_both, "Model_Average_coefs3.csv")
 coefs_both<-read.csv("Model_Average_coefs3.csv")
@@ -378,10 +376,10 @@ library(ggplot2)
 ggplot(pred_melt, aes(x = 10^value, y = 10^dt.lambda_mean, colour = variable))+
   geom_point(size = 3,  alpha = 0.3 )+
   geom_smooth(method = "lm", se=FALSE)+
-  labs( x = "Logged Observed Population Growth Rate", y = "Logged Predicted Growth Rate", color = "")+
+  labs( x = "Observed Population Growth Rate", y = "Predicted Growth Rate", color = "")+
   scale_color_manual(labels = c("Climate Effects Only","Including Random Effects"), values = c("Red", "Black")) +
   theme(axis.title=element_text(size=14))+ theme(legend.text=element_text(size=14))+
-  coord_equal( xlim=c(-0.9, 0.7), ylim=c(-0.9, 0.7))+
+  #coord_equal( xlim=c(0, 2.2), ylim=c(0, 2.2))+
   geom_abline(linetype = "dotted",slope=1, intercept=0)
 
 
@@ -392,7 +390,7 @@ pred_fit_table$`Average Population Growth Rate`<-10^pred_fit_table$`Average Popu
 pred_fit_table$`Growth Rate Predicted From Climate Change`<-10^pred_fit_table$`Growth Rate Predicted From Climate Change`
 pred_fit_table$`Growth Rate Predicted From Climate Change, Species and Location`<-10^pred_fit_table$`Growth Rate Predicted From Climate Change, Species and Location`
 
-#write.csv(pred_fit_table, "Fitted_values_climate_birds.csv")
+#write.csv(pred_fit_table, "Fitted_values_climate_mammals.csv")
 
 
 
