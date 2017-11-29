@@ -51,7 +51,7 @@ temp<-temp[,c("ID", "Estimate")]
 
 LPI<-LPI[,c("ID","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
-df<-merge(merge(temp,body4[,c(2:5)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,body4[,c(2:4)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
@@ -80,31 +80,6 @@ df2<-subset(dfd, !is.na(Estimate)     &length_time >=5& System!="Marine"
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 nrow(df2)
 
-
-
-
-#write.csv(df_bird, "bird_data_for_prediction.csv")
-#write.csv(df_mammal, "mammal_data_for_prediction.csv")
-
-# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
-#             &Specific_location == 1 & !is.na(Bodymass)&!is.na(both_change) &((Primary_threat =="Habitat degradation/change"|
-#             Primary_threat=="Habitat loss"|Primary_threat=="Climate change")|
-#             (Secondary_threat =="Habitat degradation/change"| Secondary_threat=="Habitat loss"|Secondary_threat=="Climate change")|
-#             (Tertiary_threat == "Habitat degradation/change"| Tertiary_threat=="Habitat loss"|Tertiary_threat=="Climate change")))
-# # 
-# nrow(df2)
-# 
-# df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine"
-#             &Specific_location == 1 &!is.na(Bodymass)&!is.na(both_change) &((Primary_threat!="Disease"
-#             & Primary_threat!="Exploitation"
-#             &Primary_threat!="Invasive spp/genes"&Primary_threat!="Pollution") & (Secondary_threat!="Disease"&
-#             Secondary_threat!="Exploitation"&Secondary_threat!="Invasive spp/genes"&Secondary_threat!="Pollution")
-#             & (Tertiary_threat!="Disease"&Tertiary_threat!="Exploitation"&Tertiary_threat!="Invasive spp/genes"
-#             &Tertiary_threat!="Pollution")))
-
-
-
-#df2$Estimate_sum<-df2$Estimate * df2$length_time#
 
 nrow(df2)
 
@@ -398,7 +373,9 @@ points(pred_fit$dt.fitted, pred_fit$dt.lambda_mean, col="red")
 
 pred_melt<-melt(pred_fit, id = c("dt.ID", "dt.lambda_mean" ))
 
-ggplot(pred_melt, aes(x = value, y = dt.lambda_mean, colour = variable))+
+library(ggplot2)
+
+ggplot(pred_melt, aes(x = 10^value, y = 10^dt.lambda_mean, colour = variable))+
   geom_point(size = 3,  alpha = 0.3 )+
   geom_smooth(method = "lm", se=FALSE)+
   labs( x = "Logged Observed Population Growth Rate", y = "Logged Predicted Growth Rate", color = "")+
