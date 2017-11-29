@@ -995,6 +995,8 @@ obs_mod_ann<-stackApply(obs_mod, indices=year_mon, fun=mean, na.rm=TRUE)
 obs_mat_ann<-matrix(cellStats(obs_mod_ann, mean))
 
 plot(obs_mat_ann)
+
+
 ```
 
 ```{r}
@@ -1005,8 +1007,19 @@ year_mon_26<-rep(1:(nlayers(obs_mod_26)/12), each=12)
 obs_mod_ann_26<-stackApply(obs_mod_26, indices=year_mon_26, fun=mean, na.rm=TRUE)
 
 obs_mat_ann_26<-matrix(cellStats(obs_mod_ann_26, mean))
+years<-1951:2100
+plot(years,obs_mat_ann_26 - 273.15 )
 
-plot(obs_mat_ann_26)
+df<-data.frame(years, obs_mat_ann_26 - 273.15)
+colnames(df)[2]<-"Mean_Temp"
+df$Observed_Predict<-as.factor(c(rep("Observed",54), rep("Predicted",96)))
+
+ggplot(df, aes(x= years, y= Mean_Temp, colour = Observed_Predict))+
+  geom_point() + 
+  ylim(7.5, 17) +
+  labs(y = expression(Global~Mean~Temperature^{o}~C), x = "Year", colour = "", title = "RCP 2.6")
+  
+  
 ```
 
 
@@ -1257,11 +1270,11 @@ funob<-function(y){
     gam_diff<-scale(d, center = centre_tempb, scale = scale_tempb)
     ave_mod<-data.frame(gam_diff, rep(0, length(gam_diff)), rep(0, length(gam_diff)))
     colnames(ave_mod)<-c("mean_slope_scale", "change_rate_scale", "Bodymass_scale")
-    pop_pred<-predict(m1c_b, ave_mod, re.form=NA, se.fit=T)
+    pop_pred<-predict(m1c_b, ave_mod, re.form=NA)
   } else{
     
     #pop_pred$fit<-rep(NA,45) #2050
-    pop_pred_10694<-rep(NA,nlayers(year_s))
+    pop_pred<-rep(NA,nlayers(year_s))
   }
   return(pop_pred)
 }

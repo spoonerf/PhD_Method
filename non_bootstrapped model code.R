@@ -46,19 +46,19 @@ Realm<-Realm[!is.na(Realm3$WWF_REALM2),]
 #EurHil<-read.csv("Europe_HILDA_5_year_pops.csv")  # data from Euro-centric analysis
 pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
-temp<-temp[,c("ID","Binomial", "Estimate")]
+temp<-temp[,c("ID", "Estimate")]
 #temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
 
-LPI<-LPI[,c("ID","Binomial","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
+LPI<-LPI[,c("ID","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest")]
 
-df<-merge(merge(temp,body4[,c(2:4)], by="Binomial", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
+df<-merge(merge(temp,body4[,c(2:5)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
 
 #dfc<-merge(dfb, forest, by="ID", all=TRUE)
 dfd<-merge(df, hyde[,c(-1,-3)], by="ID")
 
-dfd<-dfd[,-2]
-colnames(dfd)[5]<-"Binomial"
+# dfd<-dfd[,-2]
+# colnames(dfd)[5]<-"Binomial"
 
 
 head(dfd)
@@ -72,46 +72,16 @@ nrow(dfd)
  #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5& System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g) & Class=="Mammalia")
+df2<-subset(dfd, !is.na(Estimate)     &length_time >=5& System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g) & Class =="Mammalia" )
 
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 nrow(df2)
 
-#colnames(df2)[2]<-"Binomial"
-#just picking out the populations that are in the data set
-#df2<-df2[df2$ID %in% esa$ID,]
-
-#write.csv(df2, "Pops_for_lme.csv")
 
 
-df_bird<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g) & Class=="Aves")
-nrow(df_bird)
-df_bird_60<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-                &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves" & (Latitude > 60 | Latitude < (-60)))
-nrow(df_bird_60)
-
-df_bird_30<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-                   &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves" & (Latitude > 30 & Latitude < 60 | Latitude < -30 & Latitude > (-60)))
-
-nrow(df_bird_30)
-
-df_bird_eq<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-                   &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Aves" & (Latitude < 30 & Latitude >-30 ))
-
-nrow(df_bird_eq)
-# 
-# df2<-df_bird_60
-# df2<-df_bird_30
-# df2<-df_bird_eq
-
-df_mammal<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=5 & System!="Marine" 
-                                &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g) & Class=="Mammalia" & ID !=13504 & ID !=4518)
-
-nrow(df_mammal)
 
 #write.csv(df_bird, "bird_data_for_prediction.csv")
 #write.csv(df_mammal, "mammal_data_for_prediction.csv")
@@ -327,11 +297,11 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
   print(p1)
   
   
-coef_pcnt$Class<-"Birds"  
-#coef_pcnt$Class<-"Mammals"  
+#coef_pcnt$Class<-"Birds"  
+coef_pcnt$Class<-"Mammals"  
 
-coef_pcntb<-coef_pcnt
-#coef_pcntm<-coef_pcnt  
+#coef_pcntb<-coef_pcnt
+coef_pcntm<-coef_pcnt  
 
 
 
@@ -348,53 +318,107 @@ coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "BM"
 coefs_both<-read.csv("Model_Average_coefs3.csv")
 
 library(ggplot2)
-p1<-ggplot(coefs_both, aes(colour=Class))
-p1<- p1 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
+p1<-ggplot(coef_both, aes(colour=Class))
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
 p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
-p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5))) +theme_bw() + labs(y = "Population Change (%)", x = "") + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+p1<- p1 + scale_y_continuous(breaks=seq(-8, 6, 2), limits=(c(-9,5)))
+#p1<-p1 + theme_bw() + labs(y = "Population Change (%)", x = "")  
+#p1<- p1 + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
 p1<- p1 + scale_color_manual(values=c("black", "black"))
-
+p1 + theme_bw()
 print(p1)
 
-((10^msAICc[,2:5])-1)*100
+((10^msAICc[,1:5])-1)*100
+
+
+library(ggplot2)
+dt_pred<-data.frame(dt, predict(m1c))
+
+
+ggplot(dt_pred, aes(x = Longitude, y=Latitude, colour =10^predict.m1c. ))+
+  geom_point()+scale_color_gradient2(midpoint=1, low="red",
+                                     high="green" )
+
+
+CR30s<-brick("cru_ts3.23.1931.1940.tmp.dat.nc")
+CR40s<-brick("cru_ts3.23.1941.1950.tmp.dat.nc")
+CR50s<-brick("cru_ts3.23.1951.1960.tmp.dat.nc")
+CR60s<-brick("cru_ts3.23.1961.1970.tmp.dat.nc")
+CR70s<-brick("cru_ts3.23.1971.1980.tmp.dat.nc")
+CR80s<-brick("cru_ts3.23.1981.1990.tmp.dat.nc")
+CR90s<-brick("cru_ts3.23.1991.2000.tmp.dat.nc")
+CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
+CR10s<-brick("cru_ts3.23.2011.2014.tmp.dat.nc")
+CR<-stack(CR30s,CR40s,CR50s,CR60s,CR70s,CR80s,CR90s,CR00s,CR10s)
+
+X <- cbind(1, time)
+
+## pre-computing constant part of least squares
+invXtX <- solve(t(X) %*% X) %*% t(X)
+
+## much reduced regression model; [2] is to get the slope
+quickfun <- function(y) (invXtX %*% y)[2]
+x4 <- calc(CR, quickfun) 
+map.p <- rasterToPoints(x4)
+
+#Make the points a dataframe for ggplot
+df <- data.frame(map.p)
+#Make appropriate column headings
+colnames(df) <- c("Longitude", "Latitude", "MAP")
+
+ggplot(data=df, aes(y=Latitude, x=Longitude)) +
+  geom_raster(aes(fill=MAP)) +
+     geom_point(data=dt_pred, aes(x=Longitude, y=Latitude, colour =10^predict.m1c.))+
+  scale_color_gradient2(midpoint=1, low="red",high="green" )+
+  coord_equal()
+
+
+#######fitted and predicted values
+
+dt$fitted<-fitted(m1c)
+rm1c<-ranef(m1c)
+rm1cb<-rm1c$Binomial
+rm1cb$Binomial<-rownames(rm1cb)
+colnames(rm1cb)[1]<-"Binomial_ranef"
+dt<-merge(dt, rm1cb, by="Binomial")
+
+rm1cl<-rm1c$loc_id
+rm1cl$loc_id<-rownames(rm1cl)
+colnames(rm1cl)
+colnames(rm1cl)[1]<-"loc_id_ranef"
+rm1cl$loc_id<-as.numeric(rm1cl$loc_id)
+dt<-merge(dt, rm1cl, by="loc_id")
+dt$predicted<-dt$fitted+dt$Binomial_ranef+dt$loc_id_ranef
+
+pred_fit<-data.frame(dt$ID, dt$lambda_mean, dt$fitted, dt$predicted)
+
+
+plot(pred_fit$dt.predicted, pred_fit$dt.lambda_mean)
+points(pred_fit$dt.fitted, pred_fit$dt.lambda_mean, col="red")
+
+pred_melt<-melt(pred_fit, id = c("dt.ID", "dt.lambda_mean" ))
+
+ggplot(pred_melt, aes(x = value, y = dt.lambda_mean, colour = variable))+
+  geom_point(size = 3,  alpha = 0.3 )+
+  geom_smooth(method = "lm", se=FALSE)+
+  labs( x = "Logged Observed Population Growth Rate", y = "Logged Predicted Growth Rate", color = "")+
+  scale_color_manual(labels = c("Climate Effects Only","Including Random Effects"), values = c("Red", "Black")) +
+  theme(axis.title=element_text(size=14))+ theme(legend.text=element_text(size=14))+
+  coord_equal( xlim=c(-0.9, 0.7), ylim=c(-0.9, 0.7))+
+  geom_abline(linetype = "dotted",slope=1, intercept=0)
 
 
 
+pred_fit_table<-data.frame(dt$Binomial, dt$Country, dt$lambda_mean, dt$Estimate, dt$both_change, dt$fitted, dt$predicted)
+colnames(pred_fit_table)<-c("Binomial", "Country", "Average Population Growth Rate", "Rate of Climate Change", "Rate of Land Use Change", "Growth Rate Predicted From Climate Change", "Growth Rate Predicted From Climate Change, Species and Location")
+pred_fit_table$`Average Population Growth Rate`<-10^pred_fit_table$`Average Population Growth Rate`
+pred_fit_table$`Growth Rate Predicted From Climate Change`<-10^pred_fit_table$`Growth Rate Predicted From Climate Change`
+pred_fit_table$`Growth Rate Predicted From Climate Change, Species and Location`<-10^pred_fit_table$`Growth Rate Predicted From Climate Change, Species and Location`
+
+#write.csv(pred_fit_table, "Fitted_values_climate_birds.csv")
 
 
-dt
 
-m1c<-lm(lambda_mean ~ mean_slope_scale,data=dt)
-
-b1s<-coef(m1c)
-
-icol <- which(colnames(dt)=="mean_slope_scale")
-p.order <- c(icol,(1:ncol(dt))[-icol])
-m <- c(0,mean(df2$Estimate))
-s <- c(1,sd(df2$Estimate))
-all.equal(m1c,rescale.coefs(b1s,m,s)) 
-
-
-capra_df<-df2[df2$ID == 10696 | df2$ID == 10714 | df2$ID == 10694 | df2$ID == 10717 | df2$ID == 10713 |df2$ID == 10718 |df2$ID == 10695 |df2$ID == 539 |df2$ID == 10710 ,]
-
-
-capras<-which(df2$ID == 10696 | df2$ID == 10714 | df2$ID == 10694 | df2$ID == 10717 | df2$ID == 10713 |df2$ID == 10718 |df2$ID == 10695 |df2$ID == 539 |df2$ID == 10710 )
-
-
-pred<-10^(predict(m0)[capras])
-pred_clim<-10^predict(m1c)[capras]   #climate only model
-pred_luc<-10^predict(m1b)[capras]
-real<-10^capra_df$lambda_mean
-  
-demo<-10^rowMeans(diff(as.matrix(log10(trends_df[,c(900:967)]))))
-
-
-lambda_preds<-cbind(pred, pred_clim,pred_luc, real, demo)
-
-
-pairs(lambda_preds)
-colSums(na.omit(lambda_preds - real))
 
 
 sp_ran<-data.frame(ranef(m0)[2])
@@ -424,5 +448,25 @@ boxplot(10^sp_ord$Intercept ~ sp_ord$Order)
 which.min(fitted.values(m0))
 
 dt[285,]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
