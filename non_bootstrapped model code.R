@@ -55,7 +55,7 @@ pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 temp<-temp[,c("ID", "Estimate")]
 #temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
 
-LPI<-LPI[,c("ID","Binomial","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest", "Confidential")]
+LPI<-LPI[,c("ID","Binomial","Confidential","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest", "Confidential")]
 
 df<-merge(merge(temp,body4[,c(2:4)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
@@ -78,15 +78,19 @@ nrow(dfd)
  #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
+<<<<<<< HEAD
 df2<-subset(dfd, !is.na(Estimate)  &length_time >=5& System!="Marine" 
+=======
+df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine" 
+>>>>>>> 36cd534a4de7dad6ec4523a17d175668de17f905
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-            & (Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
+            & (Class=="Mammalia" |Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
 nrow(df2)
 
 df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
 df2$Protected_status[df2$Protected_status == "No (large survey area)"] <- "No"
 
-table(df2$Protected_status, df2$Class)
+table(df2$Class)
 
 #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
@@ -127,7 +131,7 @@ length(unique(dt$loc_id))
 
 nrow(dt)
 
-#write.csv(dt, "Mammals_scaled_ready_for_models.csv")
+#write.csv(dt, "GCB_Data.csv")
 
 source("rsquaredglmm.R")
 
@@ -236,10 +240,10 @@ source("rsquaredglmm.R")
   
   smav<-summary(mav)
   
-  coef_av<-smav$coefmat.subset[1:6,"Estimate"]
+  coef_av<-smav$coefmat.subset[,"Estimate"]
   coef_df<-data.frame(coef_av)
-  coef_df$lowCI<-confint(mav)[1:6,1]
-  coef_df$highCI<-confint(mav)[1:6,2]
+  coef_df$lowCI<-confint(mav)[,1]
+  coef_df$highCI<-confint(mav)[,2]
   coef_df
   
   
@@ -304,17 +308,22 @@ coef_both$Var_name[coef_both$Var_name == "Protected_statues"] <- "fPA"
 #write.csv(coef_both, "Model_Average_coefs4.csv")
 coefs_both<-read.csv("Model_Average_coefs4.csv")
 
+<<<<<<< HEAD
 # coef_old<-coef_both
+=======
+#coef_old<-coef_both
+>>>>>>> 36cd534a4de7dad6ec4523a17d175668de17f905
 library(ggplot2)
 p1<-ggplot(coef_both, aes(colour=Class))
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
 p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
-p1<- p1 + scale_y_continuous(breaks=seq(-10, 14, 4), limits=(c(-10,14)))
+p1<- p1 + scale_y_continuous(breaks=seq(-10, 14, 4), limits=(c(-10,15)))
 #p1<-p1 + theme_bw() + labs(y = "Population Change (%)", x = "")  
 #p1<- p1 + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
-p1<- p1 + scale_color_manual(values=c("black", "black"))
-p1<-p1 + theme_bw() +theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-                                   panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+#p1<- p1 + scale_color_manual(values=c("black", "black"))
+p1<-p1 + theme_bw() 
+p1<-p1+theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 p1<- p1+ geom_hline(yintercept = 0, linetype=2)
 print(p1)
 
@@ -365,7 +374,8 @@ ggplot(data=df, aes(y=Latitude, x=Longitude)) +
 
 #######fitted and predicted values
 
-dt$fitted<-fitted(m1c)
+#dt$fitted<-fitted(m1c)
+dt$fitted<-predict(m1c, re.form=NA)
 rm1c<-ranef(m1c)
 rm1cb<-rm1c$Binomial
 rm1cb$Binomial<-rownames(rm1cb)
