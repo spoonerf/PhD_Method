@@ -545,7 +545,7 @@ file.copy(from_kap,to_kap, overwrite = T)
 
 ```
 
-### Demoniche
+### Demoniche - start from here for just demoniche
 
 Formatting the data for use in demoniche
 ```{r, warning=FALSE, message=FALSE}
@@ -711,6 +711,7 @@ sumweight<-rep(1, length(stages)) #weight of stages  - should be equal for all m
 #sumweightf<-c(1,1,1)
 
 transition_affected_niche<-c(2,11,20)   #which parts of the matrix are affected by the c(1,2) is juveniles
+transition_affected_niche<-"all"  #which parts of the matrix are affected by the c(1,2) is juveniles
 #niche values
 
 transition_affected_env <- "all"
@@ -719,7 +720,7 @@ transition_affected_demogr <- "all"
 
 env_stochas_type<-"normal"   #can also be lognormal
 
-matrices_var <- matrix(0.01, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+matrices_var <- matrix(0.5, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
 #standard deviation of matrices
 
 proportion_initial<- rep(1/length(stages), length(stages)) #proportion of population in 
@@ -1017,7 +1018,7 @@ for (i in 1:length(foldernames)){
                 sumweight =sumweight)
 
 patch_run <- demoniche_model_me(modelname = foldernames[i], Niche = TRUE, 
-                                     Dispersal = TRUE, repetitions = 1,
+                                     Dispersal = TRUE, repetitions = 10,
                                      foldername = foldernames[i])
 years<-1050:2016
 plot(years,patch_run[,"Meanpop","Reference_matrix"], type="l", xlim=c(1949,2016), main=foldernames[i])
@@ -1258,12 +1259,8 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 #Varying the carrying capacity - 16000, 4000, 2000, 1000
 
-<<<<<<< HEAD
 
-```{r,cache=TRUE, echo=FALSE, warning=FALSE}
-=======
 ```{r, eval=TRUE,  warning=FALSE}
->>>>>>> 8163f91484a294c85a951acc31986578905e4502
 
 demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -1318,7 +1315,7 @@ demoniche_setup(modelname = "Capra_k_1000",Populations = Populations, Nichemap =
                 sumweight =sumweight)
 
 c_ibex_k_16000 <- demoniche_model(modelname = "Capra_k_16000", Niche = TRUE, 
-                                     Dispersal = TRUE, repetitions = 1,
+                                     Dispersal = TRUE, repetitions = 5,
                                      foldername = "non_damaris_function")
 
 
@@ -1354,13 +1351,31 @@ lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blu
 
 ```
 
+
+```{r}
+load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep1_Reference_matrix.rda")
+pr1<-Projection
+plot(colSums(pr1[1,1,1:530,917:967]), type="l")
+load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep2_Reference_matrix.rda")
+pr2<-Projection
+lines(colSums(pr2[1,1,1:530,917:967]), type="l", col="red")
+load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep3_Reference_matrix.rda")
+pr3<-Projection
+lines(colSums(pr3[1,1,1:530,917:967]), type="l", col="blue")
+load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep4_Reference_matrix.rda")
+pr4<-Projection
+lines(colSums(pr4[1,1,1:530,917:967]), type="l", col="green")
+load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep5_Reference_matrix.rda")
+pr5<-Projection
+lines(colSums(pr4[1,1,1:530,917:967]), type="l", col="pink")
+
+
+
+```
 #Changing the shape of the dispersal kernel
 
-<<<<<<< HEAD
-```{r,cache=TRUE, echo=FALSE, warning=FALSE, "Dispersal Kernel"}
-=======
+
 ```{r, eval=TRUE,  warning=FALSE, "Dispersal Kernel"}
->>>>>>> 8163f91484a294c85a951acc31986578905e4502
 
 demoniche_setup(modelname = "Capra_disp_5",Populations = Populations, Nichemap = patch_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -1451,14 +1466,11 @@ lines(p_d_1_st[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="b
 
 ```
 
-<<<<<<< HEAD
-```{r, cache=TRUE, echo=FALSE, warning=FALSE, "Dispersal Proportion"}
-=======
+
 #Changing the proportion dispersed
 
 
 ```{r, eval=TRUE,  warning=FALSE, "Dispersal Proportion"}
->>>>>>> 8163f91484a294c85a951acc31986578905e4502
 
 demoniche_setup(modelname = "Capra_disp_lsll",Populations = Populations, Nichemap = patch_map_mine,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
