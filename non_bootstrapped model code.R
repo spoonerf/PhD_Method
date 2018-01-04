@@ -78,7 +78,7 @@ nrow(dfd)
  #df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999  &length_time >=10& System!="Marine" 
 #           &Specific_location == 1 &!is.na(both_change) & !is.na(Bodymass_g) & Class=="Mammalia")
 
-df2<-subset(dfd, !is.na(Estimate) & r_sq >= 0.4999999   &length_time >=5& System!="Marine" 
+df2<-subset(dfd, !is.na(Estimate)  &length_time >=5& System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
             & (Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
 nrow(df2)
@@ -283,11 +283,11 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
   print(p1)
   
   
-#coef_pcnt$Class<-"Birds"  
-coef_pcnt$Class<-"Mammals"  
+coef_pcnt$Class<-"Birds"  
+#coef_pcnt$Class<-"Mammals"  
 
-#coef_pcntb<-coef_pcnt
-coef_pcntm<-coef_pcnt  
+coef_pcntb<-coef_pcnt
+#coef_pcntm<-coef_pcnt  
 
 
 
@@ -304,7 +304,7 @@ coef_both$Var_name[coef_both$Var_name == "Protected_statues"] <- "fPA"
 #write.csv(coef_both, "Model_Average_coefs4.csv")
 coefs_both<-read.csv("Model_Average_coefs4.csv")
 
-coef_old<-coef_both
+# coef_old<-coef_both
 library(ggplot2)
 p1<-ggplot(coef_both, aes(colour=Class))
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
