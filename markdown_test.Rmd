@@ -1278,18 +1278,18 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 ```{r,cache=TRUE, echo=FALSE, warning=FALSE}
 
-demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
-              matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
-                stages = stages, proportion_initial = proportion_initial,
-                density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
-                fraction_LDD = 0.1, fraction_SDD = 0.9,
-                dispersal_constants = c(0.7,0.7,0.1,2),
-                transition_affected_niche = "all",
-                transition_affected_demogr = transition_affected_demogr,
-                transition_affected_env=transition_affected_env,
-                env_stochas_type = env_stochas_type,
-                no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
-                sumweight =sumweight)
+  demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
+                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                  stages = stages, proportion_initial = proportion_initial,
+                  density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                  fraction_LDD = 0.1, fraction_SDD = 0.9,
+                  dispersal_constants = c(0.7,0.7,0.1,2),
+                  transition_affected_niche = "all",
+                  transition_affected_demogr = transition_affected_demogr,
+                  transition_affected_env=transition_affected_env,
+                  env_stochas_type = env_stochas_type,
+                  no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
+                  sumweight =sumweight)
 
 demoniche_setup(modelname = "Capra_k_4000",Populations = Populations, Nichemap = patch_spin_up,
               matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
@@ -1331,7 +1331,7 @@ demoniche_setup(modelname = "Capra_k_1000",Populations = Populations, Nichemap =
                 sumweight =sumweight)
 
 c_ibex_k_16000 <- demoniche_model(modelname = "Capra_k_16000", Niche = TRUE, 
-                                     Dispersal = TRUE, repetitions = 5,
+                                     Dispersal = TRUE, repetitions = 10,
                                      foldername = "non_damaris_function")
 
 
@@ -1369,21 +1369,32 @@ lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blu
 
 
 ```{r}
+
+
 load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep1_Reference_matrix.rda")
 pr1<-Projection
-plot(colSums(pr1[1,1,1:530,917:967]), type="l")
+plot(colSums(pr1[1,1,1:530,917:ncol(pr1[1,1,1:530,])]), type="l")
+plot(colSums(pr1[1,1,1:530,]), type="l")
 load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep2_Reference_matrix.rda")
 pr2<-Projection
-lines(colSums(pr2[1,1,1:530,917:967]), type="l", col="red")
+plot(colSums(pr2[1,1,1:530,]), type="l", col="red")
 load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep3_Reference_matrix.rda")
 pr3<-Projection
-lines(colSums(pr3[1,1,1:530,917:967]), type="l", col="blue")
+plot(colSums(pr3[1,1,1:530,]), type="l", col="blue")
 load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep4_Reference_matrix.rda")
 pr4<-Projection
-lines(colSums(pr4[1,1,1:530,917:967]), type="l", col="green")
+plot(colSums(pr4[1,1,1:530,]), type="l", col="green")
 load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep5_Reference_matrix.rda")
 pr5<-Projection
-lines(colSums(pr4[1,1,1:530,917:967]), type="l", col="pink")
+plot(colSums(pr4[1,1,1:530,]), type="l", col="pink")
+
+f<-"D:/Fiona/Git_Method/Git_Method/non_damaris_function/"
+
+lf<-list.files(f, pattern="*matrix.rda")
+
+path<-paste(f, lf, sep="")
+
+
 
 
 
