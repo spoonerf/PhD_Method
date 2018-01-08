@@ -850,9 +850,8 @@ plot(p_16000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="")
 
 ```{r}
 
-reps<-1:10
+reps<-10
  
-
 rep_demoniche<-function(i){
   library(demoniche)
  demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
@@ -873,12 +872,11 @@ c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE,
 }
 
 
-lapply(reps, rep_demoniche)
-
+#lapply(1:reps, rep_demoniche)
 
 library(doParallel)
 registerDoParallel(cores=2)
-foreach(i=1:10) %dopar% rep_demoniche(i)
+foreach(i=1:reps) %dopar% rep_demoniche(i)
 stopCluster(cl)
 
 ```
@@ -886,16 +884,19 @@ stopCluster(cl)
 ```{r}
 
 wd<-getwd()
-f<-paste(wd, "/SD_half/", sep="")
+f<-paste(wd, "/Demoniche_Repetitions", sep="")
 
-lf<-list.files(f, pattern="*matrix.rda")
+lf<-list.dirs(f, recursive = F)
 
-path<-paste(f, lf, sep="")
+#path<-paste(f, lf, sep="")
+
+path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
 
 plot_rep<-function(proj_path){
   
   load(proj_path)
-  id<-as.numeric(gsub("\\D", "", proj_path)) 
+  id<-gsub("\\D", "", proj_path)
+  id<-as.numeric(substr(id, 1, nchar(id)-1))
   p<-Projection
   trend<-colSums(p[1,1,1:530,])
   tid<-cbind(id, trend)
