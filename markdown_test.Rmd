@@ -833,7 +833,7 @@ matrices_var<-matrix(sd, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, 
                   env_stochas_type = env_stochas_type,
                   no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
                   sumweight =sumweight)
-c_ibex_k_16000 <- demoniche_model(modelname = "Capra_k_16000", Niche = TRUE, 
+c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 10,
                                      foldername = paste("SD_", 0.5, sep=""))
   
@@ -849,7 +849,7 @@ plot(p_16000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", ylim=c(0
 ```{r}
 
 wd<-getwd()
-f<-paste(wd, "/SD_one/", sep="")
+f<-paste(wd, "/SD_half/", sep="")
 
 lf<-list.files(f, pattern="*matrix.rda")
 
