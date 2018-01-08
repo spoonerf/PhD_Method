@@ -1278,6 +1278,8 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 ```{r,cache=TRUE, echo=FALSE, warning=FALSE}
 
+matrices_var<-matrix(1, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+
   demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
@@ -1367,33 +1369,65 @@ lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blu
 
 ```
 
+```{r}
+
+library(demoniche)
+matrices_var<-matrix(0.5, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+
+  demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
+                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                  stages = stages, proportion_initial = proportion_initial,
+                  density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                  fraction_LDD = 0.1, fraction_SDD = 0.9,
+                  dispersal_constants = c(0.7,0.7,0.1,2),
+                  transition_affected_niche = "all",
+                  transition_affected_demogr = transition_affected_demogr,
+                  transition_affected_env=transition_affected_env,
+                  env_stochas_type = env_stochas_type,
+                  no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
+                  sumweight =sumweight)
+c_ibex_k_16000 <- demoniche_model(modelname = "Capra_k_16000", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 10,
+                                     foldername = "SD_half")
+  
+p_16000<-(c_ibex_k_16000[,"Meanpop","Reference_matrix"])
+
+plot(p_16000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", ylim=c(0,4700000))
+
+10^mean(diff(log10(p_16000[900:966])))
+
+
+```
 
 ```{r}
 
 
-load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep1_Reference_matrix.rda")
-pr1<-Projection
-plot(colSums(pr1[1,1,1:530,917:ncol(pr1[1,1,1:530,])]), type="l")
-plot(colSums(pr1[1,1,1:530,]), type="l")
-load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep2_Reference_matrix.rda")
-pr2<-Projection
-plot(colSums(pr2[1,1,1:530,]), type="l", col="red")
-load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep3_Reference_matrix.rda")
-pr3<-Projection
-plot(colSums(pr3[1,1,1:530,]), type="l", col="blue")
-load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep4_Reference_matrix.rda")
-pr4<-Projection
-plot(colSums(pr4[1,1,1:530,]), type="l", col="green")
-load("D:/Fiona/Git_Method/Git_Method/non_damaris_function/Projection_rep5_Reference_matrix.rda")
-pr5<-Projection
-plot(colSums(pr4[1,1,1:530,]), type="l", col="pink")
-
-f<-"D:/Fiona/Git_Method/Git_Method/non_damaris_function/"
+f<-"D:/Fiona/Git_Method/Git_Method/SD_one/"
 
 lf<-list.files(f, pattern="*matrix.rda")
 
 path<-paste(f, lf, sep="")
 
+plot_rep<-function(proj_path){
+  
+  load(proj_path)
+  id<-as.numeric(gsub("\\D", "", proj_path)) 
+  p<-Projection
+  trend<-colSums(p[1,1,1:530,])
+  tid<-cbind(id, trend)
+  return(tid)
+}
+
+reps<-lapply(path, plot_rep)
+rep_df<-do.call(rbind,reps)
+year<-row.names(rep_df)
+rep_df<-data.frame(rep_df)
+rep_df$year<-as.numeric(gsub("Year_", "", year))
+rep_df$id<-as.factor(rep_df$id)
+
+library(ggplot2)
+ggplot(rep_df, aes(x = year, y= log10(trend), group=id))+
+  geom_line()
 
 
 
