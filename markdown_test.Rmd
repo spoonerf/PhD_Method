@@ -477,7 +477,7 @@ lines(years, m-(2*sd), col="red", lty=3)
 ```
 
 Patches
-```{r, warning=FALSE}
+```{r, warning=FALSE, echo=FALSE}
 year_patch<-data.frame(years = years, patch_num = numeric(length(years)) )
 
 for (i in 1:length(years)){
@@ -520,7 +520,7 @@ par(mar=c(4,4,4,5))
 plot(year_patch$years, year_patch$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
 axis(4)
 mtext("Number of Patches",side=4,line=3)
-legend("left",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
 
 
 mtss<-cellStats(patch_tss, stat="sum")
@@ -859,7 +859,7 @@ time.taken
 
 ```
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE}
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE}
 #setwd("C:Users/Fiona/Documents/Demoniche")
 
 sd_seq<-c(0.25,0.5,0.75,1,1.5,2)
@@ -918,7 +918,7 @@ time.taken
 
 ```
 
-```{r, warnings=FALSE}
+```{r,message=FALSE, warning=FALSE}
 library(ggplot2)
 library(dplyr)
 
