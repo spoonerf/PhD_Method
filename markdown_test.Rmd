@@ -930,7 +930,7 @@ time.taken
 
 ```
 
-```{r,message=FALSE, warning=FALSE}
+```{r,message=FALSE, warning=FALSE, eval=FALSE}
 library(ggplot2)
 library(dplyr)
 
@@ -996,7 +996,115 @@ for (folder in folders){
 ```
 
 
+#ggplot groups of data e.g all data with 0.5 LDD
 
+```{r, message=FALSE, warning=FALSE}
+
+library(ggplot2)
+
+wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Four_Vars/"
+
+folders<-list.files(wd)
+
+rep_df_all<-data.frame()
+
+for (folder in folders){
+
+  print(folder)
+
+  f<-paste(wd,folder, sep="")
+
+  lf<-list.dirs(f, recursive = F)
+
+#path<-paste(f, lf, sep="")
+
+  path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
+
+  plot_rep<-function(proj_path){
+  
+  load(proj_path)
+  k_id<-strsplit(proj_path, "[_/]")[[1]][12]
+  ldd_id<-strsplit(proj_path, "[_/]")[[1]][14]
+  sdd_id<-strsplit(proj_path, "[_/]")[[1]][16]
+  dens_id<-strsplit(proj_path, "[_/]")[[1]][18]
+  rep_id<-strsplit(proj_path, "[_/]")[[1]][20]
+  p<-Projection
+  trend<-colSums(p[1,1,1:length(p[1,1,,1]),901:966])
+  tid<-cbind(k_id, ldd_id, sdd_id, dens_id, rep_id, trend)
+  
+  return(tid)
+  }
+  
+  reps<-lapply(path, plot_rep)
+  rep_df<-do.call(rbind,reps)
+  year<-row.names(rep_df)
+  rep_df<-data.frame(rep_df)
+  rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
+  #rep_df$id<-as.factor(rep_df$id)
+
+  rep_df_all<-rbind(rep_df,rep_df_all)
+  
+}
+
+#write.csv(rep_df_all, "fourvars_sdd_ldd_dens_k.csv")
+
+```
+
+```{r}
+
+rep_df_all<-read.csv("fourvars_sdd_ldd_dens_k.csv")
+
+rep_df_all$trend<-as.numeric(as.character(rep_df_all$trend))
+
+rep_df_all$dens_id_f<-factor(rep_df_all$dens_id, levels=c("100", "400", "1000", "4000"))
+
+rep_df_all$k_id_f<-factor(rep_df_all$k_id, levels=c("1000","2000",  "4000", "8000", "16000", "32000"))
+
+rep_df_all$sdd_id_f<-factor(rep_df_all$sdd_id, levels=c("0.1","0.5","0.9"))
+
+rep_df_all$ldd_id_f<-factor(rep_df_all$ldd_id, levels=c("0.1","0.5","0.9"))
+
+
+```
+
+Low Long distance dispersal
+```{r}
+#devtools::install_github("thomasp85/patchwork")
+library(ggplot2)
+#library(patchwork)
+
+df_ldd_01<-rep_df_all[rep_df_all$ldd_id == 0.1,]
+
+p01<-ggplot(df_ldd_01, aes(x=year, y=trend, colour=sdd_id))+
+  geom_line()
+
+p01<-p01 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
+p01
+```
+
+Mid Long distance dispersal
+```{r}
+df_ldd_05<-rep_df_all[rep_df_all$ldd_id == 0.5,]
+
+p05<-ggplot(df_ldd_05, aes(x=year, y=trend, colour=sdd_id))+
+  geom_line()
+
+p05<-p05 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
+p05
+```
+
+High Long distance dispersal
+```{r}
+df_ldd_09<-rep_df_all[rep_df_all$ldd_id == 0.9,]
+
+p09<-ggplot(df_ldd_09, aes(x=year, y=trend, colour=sdd_id))+
+  geom_line()
+
+p09<-p09 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
+p09
+
+
+```
 
 #####ignore below here for now #####
 
