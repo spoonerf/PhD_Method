@@ -108,6 +108,8 @@ write.csv(all_df, paste(wd,"/Chapter_Two/Europe/", "Global_Population_Lambdas.cs
 
 Download climate data from here - http://www.ecad.eu/download/ensembles/download.php
 
+#E-OBS
+
 ```{r, eval=FALSE}
 
 rmean<-brick("C:/Users/Fiona/Desktop/PhD/Climate/Europe/MeanT/tg_0.25deg_reg_v11.0.nc", varname = "tg")
@@ -167,7 +169,7 @@ write.csv(all_EU_mean_data_na_omit, paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_
 
 ```{r}
 
-all_EU_mean_data_na_omit<-read.csv(paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_E-OBS_50k_buff_na_omitted.csv", sep=""))
+all_EU_mean_data_na_omit<-read.csv("Mean_Temp_E-OBS_50k_buff.csv")
 
 
 ```
@@ -235,11 +237,12 @@ all_matrix <- matrix(unlist(all_df_list), ncol=6, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
 
-write.csv(mean_df, paste(wd,"/Chapter_Two/Europe/" ,"Rate_Mean_Temp_Change.csv", sep=""))
+#write.csv(mean_df, paste(wd,"/Chapter_Two/Europe/" ,"Rate_Mean_Temp_Change.csv", sep=""))
 
 ```
 
 
+#CRUTEM
 #Global Climate Data
 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
@@ -517,8 +520,6 @@ grid_crop2<-merge(grid_crop,LPI_EU_sel, by="ID")
 grid_crop2<-subset(grid_crop2, Specific_location ==1) 
 
 
-
-
 ```
 
 ```{r}
@@ -780,6 +781,236 @@ for (i in 1:length(grid_crop2$ID)){
 ```
 
 
+#LUH2
+
+
+```{r, eval=FALSE, echo=FALSE}
+library(raster)
+
+yr<-as.character(850:2015)
+date<-as.Date(yr, format="%Y" )
+
+primf<-brick(paste(getwd(),"/states.nc", sep=""), varname="primf")
+primf<-setZ(primf, date, name="year")
+
+primn<-brick(paste(getwd(),"/states.nc", sep=""), varname="primn")
+primn<-setZ(primn, date, name="year")
+
+secdf<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdf")
+secdf<-setZ(secdf, date, name="year")
+
+secdn<-brick(paste(getwd(),"/states.nc", sep=""), varname="secdn")
+secdn<-setZ(secdn, date, name="year")
+
+urban<-brick(paste(getwd(),"/states.nc", sep=""), varname="urban")
+urban<-setZ(urban, date, name="year")
+
+pastr<-brick(paste(getwd(),"/states.nc", sep=""), varname="pastr")
+pastr<-setZ(pastr, date, name="year")
+
+rnge<-brick(paste(getwd(),"/states.nc", sep=""), varname="range")
+rnge<-setZ(rnge, date, name="year")
+
+c3ann<-brick(paste(getwd(),"/states.nc", sep=""), varname="c3ann")
+c3ann<-setZ(c3ann, date, name="year")
+
+c4ann<-brick(paste(getwd(),"/states.nc", sep=""), varname="c4ann")
+c4ann<-setZ(c4ann, date, name="year")
+
+c3per<-brick(paste(getwd(),"/states.nc", sep=""), varname="c3per")
+c3per<-setZ(c3per, date, name="year")
+
+c4per<-brick(paste(getwd(),"/states.nc", sep=""), varname="c4per")
+c4per<-setZ(c4per, date, name="year")
+
+c3nfx<-brick(paste(getwd(),"/states.nc", sep=""), varname="c3nfx")
+c3nfx<-setZ(c3nfx, date, name="year")
+
+```
+
+```{r, eval=FALSE, echo=FALSE}
+primf_cr<-primf[[1091:1166]]
+primn_cr<-primn[[1091:1166]]
+secdf_cr<-secdf[[1091:1166]]
+secdn_cr<-secdn[[1091:1166]]
+urban_cr<-urban[[1091:1166]]
+pastr_cr<-pastr[[1091:1166]]
+rnge_cr<-rnge[[1091:1166]]
+c3ann_cr<-c3ann[[1091:1166]]
+c4ann_cr<-c4ann[[1091:1166]]
+c3per_cr<-c3per[[1091:1166]]
+c4per_cr<-c4per[[1091:1166]]
+c3nfx_cr<-c3nfx[[1091:1166]]
+```
+
+```{r, eval=FALSE, echo=FALSE}
+writeRaster(primf_cr, "primf_1940.tif")
+writeRaster(primn_cr, "primn_1940.tif")
+writeRaster(secdf_cr, "secdf_1940.tif")
+writeRaster(secdn_cr, "secdn_1940.tif")
+writeRaster(urban_cr, "urban_1940.tif")
+writeRaster(pastr_cr, "pastr_1940.tif")
+writeRaster(rnge_cr, "rnge_1940.tif")
+writeRaster(c3ann_cr, "c3ann_1940.tif")
+writeRaster(c4ann_cr, "c4ann_1940.tif")
+writeRaster(c3per_cr, "c3per_1940.tif")
+writeRaster(c4per_cr, "c4per_1940.tif")
+writeRaster(c3nfx_cr, "cnfx_1940.tif")
+```
+
+```{r}
+primf<-brick("primf_1940.tif")
+primn<-brick("primn_1940.tif")
+secdf<-brick("secdf_1940.tif")
+secdn<-brick("secdn_1940.tif")
+urban<-brick("urban_1940.tif")
+pastr<-brick("pastr_1940.tif")
+rnge<-brick("rnge_1940.tif")
+c3ann<-brick("c3ann_1940.tif")
+c4ann<-brick("c4ann_1940.tif")
+c3per<-brick("c3per_1940.tif")
+c4per<-brick("c4per_1940.tif")
+c3nfx<-brick("cnfx_1940.tif")
+```
+
+
+```{r}
+LPI<-read.csv("LPI_pops_20160523_edited.csv")
+
+LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
+
+xy<-data.frame(LPIsp$Longitude, LPIsp$Latitude)
+
+xy<-unique(xy)     #identifying unique locations to extract climate data from 
+
+xy_df<-data.frame(xy)
+colnames(xy_df)<-c("lon", "lat")
+coordinates(xy_df) <- c("lon", "lat")
+
+head(xy_df)
+
+```
+
+
+```{r}
+
+library(doParallel)
+library(reshape2)
+
+layers<-list(primf, primn, secdf, secdn, urban, pastr, rnge, c3ann, c4ann, c3per, c4per, c3nfx)
+
+df_out<-data.frame()
+for (layer in layers){
+  
+  name<-gsub("\\d", "",names(layer))
+  n<-6  #number of cores to use - not sure how many I can go up to
+  cl<-makeCluster(n)
+  registerDoParallel(cl)  
+  days<-nlayers(layer)    #splitting the data evenly between the cores
+  step<-floor(days/n)
+
+    ptime <- system.time({   
+      df<- foreach(days, .combine=cbind) %dopar%{
+      rasterex <- raster:::extract(layer[[1:days]], xy_df)
+        }
+      }) 
+    ptime 
+  stopCluster(cl)
+
+  dates<-1940:2015
+
+  datesr<-rep(dates, each=length(xy_df))
+
+  dfm<-melt(df)
+
+  lon<-xy[,1]
+  lat<-xy[,2]
+
+  dfm2<-cbind(name,lon,lat,datesr, dfm)
+
+  df_out<-rbind(df_out, dfm2)
+  print(name)
+}
+
+#write.csv(df_out, "LUH_extract_all_layers.csv")
+
+```
+
+
+```{r}
+
+library(dplyr)
+a<-read.csv("D:/Fiona/Git_Method/Git_Method/LUH_extract_all_layers.csv")
+head(a)
+nrow(a)
+
+unique(a$name)
+a$name<-as.character(a$name)
+
+a$name[c(a$name=="primf_."|a$name=="primn_."|a$name=="secdf_."|a$name=="secdn_.")]<-"nat"
+a$name[c(a$name=="urban_."|a$name=="pastr_."|a$name=="rnge_."|a$name=="cann_."|a$name=="cper_."|a$name=="cnfx_.")]<-"anth"
+
+unique(a$name)
+
+an<-na.omit(a)
+
+an_group<-an %>% 
+		group_by(lon, lat, datesr, name) %>% 
+		summarise(sum_land = sum(value))
+```
+
+```{r}
+colnames(LPI_ID)<-c("ID", "lon", "lat")
+
+LPILU<-merge(LPI_ID,an_group, by=c("lon", "lat"))
+
+#write.csv(LPILU, "LUH2_Land_Use_All_LPI2.csv")
+```
+
+```{r}
+
+LPILU<-read.csv("LUH2_Land_Use_All_LPI2.csv")
+
+LPILU<-LPILU[LPILU$name == "nat",]
+
+library(taRifx)
+
+doDist = function(sp_name) {
+  spid2 = subset(LPIsp, ID == sp_name)   #subsetting the population data by each population
+  spid = spid2[,65:120]                     #subsetting only the dates
+  colnames(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
+  lu_id=subset(LPILU, ID == sp_name)  #subsetting the climate data by each population
+  
+  id<-spid2$ID
+  Date<-as.numeric(colnames(spid))
+  spidt<-destring(t(spid))
+  
+  if (sum(!is.na(spidt)) > 1) {
+    Yr<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+    luyr<-subset(lu_id, datesr>=min(Yr) & datesr<= max(Yr))   #6:11 for all categories 12:13 for nat vs anth
+    luyr<-luyr[order(luyr[,4]),]
+    natdiff<-mean(diff(luyr$sum_land))
+ 
+  } else{
+    natdiff<-NA
+  }
+
+  euc_df<-data.frame(id, natdiff)
+  print(euc_df)  
+  return(euc_df)
+}
+
+
+all_df_list <- lapply(unique(LPIsp$ID), doDist)
+
+all_matrix <- matrix(unlist(all_df_list), ncol=2, byrow=TRUE)
+mean_df <- data.frame(all_matrix)
+colnames(mean_df) <- c("ID", "Nat_change")
+
+#write.csv(mean_df, "LUH_LUC_rate.csv")
+
+```
+
 
 
 ```{r, warning=FALSE, message=FALSE, eval=FALSE}
@@ -808,6 +1039,35 @@ write.csv(lpibm2, paste(wd,"/","LPI_BodyMass_Amniote_Database_edit.csv", sep="")
 
 
 ```
+
+```{r}
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
+lpi<-lpi[,c(1,15,32,31)]
+
+pop<-read.csv("Global_Population_Lambdas.csv", sep="")
+pop<-pop[,c(2,5,8,9)]
+
+eu_clim<-read.csv("Rate_Mean_Temp_Change.csv", sep="")
+eu_clim<-eu_clim[,c(2,4)]
+
+glob_clim<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
+glob_clim<-glob_clim[,c(2,4)]
+
+luc_hilda<- read.csv("LPI_LandUse_121_18_09_2015.csv", sep="" )
+luc_hilda<-luc_hilda[,c(2,4)]
+
+luc_hyde<-read.csv("Hyde_crop_pasture_annual_change_sum.csv")
+luc_hyde<-luc_hyde[,c(2,6)]
+
+luc_luh<-read.csv("LUH_LUC_rate.csv")
+luc_luh<-luc_luh[,c(2,3)]
+
+bm<- read.csv("LPI_BodyMass_Amniote_Database_edit.csv", sep="")
+bm<-bm[,-1]
+
+
+```
+
 
 ```{r}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")

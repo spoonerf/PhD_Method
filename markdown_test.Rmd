@@ -447,8 +447,9 @@ for (i in 1:length(years)){
 Trends in habitat suitability 1950-2016
 
 ```{r}
+library(raster)
 years<-1950:2016
-wd<-("C:Users/Fiona/Documents/Demoniche")
+wd<-("C:/Users/Fiona/Documents/Demoniche")
 
 t<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,67,len=16))
@@ -575,7 +576,7 @@ id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 
-wd<-("C:Users/Fiona/Documents/Demoniche")
+wd<-("C:/Users/Fiona/Documents/Demoniche")
 sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 
@@ -598,10 +599,11 @@ Populations<-data.frame(na.omit(df))
 
 ```
 
-
-```{r, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-
 #formatting the sdm data
+
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
+
+
 
 
 years<-1950:2016
@@ -630,7 +632,7 @@ for (i in 1:length(years)){
   
   sdm_df<-cbind(sdm_df, vec)
   sdm_patch_df<-cbind(sdm_patch_df,vec_pat)
-  print(i)
+  #print(i)
 }
 
 sdm_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
@@ -859,7 +861,7 @@ time.taken
 
 ```
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
 #setwd("C:Users/Fiona/Documents/Demoniche")
 
 sd_seq<-c(0.25,0.3,0.35,0.4,0.45)
@@ -971,8 +973,8 @@ for (folder in folders){
 
   spin<-ggplot(rep_df, aes(x = year, y= trend, group=id))+
     geom_line( alpha=0.5)
-  #geom_line(aes(x = year, y=p_16000))
-  plot(spin)
+
+  #plot(spin)
   
   rep_df_short<-rep_df[rep_df$year >=1950,]
 
@@ -980,13 +982,13 @@ for (folder in folders){
   p<-ggplot(rep_df_short, aes(x = year, y= trend, group=id))+
     geom_line( alpha=0.5)
   
-  plot(p)
+  #plot(p)
   
   lambdas<-rep_df_short %>% 
   group_by(id) %>%
   summarise(lambda = 10^mean(diff(log10(trend))))
   
-  print(lambdas)
+  #print(lambdas)
   
  if (!is.nan(sum(lambdas$lambda))){
   boxplot(lambdas$lambda)
@@ -996,7 +998,7 @@ for (folder in folders){
 ```
 
 
-#ggplot groups of data e.g all data with 0.5 LDD
+#ggplot groups of data 
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -1010,7 +1012,7 @@ rep_df_all<-data.frame()
 
 for (folder in folders){
 
-  print(folder)
+  #print(folder)
 
   f<-paste(wd,folder, sep="")
 
@@ -1075,7 +1077,7 @@ library(ggplot2)
 
 df_ldd_01<-rep_df_all[rep_df_all$ldd_id == 0.1,]
 
-p01<-ggplot(df_ldd_01, aes(x=year, y=trend, colour=sdd_id))+
+p01<-ggplot(df_ldd_01, aes(x=year, y=trend, colour=sdd_id_f))+
   geom_line()
 
 p01<-p01 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
@@ -1086,7 +1088,7 @@ Mid Long distance dispersal
 ```{r}
 df_ldd_05<-rep_df_all[rep_df_all$ldd_id == 0.5,]
 
-p05<-ggplot(df_ldd_05, aes(x=year, y=trend, colour=sdd_id))+
+p05<-ggplot(df_ldd_05, aes(x=year, y=trend, colour=sdd_id_f))+
   geom_line()
 
 p05<-p05 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
@@ -1097,7 +1099,7 @@ High Long distance dispersal
 ```{r}
 df_ldd_09<-rep_df_all[rep_df_all$ldd_id == 0.9,]
 
-p09<-ggplot(df_ldd_09, aes(x=year, y=trend, colour=sdd_id))+
+p09<-ggplot(df_ldd_09, aes(x=year, y=trend, colour=sdd_id_f))+
   geom_line()
 
 p09<-p09 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
@@ -1105,6 +1107,80 @@ p09
 
 
 ```
+
+#varying LDD and K and pop mat SD
+
+
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
+#setwd("C:Users/Fiona/Documents/Demoniche")
+
+sd_seq<-c(0.25,0.3,0.35,0.4,0.45)
+#matrices_var<-matrix(0.45, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+k_seq<-c(1000,2000,4000,8000,16000,32000)
+LDD_seq<-c(0.1, 0.5, 0.9)
+
+
+var_grid<-expand.grid(sd_seq, LDD_seq, k_seq)
+colnames(var_grid)<-c("SD", "LDD", "K")
+
+for (s in 1:nrow(var_grid)){
+print(s)
+  
+  SD<-var_grid[s,1]
+  LDD<-var_grid[s,2]
+  K<-var_grid[s,3]
+  
+  matrices_var<-matrix(SD, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+
+start.time <- Sys.time()
+
+dir.create(paste("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars/K_",K,"_LDD_",LDD,"_SD_", SD,sep=""))
+
+reps<-5
+
+rep_demoniche<-function(i){
+  library(demoniche)
+  source("demoniche_model_me.R")
+ demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
+                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                  stages = stages, proportion_initial = proportion_initial,
+                  density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                  fraction_LDD = LDD, fraction_SDD = 0.5,
+                  dispersal_constants = c(0.7,0.7,0.1,2),
+                  transition_affected_niche = "all",
+                  transition_affected_demogr = transition_affected_demogr,
+                  transition_affected_env=transition_affected_env,
+                  env_stochas_type = env_stochas_type,
+                  no_yrs = no_yrs_mine, K=K, Kweight = K_weight, 
+                  sumweight =sumweight)
+c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = paste("Demoniche_Repetitions/Three_Vars/K_",K,"_LDD_",LDD,"_SD_", SD,"/rep_",i, sep=""))
+}
+
+
+#lapply(1:reps, rep_demoniche)
+
+library(doParallel)
+
+if (Sys.info()["nodename"] == "FIONA-PC"){
+ cl <- makeCluster(4) 
+} else {
+ cl <- makeCluster(2)
+}
+
+registerDoParallel(cl)
+foreach(i=(1:reps)) %dopar% rep_demoniche(i)
+stopCluster(cl)
+
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken 
+}
+
+```
+
+
 
 #####ignore below here for now #####
 
