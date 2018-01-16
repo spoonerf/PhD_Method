@@ -1012,6 +1012,111 @@ colnames(mean_df) <- c("ID", "Nat_change")
 ```
 
 
+#ESA
+
+```{r}
+library(raster)
+library(rgdal)
+
+# read in all esa landcover tifs
+esa_files <- list.files(path = "C:/Users/Fiona/Documents/PhD/Land_Use/ESA_CCI/", pattern=".tif", full.names = TRUE)
+esa <- stack(esa_files)
+```
+
+```{r}
+#read in shapefile of UK in order to crop esa rasters
+gb <- readOGR("UK_clip_2.shp", "UK_clip_2")
+e <- extent(gb)
+# crop esa to just the UK
+esa_uk <- crop(esa, e)
+# rename each layer to the year 
+names(esa_uk) <- c('X1992', 'X1993', 'X1994', 'X1995', 'X1996', 'X1997', 'X1998', 'X1999', 'X2000', 
+                   'X2001', 'X2002', 'X2003', 'X2004', 'X2005', 
+                   'X2006', 'X2007', 'X2008', 'X2009', 'X2010', 'X2011', 'X2012', 'X2013', 'X2014', 'X2015')
+
+# map which cells are different between 1992 and 2015
+overall_diff = esa_uk[[1]] != esa_uk[[24]]
+change = sum(getValues(overall_diff))
+N = 4511*4478
+
+p_change = 1-((N - change)/N)
+
+# proportion of cells within a buffer of 3000 m that are an anthropogenic land cover class
+temp = field[1:1000, ]
+
+
+prop_anthro <- function(cells) {
+  N = length(cells)
+  N_10 = sum(cells==10) # Cropland_rainfed
+  N_20 = sum(cells==20) #  Cropland_irrigated_or_post_flooding
+  N_30 = sum(cells==30) # Mosaic_cropland_(>50%)_natural_vegetation_(tree_shrub_herb_cover)(<50%)
+  #N_40 = sum(cells==40) # Mosaic_natural_vegetation_(tree_shrub_herb_cover)_(>50%)_/_cropland_(<50%)
+  N_190 = sum(cells==190) # Urban
+  
+  N_anthro = sum(N_10, N_20, N_30, N_190)
+  
+  return(1 - ((N - N_anthro)/N))
+  
+}
+
+cells <- cellFromRowColCombine(test, 1:10, 1:10)
+temp <- xyFromCell(test, cells)
+temp<-data.frame(temp)
+
+
+lpi<-read.csv("C:/Users/Fiona/Documents/PhD/PhD_Method/LPI_pops_20160523_edited.csv")
+lpi<-lpi[lpi$Specific_location == 1 & (lpi$Class == "Aves" | lpi$Class == "Mammalia") & !is.na(lpi$Longitude) & !is.na(lpi$Latitude),]
+nrow(lpi)
+
+xy<-data.frame(lpi$Longitude, lpi$Latitude)
+xy<-unique(xy)
+colnames(xy)<-c("Longitude", "Latitude")
+tlpi<-xy[360,]
+
+t = proc.time()
+temp_ex = extract(esa, cbind(xy$Longitude, xy$Latitude), buffer = 3000,fun=prop_anthro) 
+(proc.time() - t)
+temp_ex
+
+
+ex_df<-data.frame(temp_ex)
+
+cdf<-data.frame(cbind(xy, ex_df))
+
+cdf$diff<-cdf$ESACCI.LC.L4.LCCS.Map.300m.P1Y.2015.v2.0.7 - cdf$ESACCI.LC.L4.LCCS.Map.300m.P1Y.1992.v2.0.7
+
+hist(cdf$diff, breaks=100)
+mean(cdf$diff)
+cm<-as.matrix(cdf)
+head(cm)
+
+luc<-data.frame()
+for (i in 1:nrow(cm)){
+  luc_i<-mean(diff(cm[i,c(3:26)]))
+  xy<-matrix((cm[i,c(1:2)]), nrow=1, ncol=2)
+  loc<-cbind(xy, luc_i)
+  luc<-rbind(luc,loc)
+  print(i)
+}
+
+colnames(luc)<-c("Longitude", "Latitude", "Annual_LUC")
+
+lpi_luc<-merge(lpi, luc, by=c("Longitude", "Latitude"))
+
+
+land_use_change<-lpi_luc[,c(1:3,194)]
+
+
+lpi_df<-lpi[,c(1,31,32)]
+colnames(lpi_df)<-c("ID", "Latitude", "Longitude")
+
+lpi_luc<-merge(lpi_df, cdf, by=c("Longitude", "Latitude"))
+
+
+write.csv(lpi_luc, "C:/Users/Fiona/Documents/PhD/PhD_Method/ESA_CCI_3000m_buff_LPI.csv")
+
+
+```
 
 ```{r, warning=FALSE, message=FALSE, eval=FALSE}
 
@@ -1042,81 +1147,103 @@ write.csv(lpibm2, paste(wd,"/","LPI_BodyMass_Amniote_Database_edit.csv", sep="")
 
 ```{r}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
-lpi<-lpi[,c(1,15,32,31)]
+lpi<-lpi[,c(1,15,31,32)]
 
-pop<-read.csv("Global_Population_Lambdas.csv", sep="")
+pop<-read.csv("Global_Population_Lambdas.csv")
 pop<-pop[,c(2,5,8,9)]
 
-eu_clim<-read.csv("Rate_Mean_Temp_Change.csv", sep="")
+eu_clim<-read.csv("Rate_Mean_Temp_Change.csv")
 eu_clim<-eu_clim[,c(2,4)]
+colnames(eu_clim)[2]<-"EOBS_Estimate"
 
 glob_clim<-read.csv("All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")
 glob_clim<-glob_clim[,c(2,4)]
+colnames(glob_clim)[2]<-"CRUTEM_Estimate"
 
-luc_hilda<- read.csv("LPI_LandUse_121_18_09_2015.csv", sep="" )
-luc_hilda<-luc_hilda[,c(2,4)]
+luc_hilda<- read.csv("LPI_LandUse_121_18_09_2015.csv")
+luc_hilda<-luc_hilda[,c(2,150)]
+colnames(luc_hilda)[2]<-"HILDA_change"
 
 luc_hyde<-read.csv("Hyde_crop_pasture_annual_change_sum.csv")
 luc_hyde<-luc_hyde[,c(2,6)]
+colnames(luc_hyde)[2]<-"HYDE_change"
 
 luc_luh<-read.csv("LUH_LUC_rate.csv")
 luc_luh<-luc_luh[,c(2,3)]
+colnames(luc_luh)[2]<-"LUH_change"
 
-bm<- read.csv("LPI_BodyMass_Amniote_Database_edit.csv", sep="")
-bm<-bm[,-1]
+luc_esa<-read.csv("LUC_average_mean_anth_change_ESA_2017_06_27.csv")
+luc_esa<-luc_esa[,c(2,3)]
+colnames(luc_esa)[2]<-"ESA_change"
+
+bm<- read.csv("LPI_BodyMass_Amniote_Database_edit.csv")
+bm<-bm[,c(2,3,5)]
 
 
 ```
 
 
 ```{r}
-lpi<-read.csv("LPI_pops_20160523_edited.csv")
-lpi<-lpi[,c(1,15,32,31)]
-pop<-read.csv(paste(wd,"/Chapter_Two/Europe/", "Global_Population_Lambdas.csv", sep=""))
-pop<-pop[,c(2,5,8,9)]
-clim<-read.csv(paste(wd,"/Chapter_Two/Europe/" ,"Rate_Mean_Temp_Change.csv", sep=""))
-clim<-clim[,c(2,4)]
-luc<- read.csv(paste(wd,"/Chapter_Two/Europe/" ,"LPI_LandUse_121_18_09_2015.csv", sep="" ))
-luc<-luc[,c(2,4)]
-bm<- read.csv(paste(wd, "/Chapter_Two/Europe/", "LPI_BodyMass_Amniote_Database_edit.csv", sep=""))
-bm<-bm[,-1]
 
-df<-merge(merge(pop, luc,by="ID", all=T), merge(clim, bm, by="ID", all=T), by="ID", all=T)
-df<-merge(df, lpi, by="ID")
+df<-merge(merge(pop, eu_clim,by="ID", all=T), merge(glob_clim, luc_hilda, by="ID", all=T), by="ID", all=T)
+df<-merge(merge(df, luc_hyde, by="ID", all=T), merge(luc_luh, bm, by="ID", all=T), by="ID", all=T)
+df<-merge(df, lpi, by="ID", all=T)
 head(df)
 ```
 
-#Mammals
+#Europe
 ```{r}
-df_mammal<-subset(df, !is.na(lambda_mean)& !is.na(change_rate) & !is.na(Estimate) & !is.na(Binomial) & length_time > 5 & Class=="Mammalia")
-nrow(df_mammal)
+df_eu<-subset(df, !is.na(lambda_mean)& !is.na(EOBS_Estimate) & !is.na(CRUTEM_Estimate) & !is.na(HILDA_change) & !is.na(HYDE_change)& !is.na(LUH_change)& !is.na(Binomial) & length_time > 5 )
+
+nrow(df_eu)
 
 ```
+
+```{r}
+df_glb<-subset(df, !is.na(lambda_mean) & !is.na(CRUTEM_Estimate) & !is.na(HYDE_change)& !is.na(LUH_change)& !is.na(Binomial) & length_time > 5 )
+
+nrow(df_glb)
+
+```
+
+
 
 ```{r, message=FALSE, warning=FALSE}
 
 library(data.table)
 library(plyr)
 
-sp_dups<-data.frame(ddply(df_mammal,.(Longitude,Latitude),nrow))
+sp_dups<-data.frame(ddply(df_glb,.(Longitude,Latitude),nrow))
 sp_dups$loc_id<-1:length(sp_dups$Longitude)
-df_mammal<-merge(sp_dups, df_mammal, by=c("Longitude","Latitude"))
+df_glb<-merge(sp_dups, df_glb, by=c("Longitude","Latitude"))
 
 
-parm_df<-df_mammal[,c("ID","change_rate", "Estimate", "Log_Body_Mass_g")]  ##ID, land use, and climate
+parm_df<-df_glb[,c("ID","EOBS_Estimate", "CRUTEM_Estimate","HILDA_change" ,"HYDE_change", "LUH_change","Log_Body_Mass_g")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale_m<-scale(parm_mat[,c("change_rate", "Estimate", "Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+parm_scale_m<-scale(parm_mat[,c("EOBS_Estimate", "CRUTEM_Estimate","HILDA_change" ,"HYDE_change", "LUH_change","Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
 
 parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale_m)
 
-colnames(parm_df_scale)<-c("ID","change_rate_scale","mean_slope_scale", "body_mass_scale" )
+colnames(parm_df_scale)<-c("ID","EOBS_scale","CRUTEM_scale", "HILDA_scale","HYDE_scale","LUH_scale","Log_Body_Mass_g_scale" )
 
-sp_df_scale<-merge(df_mammal, parm_df_scale, by="ID")
+sp_df_scale<-merge(df_glb, parm_df_scale, by="ID")
 
-dt_mammal<-data.table(sp_df_scale)
+dt_glb<-data.table(sp_df_scale)
+
+
+dt_eu<-dt_glb[dt_glb$ID %in% df_eu$ID,]
+
+```
+
+EU loop
+```{r}
+climate<-c("EOBS_scale", "CRUTEM_scale")
+lu<-c("HILDA_scale", "HYDE_scale", "LUH_scale")
+loop_grid<-expand.grid(climate, lu)
+colnames(loop_grid)<-c("climate", "lu")
 
 ```
 
@@ -1126,17 +1253,24 @@ source("rsquaredglmm.R")
 
   library(lme4) 
   library(MuMIn)
+
+for (i in 1:nrow(loop_grid)){
   
-  mm0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mm1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
-  mmnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=dt_mammal, REML=F)
+  sel_clim<-as.character(loop_grid$climate[i])
+  sel_lu<-as.character(loop_grid$lu[i])
+  df_eu_sel<-cbind(dt_eu$lambda_mean,dt_eu$loc_id,dt_eu$Binomial, dt_eu$Log_Body_Mass_g_scale,subset(dt_eu, select=c(sel_clim,sel_lu)))
+  colnames(df_eu_sel)<-c("lambda_mean","loc_id", "Binomial", "body_mass_scale", "mean_slope_scale","change_rate_scale")
+
+  mm0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mmnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
   mmsAICc <- model.sel(mm0,mm0a,mm0b,mm0c,mm0d,mm1,mm1a,mm1b,mm1c,mmnull)
   mmsAICc$model<-rownames(mmsAICc)
   mmsAICc<-data.frame(mmsAICc)
@@ -1150,6 +1284,8 @@ source("rsquaredglmm.R")
   rownames(mmodelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
 
   mmodelsRsq
+ print(i) 
+}
 ```
 
 ```{r}
