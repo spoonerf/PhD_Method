@@ -875,9 +875,12 @@ c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE,
 #lapply(1:reps, rep_demoniche)
 
 library(doParallel)
-registerDoParallel(cores=2)
+cl <- makeCluster(2)
+registerDoParallel(cl)
 foreach(i=1:reps) %dopar% rep_demoniche(i)
 stopCluster(cl)
+
+
 
 ```
 

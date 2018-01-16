@@ -1000,6 +1000,27 @@ plot(obs_mat_ann)
 ```
 
 ```{r}
+
+time<-1:nlayers(obs_mod_ann[[50:150]])
+
+X <- cbind(1, time)
+
+## pre-computing constant part of least squares
+invXtX <- solve(t(X) %*% X) %*% t(X)
+
+## much reduced regression model; [2] is to get the slope
+quickfun <- function(y) (invXtX %*% y)[2]
+rate_85 <- calc(obs_mod_ann[[50:150]], quickfun)
+plot(rate_85)
+
+cellStats(rate_85, stat=mean)
+
+```
+
+
+
+
+```{r}
 #rcp26
 year_mon_26<-rep(1:(nlayers(obs_mod_26)/12), each=12)
 
@@ -1022,6 +1043,24 @@ ggplot(df, aes(x= years, y= Mean_Temp, colour = Observed_Predict))+
   
 ```
 
+
+```{r}
+
+time<-1:nlayers(obs_mod_ann_26[[50:150]])
+
+X <- cbind(1, time)
+
+## pre-computing constant part of least squares
+invXtX <- solve(t(X) %*% X) %*% t(X)
+
+## much reduced regression model; [2] is to get the slope
+quickfun <- function(y) (invXtX %*% y)[2]
+rate_26 <- calc(obs_mod_ann_26[[50:150]], quickfun)
+plot(rate_26)
+
+cellStats(rate_26, stat=mean)
+
+```
 
 ```{r}
 #rcp85
@@ -1182,11 +1221,13 @@ library(ggplot2)
 
 ggplot(dfb, aes(xb,yb))+
   geom_line(size=2)+
-  geom_ribbon(aes(ymin=lcib, ymax=ucib), alpha=0.3, colour=NA)+
+  geom_ribbon(aes(ymin=lcib, ymax=ucib), alpha=0.3, fill = "red")+
   labs(y = "Bird Population Index RCP 8.5", x = "")+
   scale_y_continuous(breaks=seq(0, 1, 0.25))+
   theme_bw()+
-  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+  theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))+
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 ```
 
 ```{r}
@@ -1202,11 +1243,13 @@ library(ggplot2)
 
 ggplot(dfb_26, aes(xb_26,yb_26))+
   geom_line(size=2)+
-  geom_ribbon(aes(ymin=lcib_26, ymax=ucib_26), alpha=0.3, colour=NA)+
+  geom_ribbon(aes(ymin=lcib_26, ymax=ucib_26), alpha=0.3, fill="red")+
   labs(y = "Bird Population Index RCP 2.6", x = "")+
   #scale_y_continuous(breaks=seq(0, 1, 0.25))+
-  theme_bw()+
-  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+ theme_bw()+
+  theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))+
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 ```
 
 ```{r}
@@ -1223,11 +1266,13 @@ library(ggplot2)
 
 ggplot(dfm, aes(xm,ym))+
   geom_line(size=2)+
-  geom_ribbon(aes(ymin=lcim, ymax=ucim), alpha=0.3, colour=NA)+
+  geom_ribbon(aes(ymin=lcim, ymax=ucim), alpha=0.3, fill="darkturquoise")+
   labs(y = "Mammal Population Index RCP 8.5", x = "")+
   #scale_y_continuous(breaks=seq(0, 1, 0.5))+
-  theme_bw()+
-  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+   theme_bw()+
+  theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))+
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 ```
 
 ```{r}
@@ -1244,11 +1289,13 @@ library(ggplot2)
 
 ggplot(dfm_26, aes(xm_26,ym_26))+
   geom_line(size=2)+
-  geom_ribbon(aes(ymin=lcim_26, ymax=ucim_26), alpha=0.3, colour=NA)+
+  geom_ribbon(aes(ymin=lcim_26, ymax=ucim_26), alpha=0.3, fill="darkturquoise")+
   labs(y = "Mammal Population Index RCP 2.6", x = "")+
   #scale_y_continuous(breaks=seq(0, 1, 0.25))+
-  theme_bw()+
-  theme(text = element_text(size=16), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))
+    theme_bw()+
+  theme(text = element_text(size=20), axis.title.y = element_text(margin = unit(c(0, 5, 0, 0), "mm")))+
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 ```
 
 
