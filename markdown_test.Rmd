@@ -137,12 +137,14 @@ for (i in 1:19){
   #print(layers)
 }
 
-#pulling out the bioclim layers i'm interested in
-bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
 #pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 ```
 
 ```{r}
+#pulling out the bioclim layers i'm interested in
+
+bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
+
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif",sep="" ))
 ```
 
@@ -394,6 +396,8 @@ cbind(names, tholds)
 Using the ensemble model to predict suitability for each year - 1950-2016 and for each year creating a binary presence/absence map based on a few different thresholding techniques. Have used TSS in the rest of the analysis as per Allouche 2006 which said it outperformed kappa which I believe was previously most prominent.
 
 ```{r, cache=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
+library(dismo)
+wd<-"C:/Users/Fiona/Documents/Demoniche"
 
 bc <- bioclim(pred_nf, sp)
 gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average), data=env_all)
@@ -443,7 +447,10 @@ for (i in 1:length(years)){
 Trends in habitat suitability 1950-2016
 
 ```{r}
+library(raster)
 years<-1950:2016
+wd<-("C:/Users/Fiona/Documents/Demoniche")
+
 t<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,67,len=16))
 
@@ -471,7 +478,7 @@ lines(years, m-(2*sd), col="red", lty=3)
 ```
 
 Patches
-```{r, warning=FALSE}
+```{r, warning=FALSE, echo=FALSE}
 year_patch<-data.frame(years = years, patch_num = numeric(length(years)) )
 
 for (i in 1:length(years)){
@@ -514,7 +521,7 @@ par(mar=c(4,4,4,5))
 plot(year_patch$years, year_patch$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
 axis(4)
 mtext("Number of Patches",side=4,line=3)
-legend("left",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
 
 
 mtss<-cellStats(patch_tss, stat="sum")
@@ -533,14 +540,14 @@ legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number 
 #####Copying the 1950 files for the 900 year spin up
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 spin_years<-1050:1949
-from_sdm<- paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_1950.tif", sep="")
-to_sdm<-paste(wd, "/Alp_SDMs/Ensembles/weighted_ensemble_sdm_",spin_years, ".tif", sep="")
+from_sdm<- paste(wd, "/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_1950.tif", sep="")
+to_sdm<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
-from_pa<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_1950.tif", sep="")
-to_pa<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_no_emission_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
+from_pa<- paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_ensemble_sdm_1950.tif", sep="")
+to_pa<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
-from_kap<- paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep="")
-to_kap<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
+from_kap<- paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep="")
+to_kap<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
 
 file.copy(from_sdm,to_sdm, overwrite = T)
@@ -569,8 +576,8 @@ id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 
-wd<-getwd()
-sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_1950.tif", sep=""))
+wd<-("C:/Users/Fiona/Documents/Demoniche")
+sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 
 r<-raster(e2, resolution=res(sdm))
@@ -592,10 +599,11 @@ Populations<-data.frame(na.omit(df))
 
 ```
 
-
-```{r, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-
 #formatting the sdm data
+
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
+
+
 
 
 years<-1950:2016
@@ -608,12 +616,12 @@ sdm_df<-data.frame(ID=1:ncell(rid))
 for (i in 1:length(years)){
   
   #a selection of different threshold techniques for presence absence, as well as a suitability surface
-  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i],".tif", sep="")) #15.4%  
   #patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i],".tif", sep="")) #14,3%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i],".tif", sep=""))  #13.1%
-  patch<-raster(paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  patch<-raster(paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
     vec_pat<-as.data.frame(patch, xy=TRUE)
@@ -624,7 +632,7 @@ for (i in 1:length(years)){
   
   sdm_df<-cbind(sdm_df, vec)
   sdm_patch_df<-cbind(sdm_patch_df,vec_pat)
-  print(i)
+  #print(i)
 }
 
 sdm_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
@@ -658,9 +666,9 @@ colnames(patch_spin_up)[4:length(colnames(patch_spin_up))]<-col_years
 
 no_yrs_mine<-1 #number of years each time period represents 
 
+years_short<-1950:2016
 plot(years_short,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
 
-years_short<-1950:2016
 #plot(years_short,colMeans(na.omit(niche_map_mine)[904:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
 
 niche_map_mine<-na.omit(niche_map_mine)
@@ -779,11 +787,11 @@ lt<-function(x) {
 
 #carrying capacity function 
 
-lf<-list.files(paste(wd,"/Alp_SDMs/Ensembles/", sep=""))   
+lf<-list.files(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/", sep=""))   
 
 files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
 
-sdms<-stack(paste(wd,"/Alp_SDMs/Ensembles/", files, sep=""))
+sdms<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/", files, sep=""))
 
 ks_df<-read.csv("carrying_capacity_log_likelihood_capra_ibex.csv")
 ks_df$PatchID<-ks_df$ID*100
@@ -812,12 +820,14 @@ ltks<-ltk*ks_xy$ks
 ```
 
 
-```{r}
+```{r, eval=FALSE, echo=FALSE}
+
+start.time <- Sys.time()
 
 library(demoniche)
 source("demoniche_model_me.R")
 #source("demoniche_model_me_par.R")
-sd<-0.5
+sd<-0.25
 
 matrices_var<-matrix(sd, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
 
@@ -845,96 +855,331 @@ plot(p_16000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="")
 
 10^mean(diff(log10(p_16000[900:966])))
 
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken 
 
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
+#setwd("C:Users/Fiona/Documents/Demoniche")
 
-reps<-10
- 
+sd_seq<-c(0.25,0.3,0.35,0.4,0.45)
+matrices_var<-matrix(0.45, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+
+k_seq<-c(1000,2000,4000,8000,16000,32000)
+LDD_seq<-c(0.1, 0.5, 0.9)
+SDD_seq<-c(0.1, 0.5, 0.9)
+dens_seq<-c(100, 400, 1000, 4000)
+
+var_grid<-expand.grid(k_seq, LDD_seq, SDD_seq, dens_seq)
+colnames(var_grid)<-c("K", "LDD", "SDD", "density")
+
+for (s in 1:nrow(var_grid)){
+print(s)
+
+  K<-var_grid[s,1]
+  LDD<-var_grid[s,2]
+  SDD<-var_grid[s,3]
+  density<-var_grid[s,4]
+#sdf<-gsub("\\.", "_", s)  
+
+start.time <- Sys.time()
+
+dir.create(paste("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Four_Vars/K_",K,"_LDD_",LDD,"_SDD_", SDD, "_dens_", density ,sep=""))
+
+reps<-5
+
 rep_demoniche<-function(i){
   library(demoniche)
+  source("demoniche_model_me.R")
  demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
-                  density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
-                  fraction_LDD = 0.1, fraction_SDD = 0.9,
+                  density_individuals = density,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                  fraction_LDD = LDD, fraction_SDD = SDD,
                   dispersal_constants = c(0.7,0.7,0.1,2),
                   transition_affected_niche = "all",
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
-                  no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
+                  no_yrs = no_yrs_mine, K=K, Kweight = K_weight, 
                   sumweight =sumweight)
 c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste("/Demoniche_Repetitions/rep_",i, sep=""))
+                                     foldername = paste("Demoniche_Repetitions/Four_Vars/K_",K,"_LDD_",LDD,"_SDD_", SDD, "_dens_", density,"/rep_",i, sep=""))
 }
 
 
 #lapply(1:reps, rep_demoniche)
 
 library(doParallel)
-cl <- makeCluster(2)
+
+if (Sys.info()["nodename"] == "FIONA-PC"){
+ cl <- makeCluster(4) 
+} else {
+ cl <- makeCluster(2)
+}
+
 registerDoParallel(cl)
-foreach(i=1:reps) %dopar% rep_demoniche(i)
+foreach(i=(1:reps)) %dopar% rep_demoniche(i)
 stopCluster(cl)
 
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken 
+}
 
 
 ```
 
-```{r}
+```{r,message=FALSE, warning=FALSE, eval=FALSE}
+library(ggplot2)
+library(dplyr)
 
-wd<-getwd()
-f<-paste(wd, "/Demoniche_Repetitions", sep="")
+wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Four_Vars/"
 
-lf<-list.dirs(f, recursive = F)
+folders<-list.files(wd)
+
+for (folder in folders){
+
+  print(folder)
+
+  f<-paste(wd,folder, sep="")
+
+  lf<-list.dirs(f, recursive = F)
 
 #path<-paste(f, lf, sep="")
 
-path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
+  path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
 
-plot_rep<-function(proj_path){
+  plot_rep<-function(proj_path){
   
   load(proj_path)
   id<-gsub("\\D", "", proj_path)
   id<-as.numeric(substr(id, 1, nchar(id)-1))
   p<-Projection
-  trend<-colSums(p[1,1,1:530,])
+  trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
   tid<-cbind(id, trend)
   return(tid)
-}
+  }
 
-reps<-lapply(path, plot_rep)
-rep_df<-do.call(rbind,reps)
-year<-row.names(rep_df)
-rep_df<-data.frame(rep_df)
-rep_df$year<-as.numeric(gsub("Year_", "", year))
-rep_df$id<-as.factor(rep_df$id)
-
-library(ggplot2)
-library(dplyr)
-ggplot(rep_df, aes(x = year, y= log10(trend), group=id))+
-  geom_line( alpha=0.5)
-  #geom_line(aes(x = year, y=p_16000))
-
-rep_df_short<-rep_df[rep_df$year >=1950,]
+  reps<-lapply(path, plot_rep)
+  rep_df<-do.call(rbind,reps)
+  year<-row.names(rep_df)
+  rep_df<-data.frame(rep_df)
+  rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
+  rep_df$id<-as.factor(rep_df$id)
 
 
-ggplot(rep_df_short, aes(x = year, y= trend, group=id))+
-  geom_line( alpha=0.5)
+  spin<-ggplot(rep_df, aes(x = year, y= trend, group=id))+
+    geom_line( alpha=0.5)
 
-lambdas<-rep_df_short %>% 
+  #plot(spin)
+  
+  rep_df_short<-rep_df[rep_df$year >=1950,]
+
+
+  p<-ggplot(rep_df_short, aes(x = year, y= trend, group=id))+
+    geom_line( alpha=0.5)
+  
+  #plot(p)
+  
+  lambdas<-rep_df_short %>% 
   group_by(id) %>%
   summarise(lambda = 10^mean(diff(log10(trend))))
+  
+  #print(lambdas)
+  
+ if (!is.nan(sum(lambdas$lambda))){
+  boxplot(lambdas$lambda)
+}
 
-boxplot(lambdas$lambda)
+  }
+```
 
+
+#ggplot groups of data 
+
+```{r, message=FALSE, warning=FALSE}
+
+library(ggplot2)
+
+wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Four_Vars/"
+
+folders<-list.files(wd)
+
+rep_df_all<-data.frame()
+
+for (folder in folders){
+
+  #print(folder)
+
+  f<-paste(wd,folder, sep="")
+
+  lf<-list.dirs(f, recursive = F)
+
+#path<-paste(f, lf, sep="")
+
+  path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
+
+  plot_rep<-function(proj_path){
+  
+  load(proj_path)
+  k_id<-strsplit(proj_path, "[_/]")[[1]][12]
+  ldd_id<-strsplit(proj_path, "[_/]")[[1]][14]
+  sdd_id<-strsplit(proj_path, "[_/]")[[1]][16]
+  dens_id<-strsplit(proj_path, "[_/]")[[1]][18]
+  rep_id<-strsplit(proj_path, "[_/]")[[1]][20]
+  p<-Projection
+  trend<-colSums(p[1,1,1:length(p[1,1,,1]),901:966])
+  tid<-cbind(k_id, ldd_id, sdd_id, dens_id, rep_id, trend)
+  
+  return(tid)
+  }
+  
+  reps<-lapply(path, plot_rep)
+  rep_df<-do.call(rbind,reps)
+  year<-row.names(rep_df)
+  rep_df<-data.frame(rep_df)
+  rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
+  #rep_df$id<-as.factor(rep_df$id)
+
+  rep_df_all<-rbind(rep_df,rep_df_all)
+  
+}
+
+#write.csv(rep_df_all, "fourvars_sdd_ldd_dens_k.csv")
+
+```
+
+```{r}
+
+rep_df_all<-read.csv("fourvars_sdd_ldd_dens_k.csv")
+
+rep_df_all$trend<-as.numeric(as.character(rep_df_all$trend))
+
+rep_df_all$dens_id_f<-factor(rep_df_all$dens_id, levels=c("100", "400", "1000", "4000"))
+
+rep_df_all$k_id_f<-factor(rep_df_all$k_id, levels=c("1000","2000",  "4000", "8000", "16000", "32000"))
+
+rep_df_all$sdd_id_f<-factor(rep_df_all$sdd_id, levels=c("0.1","0.5","0.9"))
+
+rep_df_all$ldd_id_f<-factor(rep_df_all$ldd_id, levels=c("0.1","0.5","0.9"))
 
 
 ```
 
+Low Long distance dispersal
+```{r}
+#devtools::install_github("thomasp85/patchwork")
+library(ggplot2)
+#library(patchwork)
+
+df_ldd_01<-rep_df_all[rep_df_all$ldd_id == 0.1,]
+
+p01<-ggplot(df_ldd_01, aes(x=year, y=trend, colour=sdd_id_f))+
+  geom_line()
+
+p01<-p01 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
+p01
+```
+
+Mid Long distance dispersal
+```{r}
+df_ldd_05<-rep_df_all[rep_df_all$ldd_id == 0.5,]
+
+p05<-ggplot(df_ldd_05, aes(x=year, y=trend, colour=sdd_id_f))+
+  geom_line()
+
+p05<-p05 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
+p05
+```
+
+High Long distance dispersal
+```{r}
+df_ldd_09<-rep_df_all[rep_df_all$ldd_id == 0.9,]
+
+p09<-ggplot(df_ldd_09, aes(x=year, y=trend, colour=sdd_id_f))+
+  geom_line()
+
+p09<-p09 + facet_grid(k_id_f ~ dens_id_f, labeller = label_both)
+p09
+
+
+```
+
+#varying LDD and K and pop mat SD
+
+
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
+#setwd("C:Users/Fiona/Documents/Demoniche")
+
+sd_seq<-c(0.25,0.3,0.35,0.4,0.45)
+#matrices_var<-matrix(0.45, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+k_seq<-c(1000,2000,4000,8000,16000,32000)
+LDD_seq<-c(0.1, 0.5, 0.9)
+
+
+var_grid<-expand.grid(sd_seq, LDD_seq, k_seq)
+colnames(var_grid)<-c("SD", "LDD", "K")
+
+for (s in 1:nrow(var_grid)){
+print(s)
+  
+  SD<-var_grid[s,1]
+  LDD<-var_grid[s,2]
+  K<-var_grid[s,3]
+  
+  matrices_var<-matrix(SD, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
+
+start.time <- Sys.time()
+
+dir.create(paste("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars/K_",K,"_LDD_",LDD,"_SD_", SD,sep=""))
+
+reps<-5
+
+rep_demoniche<-function(i){
+  library(demoniche)
+  source("demoniche_model_me.R")
+ demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
+                matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                  stages = stages, proportion_initial = proportion_initial,
+                  density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                  fraction_LDD = LDD, fraction_SDD = 0.5,
+                  dispersal_constants = c(0.7,0.7,0.1,2),
+                  transition_affected_niche = "all",
+                  transition_affected_demogr = transition_affected_demogr,
+                  transition_affected_env=transition_affected_env,
+                  env_stochas_type = env_stochas_type,
+                  no_yrs = no_yrs_mine, K=K, Kweight = K_weight, 
+                  sumweight =sumweight)
+c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
+                                     Dispersal = TRUE, repetitions = 1,
+                                     foldername = paste("Demoniche_Repetitions/Three_Vars/K_",K,"_LDD_",LDD,"_SD_", SD,"/rep_",i, sep=""))
+}
+
+
+#lapply(1:reps, rep_demoniche)
+
+library(doParallel)
+
+if (Sys.info()["nodename"] == "FIONA-PC"){
+ cl <- makeCluster(4) 
+} else {
+ cl <- makeCluster(2)
+}
+
+registerDoParallel(cl)
+foreach(i=(1:reps)) %dopar% rep_demoniche(i)
+stopCluster(cl)
+
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken 
+}
+
+```
 
 
 
@@ -942,7 +1187,7 @@ boxplot(lambdas$lambda)
 
 
 Running the demoniche model - running 9 different models, for each method of scaling carrying capacity I have run demoniche with 3 different dispersal probabilities (0.1, 0.5 and 0.9).
-```{r, eval=FALSE, message=FALSE, warning=FALSE}
+```{r, eval=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
 
 library(demoniche)
 source("demoniche_model_me.R")
@@ -991,7 +1236,7 @@ plot(years,patch_run[,"Meanpop","Reference_matrix"], type="l", xlim=c(1949,2016)
 
 
 Extracting the predicted alpine ibex population trends for each population from the demoniche output.
-```{r, eval=FALSE, message=FALSE, warning=FALSE}
+```{r, eval=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
 
 foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
@@ -1020,7 +1265,7 @@ lapply(foldernames, convert_pop_out)
 
 
 Plots of the real trends vs predicted trends
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
 alpine<-lpi[lpi$ID == 10696 | lpi$ID == 10714 | lpi$ID == 10694 | lpi$ID == 10717 | lpi$ID == 10713 |lpi$ID == 10718 |lpi$ID == 10695 |lpi$ID == 539 |lpi$ID == 10710 ,]
@@ -1072,7 +1317,7 @@ melt_lpi<-melt_lpi[-1]
 
 ```
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
 library(reshape2)
 foldernames<-c("patch_link_low_disp" ,"patch_link_mid_disp" ,"patch_link_high_disp","patch_sigk_low_disp" ,"patch_sigk_mid_disp" ,"patch_sigk_high_disp","patch_ltk_low_disp" ,"patch_ltk_mid_disp" ,"patch_ltk_high_disp" )
 
@@ -1140,7 +1385,7 @@ ggplot(pop_pred_10718, aes(y=value, x=Year, group=model_type, col=model_type))+
 ```
 
 Comparison of the demoniche models to the lpi correlation models
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
 library(lme4)
 dt<-read.csv("Mammals_scaled_ready_for_models.csv")
 
@@ -1191,7 +1436,7 @@ lambda_preds<-cbind(real,pred, pred_clim,pred_luc,  demo_link_low, demo_link_mid
 
 Comparison of model predictions with the real values
 
-```{r}
+```{r, eval=FALSE, echo=FALSE}
 par(mfrow=c(3,4))
 
 for (i in 2:ncol(lambda_preds-1)){
@@ -1223,7 +1468,7 @@ plot(years, bleh, type="l", xlim=c(1950,2016))
 
 
 
-```{r,cache=TRUE, echo=FALSE, warning=FALSE}
+```{r,cache=TRUE, echo=FALSE, warning=FALSE, eval=FALSE}
 
 matrices_var<-matrix(1, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
 
@@ -1320,7 +1565,7 @@ lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blu
 #Changing the shape of the dispersal kernel
 
 
-```{r,cache=TRUE, echo=FALSE, warning=FALSE, "Dispersal Kernel"}
+```{r,cache=TRUE, echo=FALSE, warning=FALSE, "Dispersal Kernel", eval=FALSE}
 
 
 demoniche_setup(modelname = "Capra_disp_5",Populations = Populations, Nichemap = patch_spin_up,
@@ -1415,7 +1660,7 @@ lines(p_d_1_st[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="b
 
 #Changing the proportion dispersed
 
-```{r, cache=TRUE, echo=FALSE, warning=FALSE, "Dispersal Proportion"}
+```{r, cache=TRUE, echo=FALSE, warning=FALSE, "Dispersal Proportion", eval=FALSE}
 
 
 demoniche_setup(modelname = "Capra_disp_lsll",Populations = Populations, Nichemap = patch_map_mine,
@@ -1537,9 +1782,9 @@ mean(diff(log10(link_years[900:967])), type="l")
 ```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 spin_up<-1050:1949
-year0<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_1950.tif", sep="")
+year0<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_1950.tif", sep="")
 
-spin_up_files<-paste(wd, "/Alp_SDMs/Ensembles/pres_abs_true_skill_stat_weighted_ensemble_sdm_", spin_up,".tif", sep="")
+spin_up_files<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", spin_up,".tif", sep="")
 
 
 file.copy(year0, spin_up_files)
