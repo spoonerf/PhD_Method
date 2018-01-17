@@ -1193,14 +1193,14 @@ head(df)
 
 #Europe
 ```{r}
-df_eu<-subset(df, !is.na(lambda_mean)& !is.na(EOBS_Estimate) & !is.na(CRUTEM_Estimate) & !is.na(HILDA_change) & !is.na(HYDE_change)& !is.na(LUH_change)& !is.na(Binomial) & length_time > 5 )
+df_eu<-subset(df, !is.na(lambda_mean)& !is.na(EOBS_Estimate) & !is.na(CRUTEM_Estimate) & !is.na(HILDA_change) & !is.na(HYDE_change)& !is.na(LUH_change)& !is.na(Binomial) & length_time > 5 & r_sq >0.5 )
 
 nrow(df_eu)
 
 ```
 
 ```{r}
-df_glb<-subset(df, !is.na(lambda_mean) & !is.na(CRUTEM_Estimate) & !is.na(HYDE_change)& !is.na(LUH_change)& !is.na(Binomial) & length_time > 5 )
+df_glb<-subset(df, !is.na(lambda_mean) & !is.na(CRUTEM_Estimate) & !is.na(HYDE_change)& !is.na(LUH_change)& !is.na(Binomial) & length_time > 5&r_sq >0.5 )
 
 nrow(df_glb)
 
@@ -1242,35 +1242,48 @@ EU loop
 ```{r}
 climate<-c("EOBS_scale", "CRUTEM_scale")
 lu<-c("HILDA_scale", "HYDE_scale", "LUH_scale")
+loop_grid_eu<-expand.grid(climate, lu)
+colnames(loop_grid_eu)<-c("climate", "lu")
+
+```
+
+glob loop
+```{r}
+climate<-c( "CRUTEM_scale")
+lu<-c("HYDE_scale", "LUH_scale")
 loop_grid<-expand.grid(climate, lu)
 colnames(loop_grid)<-c("climate", "lu")
 
 ```
 
+
 ```{r, message=FALSE, warning=FALSE}
+
 
 source("rsquaredglmm.R")
 
   library(lme4) 
   library(MuMIn)
 
+coef_bind<-data.frame()
+
 for (i in 1:nrow(loop_grid)){
   
   sel_clim<-as.character(loop_grid$climate[i])
   sel_lu<-as.character(loop_grid$lu[i])
-  df_eu_sel<-cbind(dt_eu$lambda_mean,dt_eu$loc_id,dt_eu$Binomial, dt_eu$Log_Body_Mass_g_scale,subset(dt_eu, select=c(sel_clim,sel_lu)))
-  colnames(df_eu_sel)<-c("lambda_mean","loc_id", "Binomial", "body_mass_scale", "mean_slope_scale","change_rate_scale")
+  df_sel<-cbind(dt_glb$lambda_mean,dt_glb$loc_id,dt_glb$Binomial, dt_glb$Log_Body_Mass_g_scale,subset(dt_glb, select=c(sel_clim,sel_lu)))
+  colnames(df_sel)<-c("lambda_mean","loc_id", "Binomial", "body_mass_scale", "mean_slope_scale","change_rate_scale")
 
-  mm0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mm1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
-  mmnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=df_eu_sel, REML=F)
+  mm0<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm0a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm0b<-lmer(lambda_mean ~ change_rate_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm0c<-lmer(lambda_mean ~ mean_slope_scale+body_mass_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm0d<-lmer(lambda_mean ~ body_mass_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm1b<-lmer(lambda_mean ~ change_rate_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mm1c<-lmer(lambda_mean ~ mean_slope_scale+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
+  mmnull<-lmer(lambda_mean ~ 1+(1|Binomial)+(1|loc_id),data=df_sel, REML=F)
   mmsAICc <- model.sel(mm0,mm0a,mm0b,mm0c,mm0d,mm1,mm1a,mm1b,mm1c,mmnull)
   mmsAICc$model<-rownames(mmsAICc)
   mmsAICc<-data.frame(mmsAICc)
@@ -1284,7 +1297,29 @@ for (i in 1:nrow(loop_grid)){
   rownames(mmodelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
 
   mmodelsRsq
- print(i) 
+  
+  library(MuMIn)
+  mvar_imp<-summary(model.avg(mmodels_list))
+
+  #mav<-model.avg(models_list, subset = cumsum(weight) <= 0.95)
+  mmav<-model.avg(mmodels_list, subset = delta <= 6)
+  
+  msmav<-summary(mmav)
+  
+  mcoef_av<-msmav$coefmat.subset[1:5,"Estimate"]
+  mcoef_df<-data.frame(mcoef_av)
+  mcoef_df$lowCI<-confint(mmav)[1:5,1]
+  mcoef_df$highCI<-confint(mmav)[1:5,2]
+  mcoef_df
+  
+  
+  mcoef_pcnt<-data.frame(((10^mcoef_df) - 1)*100)
+  mcoef_pcnt
+  
+  print(sel_clim)
+  print(sel_lu)
+  coef_bind<-rbind(mcoef_pcnt, coef_bind)
+  
 }
 ```
 
