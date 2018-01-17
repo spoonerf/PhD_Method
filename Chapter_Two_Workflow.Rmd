@@ -457,13 +457,13 @@ mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 Land use - HILDA dataset from http://www.wageningenur.nl/en/Expertise-Services/Chair-groups/Environmental-Sciences/Laboratory-of-Geoinformation-Science-and-Remote-Sensing/Models/Hilda.htm
 ```{r, warning=FALSE}
 library(maptools)
-r_1950 <-raster(readAsciiGrid( paste(wd,"/Chapter_Two/Europe/" ,"eu27ch1950.asc", sep="")))
-r_1960 <-raster(readAsciiGrid( paste(wd,"/Chapter_Two/Europe/" ,"eu27ch1960.asc", sep="")))
-r_1970 <-raster(readAsciiGrid( paste(wd,"/Chapter_Two/Europe/" ,"eu27ch1970.asc", sep="")))
-r_1980 <-raster(readAsciiGrid( paste(wd,"/Chapter_Two/Europe/" ,"eu27ch1980.asc", sep="")))
-r_1990 <-raster(readAsciiGrid( paste(wd,"/Chapter_Two/Europe/" ,"eu27ch1990.asc", sep="")))
-r_2000 <-raster(readAsciiGrid( paste(wd,"/Chapter_Two/Europe/" ,"eu27ch2000.asc", sep="")))
-r_2010 <-raster(readAsciiGrid( paste(wd,"/Chapter_Two/Europe/" ,"eu27ch2010.asc", sep="")))
+r_1950 <-raster(readAsciiGrid("eu27ch1950.asc"))
+r_1960 <-raster(readAsciiGrid("eu27ch1960.asc"))
+r_1970 <-raster(readAsciiGrid("eu27ch1970.asc"))
+r_1980 <-raster(readAsciiGrid("eu27ch1980.asc"))
+r_1990 <-raster(readAsciiGrid("eu27ch1990.asc"))
+r_2000 <-raster(readAsciiGrid("eu27ch2000.asc"))
+r_2010 <-raster(readAsciiGrid("eu27ch2010.asc"))
 
 r_2010b<-crop(r_2010, r_1950)    #the 2010 raster is larger than the other years so has to be ropped to the same size so that they can be stacked
 
@@ -525,7 +525,7 @@ grid_crop2<-subset(grid_crop2, Specific_location ==1)
 ```{r}
 
 result <- data.frame() #empty result dataframe
-
+library(taRifx)
 
 for (i in 1:length(grid_crop2$ID)) {
   
