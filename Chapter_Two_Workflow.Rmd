@@ -9,6 +9,8 @@ output: html_document
 
 Have ignored the bootstrapping of the models and the use of max, min and precipitation data, and the dredging!
 ```{r, warning=FALSE, message=FALSE}
+setwd("D:/Fiona/Git_Method/Git_Method")
+
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPI_pop<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi"& ID != 4438)
@@ -101,8 +103,8 @@ colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum"
 wd<-getwd()
 ```
 
-```{r}
-write.csv(all_df, paste(wd,"/Chapter_Two/Europe/", "Global_Population_Lambdas.csv", sep=""))
+```{r,eval=FALSE}
+write.csv(all_df, paste(wd,"/Chapter_Two/Europe/", "Global_Population_Lambdas.csv"))
 
 ```
 
@@ -124,6 +126,7 @@ writeRaster(xmean, filename="Europe_mean_mon.grd", bandorder='BIL', overwrite=TR
 
 
 ```{r}
+wd<-getwd()
 
 library(raster)
 
@@ -133,7 +136,7 @@ id<-LPI_EU$ID
 
 binomial<-LPI_EU$Binomial
 
-xmean<- brick(paste(wd,"/Chapter_Two/Europe/", "Europe_mean_mon.grd", sep=""))
+xmean<- brick( "Europe_mean_mon.grd")
 
 ```
 
@@ -892,7 +895,7 @@ head(xy_df)
 ```
 
 
-```{r}
+```{r,eval=FALSE}
 
 library(doParallel)
 library(reshape2)
@@ -967,7 +970,7 @@ LPILU<-merge(LPI_ID,an_group, by=c("lon", "lat"))
 #write.csv(LPILU, "LUH2_Land_Use_All_LPI2.csv")
 ```
 
-```{r}
+```{r, eval=FALSE}
 
 LPILU<-read.csv("LUH2_Land_Use_All_LPI2.csv")
 
@@ -1023,7 +1026,7 @@ esa_files <- list.files(path = "C:/Users/Fiona/Documents/PhD/Land_Use/ESA_CCI/",
 esa <- stack(esa_files)
 ```
 
-```{r}
+```{r, eval=FALSE}
 #read in shapefile of UK in order to crop esa rasters
 gb <- readOGR("UK_clip_2.shp", "UK_clip_2")
 e <- extent(gb)
@@ -1113,7 +1116,7 @@ colnames(lpi_df)<-c("ID", "Latitude", "Longitude")
 lpi_luc<-merge(lpi_df, cdf, by=c("Longitude", "Latitude"))
 
 
-write.csv(lpi_luc, "C:/Users/Fiona/Documents/PhD/PhD_Method/ESA_CCI_3000m_buff_LPI.csv")
+#write.csv(lpi_luc, "C:/Users/Fiona/Documents/PhD/PhD_Method/ESA_CCI_3000m_buff_LPI.csv")
 
 
 ```
@@ -1140,7 +1143,7 @@ lpibm2<-lpibm[lpibm$Body_mass_g !=-999,]
 #lpibm2$Log_Body_Mass_g<-log10(lpibm2$Body_mass_g)
 
 wd<-getwd()
-write.csv(lpibm2, paste(wd,"/","LPI_BodyMass_Amniote_Database_edit.csv", sep=""))
+#write.csv(lpibm2, paste(wd,"/","LPI_BodyMass_Amniote_Database_edit.csv", sep=""))
 
 
 ```
@@ -1322,6 +1325,14 @@ for (i in 1:nrow(loop_grid)){
   
 }
 ```
+
+
+
+
+
+
+
+
 
 ```{r}
   library(MuMIn)
