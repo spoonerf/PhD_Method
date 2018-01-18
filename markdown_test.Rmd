@@ -831,7 +831,7 @@ sd<-0.25
 
 matrices_var<-matrix(sd, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
 
-  demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
+  demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = niche_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
@@ -1160,7 +1160,7 @@ rep_demoniche<-function(i){
                   sumweight =sumweight)
 c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste("Demoniche_Repetitions/Three_Vars_kern/Kern", s,"LDD",LDD,"SD", SD,sep="_"))
+                                     foldername = paste("Demoniche_Repetitions/Three_Vars_kern/Kern", s,"LDD",LDD,"SD", SD,"/rep",i,sep="_"))
 }
 
 
@@ -1173,6 +1173,7 @@ if (Sys.info()["nodename"] == "FIONA-PC"){
 } else {
  cl <- makeCluster(2)
 }
+
 
 registerDoParallel(cl)
 foreach(i=(1:reps)) %dopar% rep_demoniche(i)
@@ -1189,7 +1190,7 @@ time.taken
 library(ggplot2)
 library(dplyr)
 
-wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars/"
+wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars_kern/"
 
 folders<-list.files(wd)
 
