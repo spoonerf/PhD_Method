@@ -579,7 +579,7 @@ id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 
-wd<-("C:/Users/Fiona/Documents/Demoniche")
+wd<-("C:/Users/Fiona/Documents/PhD/PhD_Method")
 sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 
@@ -605,7 +605,7 @@ Populations<-data.frame(na.omit(df))
 #formatting the sdm data
 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
-
+library(raster)
 
 
 
@@ -613,7 +613,7 @@ years<-1950:2016
 
 sdm_patch_df<-data.frame(ID=1:ncell(rid))
 sdm_df<-data.frame(ID=1:ncell(rid))
-
+sdm_fake_df<-data.frame(ID=1:ncell(rid))
 
 #formatting data for demoniche
 for (i in 1:length(years)){
@@ -625,21 +625,26 @@ for (i in 1:length(years)){
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i],".tif", sep="")) #14,3%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i],".tif", sep=""))  #13.1%
   patch<-raster(paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  fake<-raster(paste(wd, "/Alp_SDMs/Fake_Landscape/Fake_Landscape_", years[i], ".tif", sep=""))
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
     vec_pat<-as.data.frame(patch, xy=TRUE)
+    vec_fake<-as.data.frame(fake, xy=TRUE)
   } else{
     vec<-as.data.frame(sdm)
     vec_pat<-as.data.frame(patch)
+    vec_fake<-as.data.frame(fake)
   }
   
   sdm_df<-cbind(sdm_df, vec)
   sdm_patch_df<-cbind(sdm_patch_df,vec_pat)
+  sdm_fake_df<-cbind(sdm_fake_df, vec_fake)
   #print(i)
 }
 
 sdm_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
 sdm_patch_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
+sdm_fake_df$ID[which(!is.na(df$PatchID))]<-df$PatchID[!is.na(df$PatchID)]
 
 niche_map_mine<-sdm_df
 colnames(niche_map_mine)[1:3]<-c("gridID", "X", "Y")
@@ -647,22 +652,32 @@ colnames(niche_map_mine)[1:3]<-c("gridID", "X", "Y")
 patch_map_mine<-sdm_patch_df
 colnames(patch_map_mine)[1:3]<-c("gridID", "X", "Y")
 
+fake_map_mine<-sdm_fake_df
+colnames(fake_map_mine)[1:3]<-c("gridID", "X", "Y")
+
 niche_spin_up<-matrix(rep(niche_map_mine[,4], 899), nrow=nrow(niche_map_mine))
 niche_spin_up<-cbind(niche_map_mine[,1:3],niche_spin_up, niche_map_mine[,4:ncol(niche_map_mine)])
 
 patch_spin_up<-matrix(rep(patch_map_mine[,4], 899), nrow=nrow(patch_map_mine))
-patch_spin_up<-cbind(patch_map_mine[,1:3],patch_spin_up, patch_map_mine[,4:ncol(niche_map_mine)])
+patch_spin_up<-cbind(patch_map_mine[,1:3],patch_spin_up, patch_map_mine[,4:ncol(patch_map_mine)]) #last patch used to be niche
+
+fake_spin_up<-matrix(rep(fake_map_mine[,4], 899), nrow=nrow(fake_map_mine))
+fake_spin_up<-cbind(fake_map_mine[,1:3],fake_spin_up, fake_map_mine[,4:ncol(fake_map_mine)])
+
 
 col_years_short<-paste("Year_", 1950:2016, sep="")
 col_years<-paste("Year_", 1050:2016, sep="")
 
 colnames(niche_map_mine)[4:length(colnames(niche_map_mine))]<-col_years_short
 colnames(patch_map_mine)[4:length(colnames(patch_map_mine))]<-col_years_short
+colnames(fake_map_mine)[4:length(colnames(fake_map_mine))]<-col_years_short
 
 colnames(niche_spin_up)[4:length(colnames(niche_spin_up))]<-col_years
 colnames(patch_spin_up)[4:length(colnames(patch_spin_up))]<-col_years
+colnames(fake_spin_up)[4:length(colnames(fake_spin_up))]<-col_years
 
 
+fake_spin_up[is.na(fake_spin_up)]<-0
 #niche_formulas <- as.formula(paste(paste(colnames(niche_map_mine)[-c(1:3)], collapse="+"),"X+Y",sep="~"))
 
 #print(levelplot(niche_formulas, niche_map_mine, col.regions=rev(heat.colors(100)), main = "Niche Values"))
@@ -671,14 +686,17 @@ no_yrs_mine<-1 #number of years each time period represents
 
 years_short<-1950:2016
 plot(years_short,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
+plot(years_short,colMeans(na.omit(fake_map_mine)[4:length(colnames(fake_map_mine))]), type="l", ylab="Mean fake suitability index")
 
 #plot(years_short,colMeans(na.omit(niche_map_mine)[904:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
 
 niche_map_mine<-na.omit(niche_map_mine)
 patch_map_mine<-na.omit(patch_map_mine)
+fake_map_mine<-na.omit(fake_map_mine)
 
 niche_spin_up<-na.omit(niche_spin_up)
 patch_spin_up<-na.omit(patch_spin_up)
+fake_spin_up<-na.omit(fake_spin_up)
 
 ```
 
@@ -688,7 +706,7 @@ Accessing the population matrices from comadre - there are 5 matrices available 
 
 ```{r, warning=FALSE, message=FALSE}
 #Population matrix set up
-
+wd<-("C:/Users/Fiona/Documents/PhD/PhD_Method")
 
 load(paste(wd, "COMADRE_v.2.0.1.RData", sep="/"))
 
@@ -830,33 +848,37 @@ start.time <- Sys.time()
 library(demoniche)
 source("demoniche_model_me.R")
 #source("demoniche_model_me_par.R")
-sd<-0.25
+sd<-0.01
 
 matrices_var<-matrix(sd, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
 
+<<<<<<< HEAD
+  demoniche_setup(modelname = "niche_2000k",Populations = Populations, Nichemap = fake_spin_up,
+=======
   demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = niche_spin_up,
+>>>>>>> f6246a9a1d5f6873acdf5aefabe60a71fa8b56da
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
-                  density_individuals = 400,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                  density_individuals = 4000,  #number of individuals at the start of each population - can be a vector of length(Populations)
                   fraction_LDD = 0.1, fraction_SDD = 0.9,
                   dispersal_constants = c(0.7,0.7,0.1,2),
                   transition_affected_niche = "all",
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
-                  no_yrs = no_yrs_mine, K=16000, Kweight = K_weight, 
+                  no_yrs = no_yrs_mine, K=200000, Kweight = K_weight, 
                   sumweight =sumweight)
-c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
+niche_test <- demoniche_model_me(modelname = "niche_2000k", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste("SD_", 0.5, sep=""))
+                                     foldername = paste("SD_", sd, sep=""))
 
 #result <- foreach(i=10:10000) %dopar% getPrimeNumbers(i)
   
-p_16000<-(c_ibex_k_16000[,"Meanpop","Reference_matrix"])
+n_2000<-(niche_test[,"Meanpop","Reference_matrix"])
 
-plot(p_16000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="")
+plot(n_2000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="")
 
-10^mean(diff(log10(p_16000[900:966])))
+10^mean(diff(log10(n_2000[900:966])))
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
@@ -889,14 +911,14 @@ print(s)
 
 start.time <- Sys.time()
 
-dir.create(paste("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Four_Vars/K_",K,"_LDD_",LDD,"_SDD_", SDD, "_dens_", density ,sep=""))
+dir.create(paste("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Four_Vars_Prob/K_",K,"_LDD_",LDD,"_SDD_", SDD, "_dens_", density ,sep=""))
 
 reps<-5
 
 rep_demoniche<-function(i){
   library(demoniche)
   source("demoniche_model_me.R")
- demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
+ demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = niche_spin_up,   #CHANGED TO NICHE
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = density,  #number of individuals at the start of each population - can be a vector of length(Populations)
