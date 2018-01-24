@@ -1,8 +1,11 @@
 ---
-title: "Chapter Three Workflow"
+title: "Assessing the predictive ability of Demoniche"
 author: "Fiona Spooner"
 date: "September 6, 2017"
-output: html_document
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
 ---
 ###Chapter 3 workflow
 
@@ -21,7 +24,10 @@ library(zoo)
 library(dismo)
 ```
 
-#####Creating Bioclim varibles for each year 1950-2016 for Europe - this only needs to be done once
+#####Bioclim Variables 
+
+Creating the 19 bioclim variables for each year between 1950 & 2016 for Europe using the E-OBS dataset - downloaded from http://www.ecad.eu/download/ensembles/download.php
+
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
 tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
@@ -49,7 +55,7 @@ for (i in 1:length(years)){
 
 #####Dismo SDMs
 
-Extracting Alpine ibex data from GBIF and adding in the locations from the LPI dataset - need to check the LPI populations are from after 1985. Formatting these points as a spatialpointsdataframe
+Extracting Alpine ibex (*Capra ibex*) data from GBIF and with additional locations added from the LPI dataset. These points are then formatted to a SpatialPointsDataFrame.
 ```{r, cache=TRUE, message= FALSE, warning=FALSE}
 library(dismo)
 library(demoniche)
@@ -58,9 +64,10 @@ library(mapdata)
 library(rgeos)
 ```
 
+Extracting Alpine ibex data from GBIF and cleaning the data so that only points from the Alps remain.
+
 ```{r, cache=TRUE, message= FALSE, warning=FALSE}
 
-#Extracting Alpine ibex data from GBIF
 wd<- getwd()
 capra <-gbif("capra", "ibex", geo=FALSE)
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA") 
@@ -88,6 +95,8 @@ x <- circles(sp, d=50000, lonlat=TRUE)
 pol <- polygons(x)
 ```
 
+Mapping the occurence points
+
 ```{r, message=FALSE, warning=FALSE}
 e<-extent(sp)
 e_big<-e+4
@@ -97,25 +106,23 @@ points(sp, col="red", pch=20)
 
 ```
 
-Creating the 1985-2016 average for each bioclim variable and pulling out the layers we want to use in the model.
+> Creating the 2006-2016 average for each bioclim variable and then selecting out the layers we want to use in the model:
 
-I have picked out:
+*	Bioclim 1 – Annual mean temperature
 
-•	Bioclim 1 – Annual mean temperature
+*	Bioclim 5 – Max temperature of the warmest month
 
-•	Bioclim 5 – Max temperature of the warmest month
+*	Bioclim 6 – Min temperature of the coldest month
 
-•	Bioclim 6 – Min temperature of the coldest month
+*	Bioclim 13 – Precipitation of the wettest month
 
-•	Bioclim 13 – Precipitation of the wettest month
+*	Bioclim 15 – Precipitation seasonality (coefficient of variation)
 
-•	Bioclim 15 – Precipitation seasonality (coefficient of variation)
+*	Bioclim 18 – Precipitation of warmest quarter
 
-•	Bioclim 18 – Precipitation of warmest quarter
+*	Bioclim 19 – Precipitation of coldest quarter
 
-•	Bioclim 19 – Precipitation of coldest quarter
-
-Snow septh seems to be an important predictor for alpine ibex but I have struggled to find historical data on this. Existing papers are based on one weather stations historical data, which means there is no spatial variation and therefore it is not appropriate for these models.
+Snow depth seems to be an important predictor for alpine ibex but I have struggled to find historical data on this. Existing papers are based on historical data from one weather station, which means there is no spatial variation and therefore it is not appropriate for these models.
 
 ```{r,cache=TRUE, message=FALSE, warning=FALSE}
 e<-extent(sp)+4
@@ -140,15 +147,20 @@ for (i in 1:19){
 #pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 ```
 
+Selecting out the bioclim layers I'm interested in:
+
 ```{r}
-#pulling out the bioclim layers i'm interested in
+
 
 bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
 
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif",sep="" ))
 ```
 
-Creating training and testing presence and background data - each time I run this a different sample of randomPoints is selected and I am not sure if that is correct and to what extent it impacts the resulting models.
+####Creating the testing and training datasets
+
+Using K=4 so 75% of points are used for training and 25% for testing.
+
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
 
 set.seed(10)
@@ -209,11 +221,11 @@ colnames(env_back)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average",
 
 #####Bioclim
 
-Running the bioclim envelope model and evaluating it to get an AUC value
+Running the Bioclim envelope model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
 
-#group_back <- kfold(pb_train, k)
+
 evl_bc<- list()
 tss_bc<-list()
 for (i in 1:k){
@@ -246,7 +258,7 @@ bc_tss<-max(unlist(tss_bc))
 
 #####GAM
 
-Running a gam and evaluating it to get an AUC value
+Running a GAM and evaluating it to get an AUC value using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
 ```{r, cache= TRUE, message=FALSE, warning=FALSE}
 library(mgcv)
@@ -301,7 +313,7 @@ gam_tss<-max(unlist(tss_gam))
 
 #####Random Forest
 
-Running the random forest envelope model and evaluating it to get an AUC value
+Running a random forest model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
 ```{r, cache= TRUE, message= FALSE, warning=FALSE}
 library(randomForest)
@@ -346,9 +358,10 @@ rf_tss<-max(unlist(tss_rf))
 ```
 
 
-#####Using the models to predict
+##### Ensemble Model
 
-Creating a weighted ensemble averaged suitability model for 1985-2016 which can be used to predict suitability backwards
+Creating a weighted (based on AUC) ensemble average suitability model for 2006-2016 from the Bioclim, GAM and Random Forest models. This will be used to predict habitat suitability for Alpine ibex for each year 1950-2016.
+
 
 ```{r, cache=TRUE, warning=FALSE, message=FALSE}
 #total models
@@ -378,10 +391,11 @@ plot(wm)
 points(sp)
 ```
 
-Not sure if the way I am calculating the TSS threshold is correct
+####Thresholds
+
+Calculating threshold values for each of the kappa, no omission and true skill statistic evaluation methods. These will be used to create prediction maps of presence/absence of Alpine ibex for each year 1950-2016. 
 
 ```{r,eval=FALSE, warning=FALSE, message=FALSE}
-#thresholds - perhaps redundant for now?
 
 thresh_noem<-weighted.mean(c(bc_noem, gam_noem, rf_noem),w)
 thresh_weighted_kap<-weighted.mean(c(bc_kap, gam_kap, rf_kap), w)
@@ -393,12 +407,14 @@ names<-c("no omission", "kappa", "TSS")
 cbind(names, tholds)
 ```
 
-Using the ensemble model to predict suitability for each year - 1950-2016 and for each year creating a binary presence/absence map based on a few different thresholding techniques. Have used TSS in the rest of the analysis as per Allouche 2006 which said it outperformed kappa which I believe was previously most prominent.
+####Annual Habitat Suitability Predictions
+
+Using the ensemble model to predict suitability for each year - 1950-2016 and for each year creating a binary presence/absence map based on a three different thresholding techniques. I will go forward using true skill statistic based on Allouche 2006.
 
 ```{r, cache=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
 library(dismo)
-wd<-"C:/Users/Fiona/Documents/Demoniche"
-
+#wd<-"C:/Users/Fiona/Documents/Demoniche"
+wd<-getwd()
 bc <- bioclim(pred_nf, sp)
 gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average), data=env_all)
 rf1 <- randomForest:::randomForest(model, data=env_all)
@@ -443,27 +459,27 @@ for (i in 1:length(years)){
 
 ```
 
-
-Trends in habitat suitability 1950-2016
+####Trends in habitat suitability 1950-2016
 
 ```{r}
 library(raster)
 years<-1950:2016
-wd<-("C:/Users/Fiona/Documents/Demoniche")
+#wd<-("C:/Users/Fiona/Documents/Demoniche")
 
+wd<-getwd()
 t<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,67,len=16))
 
-plot(t[[s]])
+#plot(t[[s]])
 
 patch<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_ensemble_sdm_", years,".tif", sep=""))
-plot(patch[[s]])
+#plot(patch[[s]])
 
 patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
-plot(patch_kap[[s]])
+#plot(patch_kap[[s]])
 
 patch_tss<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years,".tif", sep=""))
-plot(patch_tss[[s]])
+#plot(patch_tss[[s]])
 
 m<-cellStats(t, stat="mean")
 sd<-cellStats(t, stat="sd")
@@ -477,23 +493,26 @@ lines(years, m-(2*sd), col="red", lty=3)
 
 ```
 
-Patches
+####Patches
+
+Plots of the number of cells with predicted presence and number of patches (contiguous presence) over 1950-2016.
+
 ```{r, warning=FALSE, echo=FALSE}
 year_patch<-data.frame(years = years, patch_num = numeric(length(years)) )
 
-for (i in 1:length(years)){
-c<-clump(patch[[i]])
-year_patch[i,2]<-max(na.omit(values(c)))
-#print(i)
-}
-
-year_patch_kap<-data.frame(years = years, patch_num = numeric(length(years)) )
-
-for (i in 1:length(years)){
-c<-clump(patch_kap[[i]])
-year_patch_kap[i,2]<-max(na.omit(values(c)))
-#print(i)
-}
+# for (i in 1:length(years)){
+# c<-clump(patch[[i]])
+# year_patch[i,2]<-max(na.omit(values(c)))
+# #print(i)
+# }
+# 
+# year_patch_kap<-data.frame(years = years, patch_num = numeric(length(years)) )
+# 
+# for (i in 1:length(years)){
+# c<-clump(patch_kap[[i]])
+# year_patch_kap[i,2]<-max(na.omit(values(c)))
+# #print(i)
+# }
 
 year_patch_tss<-data.frame(years = years, patch_num = numeric(length(years)) )
 
@@ -504,24 +523,24 @@ year_patch_tss[i,2]<-max(na.omit(values(c)))
 }
 par(mar=c(4,4,4,5))
 
-mk<-cellStats(patch_kap, stat="sum")
-plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
-par(new=TRUE)
-par(mar=c(4,4,4,5))
-plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab="")
-axis(4)
-mtext("Number of Patches",side=4,line=3)
-legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
-
-mno<-cellStats(patch, stat="sum")
-par(mar=c(4,4,4,5))
-plot(years,mno, type="l", main="Predicted patch presence - no omission", ylab="Suitable squares", xlab="Years", col="red")
-par(new=TRUE)
-par(mar=c(4,4,4,5))
-plot(year_patch$years, year_patch$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
-axis(4)
-mtext("Number of Patches",side=4,line=3)
-legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+# mk<-cellStats(patch_kap, stat="sum")
+# plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
+# par(new=TRUE)
+# par(mar=c(4,4,4,5))
+# plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab="")
+# axis(4)
+# mtext("Number of Patches",side=4,line=3)
+# legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+# 
+# mno<-cellStats(patch, stat="sum")
+# par(mar=c(4,4,4,5))
+# plot(years,mno, type="l", main="Predicted patch presence - no omission", ylab="Suitable squares", xlab="Years", col="red")
+# par(new=TRUE)
+# par(mar=c(4,4,4,5))
+# plot(year_patch$years, year_patch$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
+# axis(4)
+# mtext("Number of Patches",side=4,line=3)
+# legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
 
 
 mtss<-cellStats(patch_tss, stat="sum")
@@ -537,7 +556,10 @@ legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number 
 ```
 
 
-#####Copying the 1950 files for the 900 year spin up
+#####Spin-up
+
+Copying the 1950 900 files for the 900 year spin up
+
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 spin_years<-1050:1949
 from_sdm<- paste(wd, "/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_1950.tif", sep="")
@@ -549,17 +571,22 @@ to_pa<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_en
 from_kap<- paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep="")
 to_kap<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_",spin_years, ".tif", sep="")
 
+from_tss<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_1950.tif", sep="")
+to_tss<-paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", spin_years, ".tif", sep="")
 
 file.copy(from_sdm,to_sdm, overwrite = T)
 file.copy(from_pa,to_pa, overwrite = T)
 file.copy(from_kap,to_kap, overwrite = T)
-
+file.copy(from_tss, to_tss, overwrite = T)
 
 ```
 
-### Demoniche - start from here for just demoniche
+## Demoniche 
 
-Formatting the data for use in demoniche
+####Formatting the population occurrence points
+
+Formatting the LPI population data for use in Demoniche, they start as the "seed" populations. Might be better to use GBIF data for this - unrealistic that the LPI populations are the only existing populations in 1950 - alternatively a historical map of where the ibex were in 1950?
+
 ```{r, warning=FALSE, message=FALSE}
 library(demoniche)
 library(rgdal)
@@ -599,12 +626,12 @@ Populations<-data.frame(na.omit(df))
 
 ```
 
-#formatting the sdm data
+####Formatting the habitat suitability models
+
+Formatting the habitat suitability model maps into vectors for use in Demoniche and plotting the average habitat suitability over time. 
 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
 library(raster)
-
-
 
 years<-1950:2016
 
@@ -697,9 +724,11 @@ fake_spin_up<-na.omit(fake_spin_up)
 
 ```
 
-#####Comadre
+####COMADRE
 
-Accessing the population matrices from comadre - there are 5 matrices available for the alpine ibex but four are for the same area and only represent survival over two time periods in good/bad conditions.
+Accessing the population matrices from COMADRE - there are 5 matrices available for the alpine ibex but four are for the same area and only represent survival over two time periods in good/bad conditions. 
+
+<span style="color:red">Could I use these to calibrate the survival aspect of the matrices?</span>
 
 ```{r, warning=FALSE, message=FALSE}
 #Population matrix set up
@@ -849,11 +878,7 @@ sd<-0.01
 
 matrices_var<-matrix(sd, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd")) 
 
-<<<<<<< HEAD
   demoniche_setup(modelname = "niche_2000k",Populations = Populations, Nichemap = fake_spin_up,
-=======
-  demoniche_setup(modelname = "Capra_k_16000",Populations = Populations, Nichemap = niche_spin_up,
->>>>>>> f6246a9a1d5f6873acdf5aefabe60a71fa8b56da
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = 4000,  #number of individuals at the start of each population - can be a vector of length(Populations)
