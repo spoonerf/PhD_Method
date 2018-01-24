@@ -2,7 +2,10 @@
 title: "Chapter Three Workflow"
 author: "Fiona Spooner"
 date: "September 6, 2017"
-output: html_document
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
 ---
 ###Chapter 3 workflow
 
@@ -259,7 +262,7 @@ gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006
            s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=env_all)
 
 gp<-predict(pred_nf, gm1)
-r<-calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
+r<-raster:::calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
 
 evl_gam<- list()
 tss_gam<-list()
@@ -364,7 +367,7 @@ rf1 <- randomForest(model, data=env_all)
 
 pb <- predict(pred_nf, bc, ext=e, progress='') #bioclim predict
 pg <- predict(pred_nf, gm1, ext=e) #gam predict
-pgl<-calc(pg, fun=function(x){ exp(x)/(1+exp(x))}) #backtransforming from logit space
+pgl<-raster:::calc(pg, fun=function(x){ exp(x)/(1+exp(x))}) #backtransforming from logit space
 pr <- predict(pred_nf, rf1, ext=e) #random forest predict
 
 models <- stack(pb, pgl, pr)
@@ -417,7 +420,7 @@ for (i in 1:length(years)){
   
   pb <- predict(pred_nf, bc, ext=e, progress='')
   pg <- predict(pred_nf, gm1, ext=e) #gam predict
-  pgl<-calc(pg, fun=function(x){ exp(x)/(1+exp(x))})
+  pgl<-raster:::calc(pg, fun=function(x){ exp(x)/(1+exp(x))})
   pr <- predict(pred_nf, rf1, ext=e)
   
   models <- stack(pb, pgl, pr)
@@ -1112,7 +1115,7 @@ p09
 #varying LDD and K and pop mat SD
 
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
+```{r dispersal kernel shape - run models, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
 #setwd("C:Users/Fiona/Documents/Demoniche")
 
 sd_seq<-c(0.25,0.375,0.5, 0.625, 0.75,1)
@@ -1124,7 +1127,7 @@ kern_seq<-list(c(1,1,0.1,1),c(1,0.1,1,1), c(1,1,1,1), c(1,1,1,5))
 var_grid<-expand.grid(sd_seq, LDD_seq, kern_seq)
 colnames(var_grid)<-c("SD", "LDD", "Kern")
 
-kern_mat<-matrix(c(rep(c(1,1,0.1,1), (nrow(var_grid)/ncol(var_grid))),rep(c(1,0.1,1,1), (nrow(var_grid)/ncol(var_grid))),rep(c(1,1,1,1),(nrow(var_grid)/ncol(var_grid))),rep(c(1,1,1,5), (nrow(var_grid)/ncol(var_grid)))), ncol=4, byrow=T)
+kern_mat<-matrix(c(rep(c(1,1,0.1,1), (nrow(var_grid)/4)),rep(c(1,0.1,1,1), (nrow(var_grid)/4)),rep(c(1,1,1,1),(nrow(var_grid)/4)),rep(c(1,1,1,5), (nrow(var_grid)/4))), ncol=4, byrow=T)
 
 
 for (s in 1:nrow(var_grid)){
@@ -1139,7 +1142,7 @@ for (s in 1:nrow(var_grid)){
 
 start.time <- Sys.time()
 
-dir.create(paste("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars_kern/Kern_", s,"LDD_",LDD,"SD_", SD,sep=""))
+dir.create(paste("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars_kern/Kern_", s,"_LDD_",LDD,"_SD_", SD,sep=""))
 
 reps<-5
 
@@ -1160,7 +1163,7 @@ rep_demoniche<-function(i){
                   sumweight =sumweight)
 c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste("Demoniche_Repetitions/Three_Vars_kern/Kern_", s,"LDD_",LDD,"SD_", SD,"/rep",i,sep=""))
+                                     foldername = paste("Demoniche_Repetitions/Three_Vars_kern/Kern_", s,"_LDD_",LDD,"_SD_", SD,"/rep",i,sep=""))
 }
 
 
@@ -1186,11 +1189,13 @@ time.taken
 
 ```
 
-```{r,message=FALSE, warning=FALSE, eval=FALSE}
+```{r dispersal kernel shape - extract trends,message=FALSE, warning=FALSE, eval=FALSE}
 library(ggplot2)
 library(dplyr)
 
 wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars_kern/"
+
+rep_df_all<-data.frame()
 
 folders<-list.files(wd)
 
@@ -1209,11 +1214,13 @@ for (folder in folders){
   plot_rep<-function(proj_path){
   
   load(proj_path)
-  id<-gsub("\\D", "", proj_path)
-  id<-as.numeric(substr(id, 1, nchar(id)-1))
+  kern_id<-strsplit(proj_path, "[_/]")[[1]][13]
+  ldd_id<-strsplit(proj_path, "[_/]")[[1]][15]
+  sd_id<-strsplit(proj_path, "[_/]")[[1]][17]
+  rep_id<-strsplit(proj_path, "[_/]")[[1]][18]
   p<-Projection
   trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
-  tid<-cbind(id, trend)
+  tid<-cbind(kern_id,ldd_id, sd_id, rep_id, trend)
   return(tid)
   }
 
@@ -1222,35 +1229,92 @@ for (folder in folders){
   year<-row.names(rep_df)
   rep_df<-data.frame(rep_df)
   rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
-  rep_df$id<-as.factor(rep_df$id)
+  #rep_df$id<-as.factor(rep_df$id)
 
 
-  spin<-ggplot(rep_df, aes(x = year, y= trend, group=id))+
-    geom_line( alpha=0.5)
+  #spin<-ggplot(rep_df, aes(x = year, y= trend, group=id))+
+   # geom_line( alpha=0.5)
 
-  #plot(spin)
+ # plot(spin)
   
-  rep_df_short<-rep_df[rep_df$year >=1950,]
+#  rep_df_short<-rep_df[rep_df$year >=1950,]
 
-
-  p<-ggplot(rep_df_short, aes(x = year, y= trend, group=id))+
-    geom_line( alpha=0.5)
-  
-  #plot(p)
-  
-  lambdas<-rep_df_short %>% 
-  group_by(id) %>%
-  summarise(lambda = 10^mean(diff(log10(trend))))
-  
-  #print(lambdas)
-  
- if (!is.nan(sum(lambdas$lambda))){
-  boxplot(lambdas$lambda)
+# 
+#   p<-ggplot(rep_df_short, aes(x = year, y= trend, group=id))+
+#     geom_line( alpha=0.5)
+#   
+#  plot(p)
+#   
+#   lambdas<-rep_df_short %>% 
+#   group_by(id) %>%
+#   summarise(lambda = 10^mean(diff(log10(trend))))
+#   
+#   #print(lambdas)
+#   
+#  if (!is.nan(sum(lambdas$lambda))){
+#   boxplot(lambdas$lambda)
+# }
+# 
+#   
+  rep_df_all<-rbind(rep_df,rep_df_all)
+#   
 }
 
-  }
+write.csv(rep_df_all, "threevars_kern_sd_ldd.csv")
 ```
 
+```{r}
+
+rep_df_all<-read.csv("threevars_kern_sd_ldd.csv")
+
+
+rep_df_all$kern_id<-as.numeric(rep_df_all$kern_id)
+
+rep_df_all$kern_mat[rep_df_all$kern_id<=18]<-"1,1,0.1,1"
+rep_df_all$kern_mat[rep_df_all$kern_id>18 & rep_df_all$kern_id<=36]<-"1,0.1,1,1"
+rep_df_all$kern_mat[rep_df_all$kern_id>36 & rep_df_all$kern_id<=54]<-"1,1,1,1"
+rep_df_all$kern_mat[rep_df_all$kern_id>54 & rep_df_all$kern_id<=72]<-"1,1,1,5"
+
+rep_df_all$kern_mat<-as.factor(rep_df_all$kern_mat)
+
+rep_df_all$trend<-as.numeric(as.character(rep_df_all$trend))
+
+rep_df_all$sd_id_f<-factor(rep_df_all$sd_id, levels=c("0.25","0.375","0.5","0.625","0.75","1"))
+
+rep_df_all$ldd_id_f<-factor(rep_df_all$ldd_id, levels=c("0.1","0.5","0.9"))
+
+
+```
+
+
+```{r}
+#devtools::install_github("thomasp85/patchwork")
+library(ggplot2)
+#library(patchwork)
+
+p01<-ggplot(rep_df_all, aes(x=year, y=trend, colour=ldd_id_f))+
+  geom_line()
+#p01
+
+p01<-p01 + facet_grid(kern_mat ~ sd_id_f, labeller = label_both)
+p01
+```
+
+```{r}
+#rep_df_short<-rep_df_all[rep_df_all$year >1949 & rep_df_all$ldd_id==0.9 & rep_df_all$rep_id=="rep1" & rep_df_all$sd_id_f == 0.25,]
+rep_df_short<-rep_df_all[rep_df_all$year >1949 ,]
+
+library(ggplot2)
+#library(patchwork)
+
+p01<-ggplot(rep_df_short, aes(x=year, y=trend, colour=ldd_id_f))+
+  geom_line()
+#p01
+
+p01<-p01 + facet_grid(kern_mat ~ sd_id_f, labeller = label_both)
+p01
+
+```
 
 #ggplot groups of data 
 
@@ -1334,153 +1398,10 @@ p01<-p01 + facet_grid(k_id_f ~ sd_id_f, labeller = label_both)
 p01
 ```
 
-```{r,message=FALSE, warning=FALSE, eval=FALSE}
-library(ggplot2)
-library(dplyr)
-
-wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars_kern/"
-
-folders<-list.files(wd)
-
-for (folder in folders){
-
-  print(folder)
-
-  f<-paste(wd,folder, sep="")
-
-  lf<-list.dirs(f, recursive = F)
-
-#path<-paste(f, lf, sep="")
-
-  path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
-
-  plot_rep<-function(proj_path){
-  
-  load(proj_path)
-  id<-gsub("\\D", "", proj_path)
-  id<-as.numeric(substr(id, 1, nchar(id)-1))
-  p<-Projection
-  trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
-  tid<-cbind(id, trend)
-  return(tid)
-  }
-
-  reps<-lapply(path, plot_rep)
-  rep_df<-do.call(rbind,reps)
-  year<-row.names(rep_df)
-  rep_df<-data.frame(rep_df)
-  rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
-  rep_df$id<-as.factor(rep_df$id)
 
 
-  spin<-ggplot(rep_df, aes(x = year, y= trend, group=id))+
-    geom_line( alpha=0.5)
-
-  #plot(spin)
-  
-  rep_df_short<-rep_df[rep_df$year >=1950,]
 
 
-  p<-ggplot(rep_df_short, aes(x = year, y= trend, group=id))+
-    geom_line( alpha=0.5)
-  
-  #plot(p)
-  
-  lambdas<-rep_df_short %>% 
-  group_by(id) %>%
-  summarise(lambda = 10^mean(diff(log10(trend))))
-  
-  #print(lambdas)
-  
- if (!is.nan(sum(lambdas$lambda))){
-  boxplot(lambdas$lambda)
-}
-
-  }
-```
-
-
-#ggplot groups of data 
-
-```{r, message=FALSE, warning=FALSE}
-
-library(ggplot2)
-
-wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars/"
-
-folders<-list.files(wd)
-
-rep_df_all<-data.frame()
-
-for (folder in folders){
-
-  #print(folder)
-
-  f<-paste(wd,folder, sep="")
-
-  lf<-list.dirs(f, recursive = F)
-
-#path<-paste(f, lf, sep="")
-
-  path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
-
-  plot_rep<-function(proj_path){
-  
-  load(proj_path)
-  k_id<-strsplit(proj_path, "[_/]")[[1]][12]
-  ldd_id<-strsplit(proj_path, "[_/]")[[1]][14]
-  sd_id<-strsplit(proj_path, "[_/]")[[1]][16]
-  rep_id<-strsplit(proj_path, "[_/]")[[1]][20]
-  p<-Projection
-  trend<-colSums(p[1,1,1:length(p[1,1,,1]),901:966])
-  tid<-cbind(k_id, ldd_id, sd_id, rep_id, trend)
-  
-  return(tid)
-  }
-  
-  reps<-lapply(path, plot_rep)
-  rep_df<-do.call(rbind,reps)
-  year<-row.names(rep_df)
-  rep_df<-data.frame(rep_df)
-  rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
-  #rep_df$id<-as.factor(rep_df$id)
-
-  rep_df_all<-rbind(rep_df,rep_df_all)
-  
-}
-
-write.csv(rep_df_all, "threevars_sd_ldd_k.csv")
-
-```
-
-
-```{r}
-
-rep_df_all<-read.csv("threevars_sd_ldd_k.csv")
-
-rep_df_all$trend<-as.numeric(as.character(rep_df_all$trend))
-
-rep_df_all$k_id_f<-factor(rep_df_all$k_id, levels=c("1000","2000",  "4000", "8000", "16000", "32000"))
-
-rep_df_all$sd_id_f<-factor(rep_df_all$sd_id, levels=c("0.25","0.3","0.35","0.4","0.45"))
-
-rep_df_all$ldd_id_f<-factor(rep_df_all$ldd_id, levels=c("0.1","0.5","0.9"))
-
-
-```
-
-
-```{r}
-#devtools::install_github("thomasp85/patchwork")
-library(ggplot2)
-#library(patchwork)
-
-p01<-ggplot(rep_df_all, aes(x=year, y=trend, colour=ldd_id_f))+
-  geom_line()
-
-p01<-p01 + facet_grid(k_id_f ~ sd_id_f, labeller = label_both)
-p01
-```
 
 #Ideas
 
