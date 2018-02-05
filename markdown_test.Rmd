@@ -28,7 +28,7 @@ library(dismo)
 Creating the 19 bioclim variables for each year between 1950 & 2016 for Europe using the E-OBS dataset - downloaded from http://www.ecad.eu/download/ensembles/download.php
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
-rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
+rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
 tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
 tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
 tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
@@ -154,6 +154,11 @@ Selecting out the bioclim layers I'm interested in:
 bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
 
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif",sep="" ))
+```
+
+Need to crop 
+```{r}
+
 ```
 
 ####Creating the testing and training datasets
