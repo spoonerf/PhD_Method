@@ -1,0 +1,55 @@
+---
+title: "R Markdown"
+author: Fiona Spooner
+date: February 14, 2018
+output: 
+  slidy_presentation:
+  fig_width: 5
+  fig_height: 5
+  fig.align: 'center'
+
+---
+
+# What is R Markdown?
+
+
+
+* It's a type of file you can use within RStudio for making lots of different things:
+    + Web pages
+    
+    + Word documents 
+    
+    + PDFs
+    
+    + Presentations (like this!)
+    
+    + Books (see [Hadley Wickham's book on Data Science](r4ds.had.co.nz))
+
+# How does it work?
+
+* To use it you need to install the 'rmarkdown' package. I'd also recommend the 'prettydoc' package for some customisation options.
+
+* Similar to a regular R document except the code is broken up into chunks to which you can apply different options. For example, you can choose to execute a chunk of code but not to display it in the report by selecting the option 'echo = FALSE'
+
+* Outside of the chunks you can do all sorts of things, such as headers, text explaining your code, pictures and links etc
+
+* [R Markdown Cheat Sheet](https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf)
+
+
+
+
+# Knitting R Markdown
+
+ * Once you have finished splitting your code up into chunks and adding explanatory text and pictures, you are ready to knit your document! (Ctrl+Shift+K)
+ 
+
+![](C:/Users/Fiona/Documents/compubody-sock-1.jpeg)
+
+# Publishing Online
+
+If you knitted your R Markdown as a html document you will be able to publish it online.
+
+![](C:/Users/Fiona/Documents/publish.png)
+
+
+
