@@ -684,18 +684,18 @@ colnames(patch_map_mine)[1:3]<-c("gridID", "X", "Y")
 fake_map_mine<-sdm_fake_df
 colnames(fake_map_mine)[1:3]<-c("gridID", "X", "Y")
 
-niche_spin_up<-matrix(rep(niche_map_mine[,4], 899), nrow=nrow(niche_map_mine))
+niche_spin_up<-matrix(rep(niche_map_mine[,4], 499), nrow=nrow(niche_map_mine))
 niche_spin_up<-cbind(niche_map_mine[,1:3],niche_spin_up, niche_map_mine[,4:ncol(niche_map_mine)])
 
-patch_spin_up<-matrix(rep(patch_map_mine[,4], 899), nrow=nrow(patch_map_mine))
+patch_spin_up<-matrix(rep(patch_map_mine[,4], 499), nrow=nrow(patch_map_mine))
 patch_spin_up<-cbind(patch_map_mine[,1:3],patch_spin_up, patch_map_mine[,4:ncol(patch_map_mine)]) #last patch used to be niche
 
-fake_spin_up<-matrix(rep(fake_map_mine[,4], 899), nrow=nrow(fake_map_mine))
+fake_spin_up<-matrix(rep(fake_map_mine[,4], 499), nrow=nrow(fake_map_mine))
 fake_spin_up<-cbind(fake_map_mine[,1:3],fake_spin_up, fake_map_mine[,4:ncol(fake_map_mine)])
 
 
 col_years_short<-paste("Year_", 1950:2016, sep="")
-col_years<-paste("Year_", 1050:2016, sep="")
+col_years<-paste("Year_", 1450:2016, sep="")
 
 colnames(niche_map_mine)[4:length(colnames(niche_map_mine))]<-col_years_short
 colnames(patch_map_mine)[4:length(colnames(patch_map_mine))]<-col_years_short
@@ -902,9 +902,9 @@ niche_test <- demoniche_model_me(modelname = "niche_2000k", Niche = TRUE,
   
 n_2000<-(niche_test[,"Meanpop","Reference_matrix"])
 
-plot(n_2000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="")
+plot(n_2000[(nrow(n_2000-67)):length(n_2000)], type="l", ylab="Number of Alpine Ibex", xlab="")
 
-10^mean(diff(log10(n_2000[900:966])))
+10^mean(diff(log10(n_2000[(nrow(n_2000-67)):length(n_2000))])))
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
@@ -1177,6 +1177,10 @@ p09
 ####Varying standard deviation of population matrix, long distance dispersal and kernel shape
 
 
+Changed the demoniche_setup function (now demoniche_setup_me.R) to change the dispersal function to a decay curve where the half-life is the median estimated dispersal distance.This was based on Bowman et al 2012 where it suggests that the maximum dispersal is 40x the square root of a species home range and median dispersal is 7x the square root of HR. 
+
+
+
 ```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
 #setwd("C:Users/Fiona/Documents/Demoniche")
 
@@ -1208,7 +1212,8 @@ for (s in 1:nrow(var_grid)){
 
 start.time <- Sys.time()
 
-dir.create(paste(wd,"/Demoniche_Repetitions/Three_Vars_kern_param/Kern_", s,"LDD_",LDD,"SD_", SD,sep=""))
+ max_disp<-as.character(kern_mat[s,2])
+dir.create(paste(wd,"/Demoniche_Repetitions/Kern/max_disp_",max_disp,sep=""))
 
 reps<-6
 
@@ -1218,18 +1223,21 @@ rep_demoniche<-function(i){
  demoniche_setup_me(modelname = "Capra_k_16000",Populations = Populations, Nichemap = patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
-                  density_individuals = 200,  #number of individuals at the start of each population - can be a vector of length(Populations)
-                  fraction_LDD = LDD, fraction_SDD = 0.5,
-                  dispersal_constants = kern_mat[i,],
-                  transition_affected_niche = "all",
+                  density_individuals = 2671,  #number of individuals at the start of each population - can be a vector of length(Populations)
+                  fraction_LDD = 0.9, fraction_SDD = 0.9,
+                  dispersal_constants = kern_mat[s,],
+                #dispersal_constants = c(0.7, 0.7, 0.1,3), 
+                transition_affected_niche = "all",
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
                   no_yrs = no_yrs_mine, K=2671, Kweight = K_weight, 
                   sumweight =sumweight)
+ 
+
 c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste(wd,"/Demoniche_Repetitions/Three_Vars_kern_param/Kern_", s,"LDD_",LDD,"SD_",SD,"/rep",i,sep=""))
+                                     foldername = paste("Demoniche_Repetitions/Kern/max_disp_",max_disp,"/",i, sep=""))
 }
 
 
@@ -1261,7 +1269,22 @@ time.taken
 library(ggplot2)
 library(dplyr)
 
-wd<-"D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Three_Vars_kern/"
+ 
+ plot_rep<-function(proj_path){
+  
+  load(proj_path)
+  id<-gsub("C:/Users/Fiona/Documents/PhD/PhD_Method/Demoniche_Repetitions/Kern/max_disp_", "", proj_path)
+  id<-gsub("Projection_rep1_Reference_matrix.rda", "",id)
+  md_id<-as.numeric(substr(id, 1, nchar(id)-3))
+  rep_id<-as.numeric(substr(id, nchar(id)-1,nchar(id)-1 ))
+  p<-Projection
+  trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
+  tid<-cbind(md_id, rep_id, trend)
+  return(tid)
+  }
+
+wd<-getwd()
+wd<-paste(wd, "/Demoniche_Repetitions/Kern/", sep="")
 
 folders<-list.files(wd)
 
@@ -1277,40 +1300,28 @@ for (folder in folders){
 
   path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
 
-  plot_rep<-function(proj_path){
-  
-  load(proj_path)
-  id<-gsub("\\D", "", proj_path)
-  id<-as.numeric(substr(id, 1, nchar(id)-1))
-  p<-Projection
-  trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
-  tid<-cbind(id, trend)
-  return(tid)
-  }
-
   reps<-lapply(path, plot_rep)
   rep_df<-do.call(rbind,reps)
   year<-row.names(rep_df)
   rep_df<-data.frame(rep_df)
   rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
-  rep_df$id<-as.factor(rep_df$id)
+  rep_df$md_id<-as.factor(rep_df$md_id)
 
-
-  spin<-ggplot(rep_df, aes(x = year, y= trend, group=id))+
+   spin<-ggplot(rep_df, aes(x = year, y= trend, group=md_id))+
     geom_line( alpha=0.5)
 
-  #plot(spin)
+  plot(spin)
   
   rep_df_short<-rep_df[rep_df$year >=1950,]
 
 
-  p<-ggplot(rep_df_short, aes(x = year, y= trend, group=id))+
+  p<-ggplot(rep_df_short, aes(x = year, y= trend, group=md_id))+
     geom_line( alpha=0.5)
   
   #plot(p)
   
   lambdas<-rep_df_short %>% 
-  group_by(id) %>%
+  group_by(md_id) %>%
   summarise(lambda = 10^mean(diff(log10(trend))))
   
   #print(lambdas)
@@ -1322,31 +1333,19 @@ for (folder in folders){
 }
 
 
-write.csv(rep_df_all, "threevars_kern_sd_ldd.csv")
+#write.csv(rep_df, "kern_params.csv")
 ```
 
 
 ```{r}
 
-rep_df_all<-read.csv("threevars_kern_sd_ldd.csv")
+rep_df_all<-read.csv("kern_params.csv")
 
-
-rep_df_all$kern_id<-as.numeric(rep_df_all$kern_id)
-
-rep_df_all$kern_mat[rep_df_all$kern_id<=18]<-"1,1,0.1,1"
-rep_df_all$kern_mat[rep_df_all$kern_id>18 & rep_df_all$kern_id<=36]<-"1,0.1,1,1"
-rep_df_all$kern_mat[rep_df_all$kern_id>36 & rep_df_all$kern_id<=54]<-"1,1,1,1"
-rep_df_all$kern_mat[rep_df_all$kern_id>54 & rep_df_all$kern_id<=72]<-"1,1,1,5"
-
-rep_df_all$kern_mat<-factor(rep_df_all$kern_mat, labels=c("1,1,0.1,1", "1,0.1,1,1","1,1,1,1", "1,1,1,5"))
+rep_df_all$rep_id-factor(rep_df_all$rep_id)
+rep_df_all$md_id<-factor(rep_df_all$md_id)
 
 rep_df_all$trend<-as.numeric(as.character(rep_df_all$trend))
 
-rep_df_all$sd_id_f<-factor(rep_df_all$sd_id, levels=c("0.25","0.375","0.5","0.625","0.75","1"), labels=c("SD:0.25","SD:0.375","SD:0.5","SD:0.625","SD:0.75","SD:1"))
-
-rep_df_all$ldd_id_f<-factor(rep_df_all$ldd_id, levels=c("0.1","0.5","0.9"))
-
-rep_df_all$rep_id_f<-factor(rep_df_all$rep_id)
 ```
 
 
@@ -1355,9 +1354,8 @@ rep_df_all$rep_id_f<-factor(rep_df_all$rep_id)
 library(ggplot2)
 #library(patchwork)
 
-p01<-ggplot(rep_df_all, aes(x=year, y=trend, group=interaction(rep_id_f, ldd_id_f),colour=ldd_id_f))+
+p01<-ggplot(rep_df_all, aes(x=year, y=trend, group=interaction(rep_id, md_id),colour=md_id))+
   geom_line()+ 
-  facet_grid(kern_mat ~ sd_id_f, labeller = label_context)+
    theme(text = element_text(size=9))+ 
   labs(color='Chance of long \ndistance dispersal') 
 p01
@@ -1612,7 +1610,7 @@ for (i in 1:length(foldernames)){
 patch_run <- demoniche_model_me(modelname = foldernames[i], Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 10,
                                      foldername = foldernames[i])
-years<-1050:2016
+years<-1450:2016
 plot(years,patch_run[,"Meanpop","Reference_matrix"], type="l", xlim=c(1949,2016), main=foldernames[i])
 
 }
@@ -1681,7 +1679,7 @@ melt_lpi<-melt(lpi_pop, id.vars = "Populations.PatchID")
 
 melt_pop$ID<-as.factor(lpi_pop$Populations.PatchID)
 melt_pop<-melt_pop[-c(1:9),]
-melt_pop$Year<-rep(1050:2016 , each=9)
+melt_pop$Year<-rep(1450:2016 , each=9)
 
 melt_pop_1950<-subset(melt_pop, melt_pop$Year >=1950)
 
@@ -1716,7 +1714,7 @@ for(i in 1:length(foldernames)){
 trends<-read.csv(paste(wd, "/",foldernames[i],"/pop_trend_output.csv", sep=""))
 trends<-trends[,-1]
 m_t<-melt(trends)
-m_t$Year<-rep(1050:2016, each=9)
+m_t$Year<-rep(1450:2016, each=9)
 m_t$model_type<-foldernames[i]
 m_t$ID<-alpine$ID
 bdf<-rbind(bdf,m_t)
@@ -1850,7 +1848,7 @@ patch_run_dz <- demoniche_model_VE(modelname = "Capra_ibex_patch", Niche = TRUE,
 
 patch_run_dz[,"Meanpop","Reference_matrix"]
 
-years<-1050:2016
+years<-1450:2016
 #plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 bleh<-(patch_run[,"Meanpop","Reference_matrix"])
 
@@ -1968,7 +1966,7 @@ lines(p_1000[900:967], type="l", ylab="Number of Alpine Ibex", xlab="", col="blu
 
 
 years<-1950:2016
-years<-1050:2016
+years<-1450:2016
 #plot(RPyran_disp_niche[,"Meanpop","Reference_matrix"])
 bleh<-(RPyran_disp_niche_scale[,"Meanpop","Reference_matrix"])
 link_years<-(RPyran_disp_niche_scale_lk[,"Meanpop","Reference_matrix"])
@@ -1976,9 +1974,9 @@ lk_years<-(RPyran_disp_niche_scale_link[,"Meanpop","Reference_matrix"])
 #plot(years, bleh, type="l", ylab="Number of Alpine Ibex")
 
 
-plot(years[900:967], bleh[900:967], type="l", ylab="Number of Alpine Ibex", ylim=c(0,1100000), xlim=c(1950,2016), xlab="")
-lines(years[900:967], lk_years[900:967], type="l", ylab="Number of Alpine Ibex", ylim=c(0,1100000), xlim=c(1950,2016), xlab="", col="red")
-lines(years[900:967], link_years[900:967], type="l", ylab="Number of Alpine Ibex", ylim=c(0,1100000), xlim=c(1950,2016), xlab="", col="green")
+plot(years[(length(years-67)):length(years)], bleh[(length(years-67)):length(years)], type="l", ylab="Number of Alpine Ibex", ylim=c(0,1100000), xlim=c(1950,2016), xlab="")
+lines(years[(length(years-67)):length(years)], lk_years[(length(years-67)):length(years)], type="l", ylab="Number of Alpine Ibex", ylim=c(0,1100000), xlim=c(1950,2016), xlab="", col="red")
+lines(years[(length(years-67)):length(years)], link_years[(length(years-67)):length(years)], type="l", ylab="Number of Alpine Ibex", ylim=c(0,1100000), xlim=c(1950,2016), xlab="", col="green")
 
 
 mean(diff(log10(bleh[900:967])), type="l")
