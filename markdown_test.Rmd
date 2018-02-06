@@ -1253,7 +1253,7 @@ time.taken <- end.time - start.time
 time.taken 
 }
 
-lapply(1:reps, rep_demoniche)
+#lapply(1:reps, rep_demoniche)
 
 ```
 
