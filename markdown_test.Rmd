@@ -1269,7 +1269,7 @@ time.taken
 library(ggplot2)
 library(dplyr)
 
- 
+ rep_df_all<-data.frame()
  plot_rep<-function(proj_path){
   
   load(proj_path)
@@ -1318,22 +1318,13 @@ for (folder in folders){
   p<-ggplot(rep_df_short, aes(x = year, y= trend, group=md_id))+
     geom_line( alpha=0.5)
   
-  #plot(p)
-  
-  lambdas<-rep_df_short %>% 
-  group_by(md_id) %>%
-  summarise(lambda = 10^mean(diff(log10(trend))))
-  
-  #print(lambdas)
-  
- if (!is.nan(sum(lambdas$lambda))){
-  boxplot(lambdas$lambda)
-}
 
+  rep_df_all<-rbind(rep_df,rep_df_all)
+  
 }
 
 
-#write.csv(rep_df, "kern_params.csv")
+write.csv(rep_df_all, "kern_params.csv")
 ```
 
 
@@ -1368,14 +1359,69 @@ rep_df_short<-rep_df_all[rep_df_all$year >1949 ,]
 library(ggplot2)
 #library(patchwork)
 
-p01<-ggplot(rep_df_short, aes(x=year, y=trend, group=interaction(rep_id_f, ldd_id_f),colour=ldd_id_f))+
+p01<-ggplot(rep_df_short, aes(x=year, y=trend, group=interaction(rep_id, md_id),colour=md_id))+
   geom_line()+ 
-  facet_grid(kern_mat ~ sd_id_f, labeller = label_context)+
+  #facet_grid(kern_mat ~ sd_id_f, labeller = label_context)+
    theme(text = element_text(size=9)) + 
-  labs(color='Chance of long \ndistance dispersal') 
+  labs(color='Maximum dispersal distance (km)') 
 p01
 
 ```
+
+
+```{r}
+
+highfoldernames<-c("max_disp_77.7","max_disp_113", "max_disp_1000")
+lowfoldernames<-rep(c("1", "2", "3", "4", "5", "6"), each=3)
+
+foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
+
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
+
+alpine<-lpi[lpi$ID == 10696 | lpi$ID == 10714 | lpi$ID == 10694 | lpi$ID == 10717 | lpi$ID == 10713 |lpi$ID == 10718 |lpi$ID == 10695 |lpi$ID == 539 |lpi$ID == 10710 ,]
+
+xy<-cbind(alpine$Longitude, alpine$Latitude)
+
+convert_pop_out<-function(foldername){
+  
+  pop_out<-read.csv(paste(wd, foldername, "/pop_output.csv", sep=""), header = TRUE)
+  pop_out<-pop_out[,-1]
+  coordinates(pop_out) <- ~ X + Y
+  gridded(pop_out) <- TRUE
+  rasterDF <- stack(pop_out)
+  trends<-extract(rasterDF,xy)
+  max_disp<-strsplit(foldername, "[/_]")[[1]][3]
+  rep_id<-strsplit(foldername, "[/_]")[[1]][4]
+  trends_df<-data.frame(alpine$ID,max_disp, rep_id,trends)
+#  write.csv(trends_df, paste(wd, "/", foldername, "/pop_trend_output.csv", sep=""))
+}
+
+demoniche_pop_out<-lapply(foldernames, convert_pop_out)
+df <- do.call("rbind", demoniche_pop_out)
+melt_df<-melt(df, id=1:3)
+melt_df$year<-as.numeric(gsub("Year_", "", melt_df$variable))
+
+
+melt_short<-melt_df[melt_df$year>1949,]
+melt_short$alpine.ID<-as.factor(melt_short$alpine.ID)
+
+ggplot(melt_short, aes(x= year, y=value, group=interaction(rep_id, max_disp), colour= alpine.ID))+
+  geom_line()+
+  facet_grid(max_disp~ alpine.ID)
+
+
+library(gghighlight)
+
+ggplot(melt_short, aes(x= year, y=value, group=interaction(rep_id, max_disp), colour= alpine.ID))+
+  geom_line()+
+  facet_wrap(.~max_disp)
+
+
+gghighlight_line(melt_short, aes(x= year, y=value, group=rep_id), max_disp =="77.7")+
+  facet_wrap(.~max_disp)
+
+```
+
 
 
 
