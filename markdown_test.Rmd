@@ -1454,6 +1454,8 @@ pops$rep_id<-"Observed"
 pops$md_id<-"Observed"
 
 library(taRifx)
+library(mgcv)
+library(plyr)
 popsm<-as.matrix(pops)
 
 gam_lpi<-function(x){
@@ -1518,7 +1520,7 @@ all_year_r$max_disp<-"Observed"
 all_year_r$rep_id<-"Observed"
 
 colnames(all_year_r)[1:3]<-c("alpine.ID", "year", "value")
->>>>>>> 0457f95e7bfeb6301f73125bb26ec9d4023f8355
+
 
 ```
 
