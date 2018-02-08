@@ -1540,6 +1540,8 @@ both_df<-rbind(mld, all_year_r)
 
 ```
 
+
+need to add in x axis. do plots separately for each of the dispersal options?
 ```{r}
 library(ggplot2)
 
