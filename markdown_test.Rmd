@@ -607,7 +607,7 @@ id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
 
-wd<-("C:/Users/Fiona/Documents/PhD/PhD_Method")
+wd<-getwd()
 sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 
@@ -819,7 +819,7 @@ patch_map_mine[is.na(patch_map_mine)]<-0
 #Scaling carrying capacity (as estimated above) in three different ways, linear, sigmoidal and linear threshold.
 #plotting functions linking k and hsi
 
-k<-4000 #set to one when using filzbach estimates - otherwise set to a standard value across all pops
+k<-5000#set to one when using filzbach estimates - otherwise set to a standard value across all pops
 lin<-function(x){
   x*k
   }
@@ -843,6 +843,7 @@ lf<-list.files(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/", sep=""))
 files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
 
 sdms<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/", files, sep=""))
+sdms<-sdms[[401:966]]
 
 ks_df<-read.csv("carrying_capacity_log_likelihood_capra_ibex.csv")
 ks_df$PatchID<-ks_df$ID*100
@@ -858,13 +859,13 @@ hsi<-extract(sdms, ks_xy[,c(2,3)])
 
 
 link<-lin(hsi)
-links<-link*ks_xy$ks
+#links<-link*ks_xy$ks
 
 sigk<-sig(hsi)
-sigks<-sigk*ks_xy$ks
+#sigks<-sigk*ks_xy$ks
 
 ltk<-lt(hsi)
-ltks<-ltk*ks_xy$ks
+#ltks<-ltk*ks_xy$ks
 
 #plot(links[,c(900:967)], type="l")
 
@@ -1213,9 +1214,9 @@ for (s in 1:nrow(var_grid)){
 start.time <- Sys.time()
 
  max_disp<-as.character(kern_mat[s,2])
-dir.create(paste(wd,"/Demoniche_Repetitions/Kern/max_disp_",max_disp,sep=""))
+dir.create(paste(wd,"/Demoniche_Repetitions/Kern/max_disp_",max_disp,sep=""),showWarnings = TRUE)
 
-reps<-6
+reps<-12
 
 rep_demoniche<-function(i){
   library(demoniche)
@@ -1231,7 +1232,7 @@ rep_demoniche<-function(i){
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
-                  no_yrs = no_yrs_mine, K=2671, Kweight = K_weight, 
+                  no_yrs = no_yrs_mine, K=link, Kweight = K_weight, 
                   sumweight =sumweight)
  
 
