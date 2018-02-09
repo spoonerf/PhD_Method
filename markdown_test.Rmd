@@ -1324,7 +1324,7 @@ for (folder in folders){
 }
 
 
-write.csv(rep_df_all, "kern_params.csv")
+#write.csv(rep_df_all, "kern_params.csv")
 ```
 
 
@@ -1351,25 +1351,10 @@ library(ggplot2)
 p01<-ggplot(rep_df_short, aes(x=year, y=trend, group=interaction(rep_id, md_id),colour=md_id))+
   geom_line()+ 
    theme(text = element_text(size=9))+ 
-  labs(color='Chance of long \ndistance dispersal') 
+  labs(color='Maximum \ndispersal \ndistance') 
 p01
 ```
 
-```{r}
-#rep_df_short<-rep_df_all[rep_df_all$year >1949 & rep_df_all$ldd_id==0.9 & rep_df_all$rep_id=="rep1" & rep_df_all$sd_id_f == 0.25,]
-rep_df_short<-rep_df_all[rep_df_all$year >1949 ,]
-
-library(ggplot2)
-#library(patchwork)
-
-p01<-ggplot(rep_df_short, aes(x=year, y=trend, group=interaction(rep_id, md_id),colour=md_id))+
-  geom_line()+ 
-  #facet_grid(kern_mat ~ sd_id_f, labeller = label_context)+
-   theme(text = element_text(size=9)) + 
-  labs(color='Maximum dispersal distance (km)') 
-p01
-
-```
 
 
 
@@ -1441,7 +1426,117 @@ ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, max_di
 
 ```
 
-#Fit gams etc here
+
+```{r, message=FALSE}
+
+pops<-alpine[,c(1,65:130)]
+colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2015, sep="_")
+pops[pops=="NULL"]<-NA
+pops$rep_id<-"Observed"
+pops$md_id<-"Observed"
+
+library(taRifx)
+library(mgcv)
+library(plyr)
+popsm<-as.matrix(pops)
+
+gam_lpi<-function(x){
+   #subsetting the population data by each population 
+  spid = x[2:(length(x)-2)]                     #subsetting only the dates
+  names(spid)<-1950:2015              #renaming the date column names as R doesn't like numbered column names
+  spid<-as.numeric(spid)
+  pop_datab <- (!is.na(spid) )
+  points = sum(pop_datab)
+  id<-x[1]
+  Date<-1950:2015
+  spidt<-destring(t(spid))
+  time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
+  missing<-time-points
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 #if a population is zero one year thhis is replaced with 1% of the average population estimate - because you can log zeros
+  
+  df<-data.frame(Year,Population)
+  
+  #not sure what this does - adding a constant of 1 so that logging doesn't go weird?
+  if (sum(na.omit(df$Population<1))>0) {
+    df$Population<-df$Population+1
+  } 
+    
+  
+  if (points >=6) {           
+    PopN = df$Population
+    if (length(na.omit(PopN)) >=6) {
+      SmoothParm = round(length(na.omit(PopN))/2)    
+    } else {
+      SmoothParm=3
+    }
+    
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv2 <- predict(mg2,df,type="response",se=TRUE) 
+    R_sq2<-summary(mg2)$r.sq
+    model<-1
+    pv2$fit[pv2$fit <= 0] <- NA
+    
+
+    lambda2<-pv2$fit
+
+    ial<-data.frame(id, Year,lambda2)
+   
+    colnames(ial)<-c("ID", "Year", "Abundance")
+  }
+
+  return(ial)
+}
+
+gam_lpi_r<-apply(popsm,  1, gam_lpi)
+gam_r<-do.call( "rbind", gam_lpi_r)
+
+fill<-data.frame(rep(pops$ID, each=length(1950:2015)), 1950:2015)
+colnames(fill)<-c("ID", "Year")
+
+all_year_ab<-join(fill, gam_r, type="right")
+
+all_year_ab$max_disp<-"Observed"
+all_year_ab$rep_id<-"Observed"
+
+colnames(all_year_ab)[1:3]<-c("alpine.ID", "year", "value")
+
+
+
+
+
+```
+
+```{r}
+mldab<-melt_short[,-4]
+all_year_ab$alpine.ID<-as.factor(all_year_ab$alpine.ID)
+all_year_ab$max_disp<-as.factor(all_year_ab$max_disp)
+all_year_ab$rep_id<-as.factor(all_year_ab$rep_id)
+all_year_ab$value<-as.numeric(all_year_ab$value)
+all_year_ab$year<-as.numeric(all_year_ab$year)
+
+
+
+
+both_df_ab<-rbind(mldab, all_year_ab)
+
+both_df_ab[both_df_ab$alpine.ID == "  539",]$alpine.ID<-539
+
+```
+
+```{r}
+library(ggplot2)
+
+
+ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, max_disp,alpine.ID), colour= alpine.ID))+
+  geom_line(colour="grey")+
+  geom_line(data=both_df_ab[both_df_ab$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  facet_grid(.~ alpine.ID)
+
+
+```
 
 ```{r} 
 
@@ -1546,7 +1641,7 @@ need to add in x axis. do plots separately for each of the dispersal options?
 library(ggplot2)
 
 
-ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp), colour= alpine.ID))+
+ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp,alpine.ID), colour= alpine.ID))+
   geom_line(colour="grey")+
   geom_line(data=both_df[both_df$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
   facet_grid(.~ alpine.ID)
