@@ -107,19 +107,19 @@ points(sp, col="red", pch=20)
 
 Creating the 2006-2016 average for each bioclim variable and then selecting out the layers we want to use in the model:
 
-*	Bioclim 1 – Annual mean temperature
+*	Bioclim 1 â Annual mean temperature
 
-*	Bioclim 5 – Max temperature of the warmest month
+*	Bioclim 5 â Max temperature of the warmest month
 
-*	Bioclim 6 – Min temperature of the coldest month
+*	Bioclim 6 â Min temperature of the coldest month
 
-*	Bioclim 13 – Precipitation of the wettest month
+*	Bioclim 13 â Precipitation of the wettest month
 
-*	Bioclim 15 – Precipitation seasonality (coefficient of variation)
+*	Bioclim 15 â Precipitation seasonality (coefficient of variation)
 
-*	Bioclim 18 – Precipitation of warmest quarter
+*	Bioclim 18 â Precipitation of warmest quarter
 
-*	Bioclim 19 – Precipitation of coldest quarter
+*	Bioclim 19 â Precipitation of coldest quarter
 
 Snow depth seems to be an important predictor for alpine ibex but I have struggled to find historical data on this. Existing papers are based on historical data from one weather station, which means there is no spatial variation and therefore it is not appropriate for these models.
 
@@ -1829,16 +1829,16 @@ time.taken
 ```
 
 
-* Scaling population matrices to habitat suitability – only have one stage matrix from a particular point in time
-*	Other matrices are just transition matrices but available in good and bad conditions, use these to great upper and lower bounds of survival? – need to check location, date and existence of these matrices
+* Scaling population matrices to habitat suitability â only have one stage matrix from a particular point in time
+*	Other matrices are just transition matrices but available in good and bad conditions, use these to great upper and lower bounds of survival? â need to check location, date and existence of these matrices
 
-*	Noise is currently not supported but a value of 1 imputes white noise, and values higher or lower than this give positive or negative temporal autocorrelation – more important when you have multiple matrices?
+*	Noise is currently not supported but a value of 1 imputes white noise, and values higher or lower than this give positive or negative temporal autocorrelation â more important when you have multiple matrices?
 
-*	Transition_affected_niche has more impact when specified values are inputted – if(is.numeric(transition_affected_niche){}
+*	Transition_affected_niche has more impact when specified values are inputted â if(is.numeric(transition_affected_niche){}
 
-*	Transition affected niche pulls out parts of the matrix that are multiplied by the niche value – so if just presence/absence then it is either no change or 0 
+*	Transition affected niche pulls out parts of the matrix that are multiplied by the niche value â so if just presence/absence then it is either no change or 0 
 
-*	Potential problem with the way I have seeded the model – only ibex in the original populations whereas it might be more accurate to seed ibex more widely and then just sample from the original population sites.
+*	Potential problem with the way I have seeded the model â only ibex in the original populations whereas it might be more accurate to seed ibex more widely and then just sample from the original population sites.
 
 * Calculate dispersal kernel from gps data?
 
