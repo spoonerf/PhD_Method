@@ -159,6 +159,10 @@ pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif
 Need to crop 
 ```{r}
 
+
+pred<-crop(pred_nf,e)
+
+
 ```
 
 ####Creating the testing and training datasets
@@ -369,6 +373,7 @@ Creating a weighted (based on AUC) ensemble average suitability model for 2006-2
 
 ```{r, cache=TRUE, warning=FALSE, message=FALSE}
 #total models
+library(randomForest)
 bc <- bioclim(pred_nf, sp)
 #gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
 #           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
@@ -451,6 +456,7 @@ for (i in 1:length(years)){
  writeRaster(wm , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
   writeRaster(pa_noem , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
   writeRaster(pa_k , paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+  
   writeRaster(pa_tss, paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE )
   
   print(years[i])
@@ -480,10 +486,10 @@ patch<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_no_emission_weight
 #plot(patch[[s]])
 
 patch_kap<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_kappa_weighted_ensemble_sdm_", years,".tif", sep=""))
-#plot(patch_kap[[s]])
+plot(patch_kap[[s]])
 
 patch_tss<-stack(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years,".tif", sep=""))
-plot(patch_tss[[s]])
+#plot(patch_tss[[s]])
 
 m<-cellStats(t, stat="mean")
 sd<-cellStats(t, stat="sd")
@@ -518,24 +524,24 @@ year_patch<-data.frame(years = years, patch_num = numeric(length(years)) )
 # #print(i)
 # }
 
-year_patch_tss<-data.frame(years = years, patch_num = numeric(length(years)) )
+year_patch_kap<-data.frame(years = years, patch_num = numeric(length(years)) )
 
 for (i in 1:length(years)){
-c<-clump(patch_tss[[i]])
-year_patch_tss[i,2]<-max(na.omit(values(c)))
+c<-clump(patch_kap[[i]])
+year_patch_kap[i,2]<-max(na.omit(values(c)))
 #print(i)
 }
 par(mar=c(4,4,4,5))
 
-# mk<-cellStats(patch_kap, stat="sum")
-# plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
-# par(new=TRUE)
-# par(mar=c(4,4,4,5))
-# plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab="")
-# axis(4)
-# mtext("Number of Patches",side=4,line=3)
-# legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
-# 
+mk<-cellStats(patch_kap, stat="sum")
+plot(years,mk, type="l", main="Predicted patch presence - kappa", ylab="Suitable squares", xlab="Years", col="red")
+par(new=TRUE)
+par(mar=c(4,4,4,5))
+plot(year_patch_kap$years, year_patch_kap$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab="")
+axis(4)
+mtext("Number of Patches",side=4,line=3)
+legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+
 # mno<-cellStats(patch, stat="sum")
 # par(mar=c(4,4,4,5))
 # plot(years,mno, type="l", main="Predicted patch presence - no omission", ylab="Suitable squares", xlab="Years", col="red")
@@ -546,15 +552,15 @@ par(mar=c(4,4,4,5))
 # mtext("Number of Patches",side=4,line=3)
 # legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
 
-
-mtss<-cellStats(patch_tss, stat="sum")
-plot(years,mtss, type="l", main="Predicted patch presence - true skill statistic", ylab="Suitable squares", xlab="Years", col="red")
-par(new=TRUE)
-par(mar=c(4,4,4,5))
-plot(year_patch_tss$years, year_patch_tss$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
-axis(4)
-mtext("Number of Patches",side=4,line=3)
-legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
+# 
+# mtss<-cellStats(patch_tss, stat="sum")
+# plot(years,mtss, type="l", main="Predicted patch presence - true skill statistic", ylab="Suitable squares", xlab="Years", col="red")
+# par(new=TRUE)
+# par(mar=c(4,4,4,5))
+# plot(year_patch_tss$years, year_patch_tss$patch_num,type="l",col="blue",xaxt="n",yaxt="n",xlab="",ylab=" ")
+# axis(4)
+# mtext("Number of Patches",side=4,line=3)
+# legend("topright",col=c("red","blue"),lty=1,legend=c("Suitable Squares","Number of Patches"))
 
 
 ```
@@ -649,11 +655,13 @@ for (i in 1:length(years)){
   
   #a selection of different threshold techniques for presence absence, as well as a suitability surface
   sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles_2006_2016/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  e<-extent(sdm)
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_weighted_ensemble_sdm_", years[i],".tif", sep="")) #15.4%  
-  #patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
+  patch<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_kappa_weighted_ensemble_sdm_", years[i],".tif", sep="")) #21.1%  
+  patch<-crop(patch, e)
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_prevalence_weighted_ensemble_sdm_", years[i],".tif", sep="")) #14,3%  
   #sdm<-raster(paste(wd,"/Alp_SDMs/Ensembles/pres_abs_equal_sens_spec_weighted_ensemble_sdm_", years[i],".tif", sep=""))  #13.1%
-  patch<-raster(paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  #patch<-raster(paste(wd, "/Alp_SDMs/Ensembles_2006_2016/pres_abs_true_skill_stat_weighted_ensemble_sdm_", years[i],".tif", sep=""))
   fake<-raster(paste(wd, "/Alp_SDMs/Fake_Landscape/Fake_Landscape_", years[i], ".tif", sep=""))
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
@@ -1111,7 +1119,7 @@ for (folder in folders){
 
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 rep_df_all<-read.csv("fourvars_sdd_ldd_dens_k.csv")
 
@@ -1214,7 +1222,7 @@ for (s in 1:nrow(var_grid)){
 start.time <- Sys.time()
 
  max_disp<-as.character(kern_mat[s,2])
-dir.create(paste(wd,"/Demoniche_Repetitions/Kern/max_disp_",max_disp,sep=""),showWarnings = TRUE)
+dir.create(paste(wd,"/Demoniche_Repetitions/Kern_kap/max_disp_",max_disp,sep=""),showWarnings = TRUE)
 
 reps<-12
 
@@ -1225,7 +1233,7 @@ rep_demoniche<-function(i){
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = 2671,  #number of individuals at the start of each population - can be a vector of length(Populations)
-                  fraction_LDD = 0.9, fraction_SDD = 0.9,
+                  fraction_LDD = 0.1, fraction_SDD = 0.1,
                   dispersal_constants = kern_mat[s,],
                 #dispersal_constants = c(0.7, 0.7, 0.1,3), 
                 transition_affected_niche = "all",
@@ -1238,7 +1246,7 @@ rep_demoniche<-function(i){
 
 c_ibex_k_16000 <- demoniche_model_me(modelname = "Capra_k_16000", Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste("Demoniche_Repetitions/Kern/max_disp_",max_disp,"/",i, sep=""))
+                                     foldername = paste("Demoniche_Repetitions/Kern_kap/max_disp_",max_disp,"/",i, sep=""))
 }
 
 
@@ -1266,7 +1274,7 @@ time.taken
 
 ```
 
-```{r,message=FALSE, warning=FALSE, eval=FALSE, echo=FALSE}
+```{r,message=FALSE, warning=FALSE, echo=FALSE}
 library(ggplot2)
 library(dplyr)
 
@@ -1274,10 +1282,11 @@ library(dplyr)
  plot_rep<-function(proj_path){
   
   load(proj_path)
-  id<-gsub("C:/Users/Fiona/Documents/PhD/PhD_Method/Demoniche_Repetitions/Kern/max_disp_", "", proj_path)
+  #id<-gsub("C:/Users/Fiona/Documents/PhD/PhD_Method/Demoniche_Repetitions/Kern_kap/max_disp_", "", proj_path)
+  id<-gsub("D:/Fiona/Git_Method/Git_Method/Demoniche_Repetitions/Kern_kap/max_disp_", "", proj_path)
   id<-gsub("Projection_rep1_Reference_matrix.rda", "",id)
-  md_id<-as.numeric(substr(id, 1, nchar(id)-3))
-  rep_id<-as.numeric(substr(id, nchar(id)-1,nchar(id)-1 ))
+  md_id<-strsplit(id, "/")[[1]][1]
+  rep_id<- gsub(".*[/]([^/]+)[/]*", "\\1", id)
   p<-Projection
   trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
   tid<-cbind(md_id, rep_id, trend)
@@ -1285,7 +1294,7 @@ library(dplyr)
   }
 
 wd<-getwd()
-wd<-paste(wd, "/Demoniche_Repetitions/Kern/", sep="")
+wd<-paste(wd, "/Demoniche_Repetitions/Kern_kap/", sep="")
 
 folders<-list.files(wd)
 
@@ -1308,16 +1317,16 @@ for (folder in folders){
   rep_df$year<-as.numeric(gsub("Year_", "", year),warnings=FALSE)
   rep_df$md_id<-as.factor(rep_df$md_id)
 
-   spin<-ggplot(rep_df, aes(x = year, y= trend, group=md_id))+
-    geom_line( alpha=0.5)
-
-  plot(spin)
+  #  spin<-ggplot(rep_df, aes(x = year, y= trend, group=md_id))+
+  #   geom_line( alpha=0.5)
+  # 
+  # plot(spin)
   
   rep_df_short<-rep_df[rep_df$year >=1950,]
 
 
-  p<-ggplot(rep_df_short, aes(x = year, y= trend, group=md_id))+
-    geom_line( alpha=0.5)
+  # p<-ggplot(rep_df_short, aes(x = year, y= trend, group=md_id))+
+  #   geom_line( alpha=0.5)
   
 
   rep_df_all<-rbind(rep_df,rep_df_all)
@@ -1325,15 +1334,15 @@ for (folder in folders){
 }
 
 
-#write.csv(rep_df_all, "kern_params.csv")
+write.csv(rep_df_all, "kern_kap_params.csv")
 ```
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
-rep_df_all<-read.csv("kern_params.csv")
+rep_df_all<-read.csv("kern_kap_params.csv")
 
-rep_df_all$rep_id-factor(rep_df_all$rep_id)
+rep_df_all$rep_id<-factor(rep_df_all$rep_id)
 rep_df_all$md_id<-factor(rep_df_all$md_id)
 
 rep_df_all$trend<-as.numeric(as.character(rep_df_all$trend))
@@ -1371,11 +1380,12 @@ xy<-cbind(alpine$Longitude, alpine$Latitude)
 
 convert_pop_out<-function(foldername){
   
-  pop_out<-read.csv(paste(wd,"/Demoniche_repetitions/Kern/" ,foldername, "/pop_output.csv", sep=""), header = TRUE)
+  pop_out<-read.csv(paste(wd,"/Demoniche_repetitions/Kern_kap/" ,foldername, "/pop_output.csv", sep=""), header = TRUE)
   pop_out<-pop_out[,-1]
   coordinates(pop_out) <- ~ X + Y
   gridded(pop_out) <- TRUE
   rasterDF <- stack(pop_out)
+  proj4string(rasterDF)<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ")
   trends<-extract(rasterDF,xy)
   max_disp<-strsplit(foldername, "[/_]")[[1]][3]
   rep_id<-strsplit(foldername, "[/_]")[[1]][4]
@@ -1644,19 +1654,16 @@ need to add in x axis. do plots separately for each of the dispersal options?
 library(ggplot2)
 
 
-<<<<<<< HEAD
 ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp,alpine.ID), colour= alpine.ID))+
-=======
-
-
-ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp), colour= alpine.ID))+
->>>>>>> 8f946d1f99efc13bba10a34a58f745fda77914b8
   geom_line(colour="grey")+
   geom_line(data=both_df[both_df$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
   facet_grid(.~ alpine.ID)
 
 
 ```
+
+
+
 ####Varying carrying capacity, long distance dispersal and standard deviation of population matrix
 
 ```{r, message=FALSE, warning=FALSE, eval=FALSE, echo=FALSE}
@@ -1711,7 +1718,7 @@ write.csv(rep_df_all, "threevars_sd_ldd_k.csv")
 ```
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 rep_df_all<-read.csv("threevars_sd_ldd_k.csv")
 
@@ -1744,7 +1751,7 @@ p01
 
 Basing the models on environmental data where the trend is known and constant - to better understand the impacts of the other variables.
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE}
+```{r, message=FALSE, warning=FALSE, cache=TRUE, eval=FALSE}
 
 plot(years_short,colMeans(na.omit(fake_map_mine)[4:length(colnames(fake_map_mine))]), type="l", ylab="Mean fake suitability index")
 
