@@ -90,7 +90,7 @@ capc<-matrix(capc[complete.cases(capc)], ncol=3)
 xy<-as.matrix(capc[,c(1,2)])
 df<-data.frame(capc[,3])
 
-#write.csv(df, "Capra_ibex_gbif.csv")
+write.csv(df, "Capra_ibex_gbif.csv")
 ```
 
 ```{r}
@@ -161,6 +161,9 @@ Selecting out the bioclim layers I'm interested in:
 bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to use in the model
 
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif",sep="" ))
+
+pred_crop<-crop(pred_nf, e)
+
 ```
 
 
@@ -180,23 +183,29 @@ k<-4
 group_pres<-read.csv("k_folds_presence_2006.csv")
 group_pres<-group_pres[,-1]  #all presence points
 
+sp_ras<-rasterize(sp, pred_crop[[1]])[[3]]
+sp_ras[is.na(sp_ras)]<-0
+blank<-sp_ras+1
 
 sp_train<-sp[group_pres!=1,] #presence points split into training and test
 sp_test<-sp[group_pres ==1,]
 
-#backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
-#write.csv(backg, "background_random_points.csv") 
+bg_sam<-sample(1:ncell(sp_ras), 1000,replace=F) 
+bg_sp<-xyFromCell(blank, bg_sam)
+bg_val<-extract(blank, bg_sp)
 
-backg<-read.csv("background_random_points.csv")
-backg<-backg[,-1]
-colnames(backg) = c('lon', 'lat')
-#group_back <- kfold(backg, k)
+bg_pse<-data.frame(bg_sp[bg_val==1,])
+#write.csv(bg_pse, "background_random_points.csv")
+bg_pse<-read.csv("background_random_points.csv")
+
+group_back<-kfold(bg_pse, k)
 #write.csv(group_back, "k_folds_background.csv")
 group_back<-read.csv("k_folds_background.csv")
-group_back<-group_back[,-1]   #all background points
 
-sp_backg_train <- backg[group_back != 1, ] #background points split into training and test
-sp_backg_test <- backg[group_back == 1, ]
+sp_backg_train <- bg_pse[group_back != 1, ] #background points split into training and test
+sp_backg_test <- bg_pse[group_back == 1, ]
+colnames(sp_backg_train)<-c("lon", "lat")
+colnames(sp_backg_test)<-c("lon", "lat")
 
 sp_train<-sp_train@coords #presence training points
 colnames(sp_train)<-c("lon", "lat")
@@ -221,10 +230,12 @@ pa<-rep(1, nrow(env_pres))
 env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
 colnames(env_pres)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
 
-env_back<-extract(pred_nf, backg)
+env_back<-extract(pred_nf, bg_pse)
 ap<-rep(0, nrow(env_back))
 env_back<-data.frame(ap, env_back) #background points with environmental variables
 colnames(env_back)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
+
+
 ```
 
 ####Bioclim
@@ -240,7 +251,7 @@ for (i in 1:k){
   pres_train<-sp[group_pres!=i,]
   pres_test<-sp[group_pres==i,]
   #backg_train<-sp[group_back!=i,]
-  backg_test<-backg[group_back==i,]
+  backg_test<-bg_pse[group_back==i,]
   bc <- bioclim(pred_nf,pres_train)
   evl_bc[[i]] <- dismo:::evaluate(pres_test, backg_test, bc,pred_nf,type="response")#test presence, test absence, model, predictor variables (raster stack)
      #print(i)
@@ -249,6 +260,8 @@ for (i in 1:k){
 auc_bc <- sapply( evl_bc, function(x){slot(x, "auc")} )
 print(auc_bc)
 
+
+bc_auc<-mean(auc_bc)
 #kap_bc<-sapply( evl_bc, function(x){threshold(x)['spec_sens']} )
 
 
@@ -316,7 +329,7 @@ for (i in 1:k){
 auc_rf <- sapply( evl_rf, function(x){slot(x, "auc")} )
 print(auc_rf)
 
-rf_auc
+rf_auc<-mean(auc_rf)
 
 ```
 
