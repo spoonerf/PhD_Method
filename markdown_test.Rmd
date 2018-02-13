@@ -28,7 +28,7 @@ library(dismo)
 Creating the 19 bioclim variables for each year between 1950 & 2016 for Europe using the E-OBS dataset - downloaded from http://www.ecad.eu/download/ensembles/download.php
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
-rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
+rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
 tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
 tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
 tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
@@ -68,7 +68,7 @@ Extracting Alpine ibex data from GBIF and cleaning the data so that only points 
 ```{r, cache=TRUE, message= FALSE, warning=FALSE}
 
 wd<- getwd()
-capra <-gbif("capra", "ibex", geo=FALSE)
+capra <-gbif(genus ="Capra", species = "ibex")
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA") 
 dups <- duplicated(capgeo[, c("lon", "lat")])
 capg <-capgeo[!dups, ]
@@ -89,6 +89,13 @@ capc<-as.matrix(capg2[ , c( "Longitude","Latitude", "presence")])
 capc<-matrix(capc[complete.cases(capc)], ncol=3)
 xy<-as.matrix(capc[,c(1,2)])
 df<-data.frame(capc[,3])
+
+#write.csv(df, "Capra_ibex_gbif.csv")
+```
+
+```{r}
+df<-read.csv("Capra_ibex_gbif.csv")
+
 sp<-SpatialPointsDataFrame(coords=xy, data=df)
 x <- circles(sp, d=50000, lonlat=TRUE)
 pol <- polygons(x)
@@ -156,14 +163,6 @@ bio_layer_pred<-c(1,5,6,13,15,18,19)  #picking out the bioclim layers we want to
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_2006_2016_average.tif",sep="" ))
 ```
 
-Need to crop 
-```{r}
-
-
-pred<-crop(pred_nf,e)
-
-
-```
 
 ####Creating the testing and training datasets
 
@@ -181,8 +180,9 @@ k<-4
 group_pres<-read.csv("k_folds_presence_2006.csv")
 group_pres<-group_pres[,-1]  #all presence points
 
+
 sp_train<-sp[group_pres!=1,] #presence points split into training and test
-sp_test<-sp[group_pres==1,]
+sp_test<-sp[group_pres ==1,]
 
 #backg <- randomPoints(pred_nf, n=1000, ext=e, extf = 1.25)
 #write.csv(backg, "background_random_points.csv") 
@@ -198,11 +198,11 @@ group_back<-group_back[,-1]   #all background points
 sp_backg_train <- backg[group_back != 1, ] #background points split into training and test
 sp_backg_test <- backg[group_back == 1, ]
 
-sp_train<-data.frame(sp_train)[,c(2,3)] #presence training points
+sp_train<-sp_train@coords #presence training points
 colnames(sp_train)<-c("lon", "lat")
 train <- rbind(sp_train, sp_backg_train)  #presence and background training points combined
 
-sp_test<-data.frame(sp_test)[,c(2,3)]  #presence test points
+sp_test<-sp_test@coords #presence test points
 colnames(sp_test)<-c("lon", "lat")
 test<-rbind(sp_test, sp_backg_test)    #presence and background test points combined
 
@@ -243,24 +243,14 @@ for (i in 1:k){
   backg_test<-backg[group_back==i,]
   bc <- bioclim(pred_nf,pres_train)
   evl_bc[[i]] <- dismo:::evaluate(pres_test, backg_test, bc,pred_nf,type="response")#test presence, test absence, model, predictor variables (raster stack)
-   tss_bc[[i]]<-evl_bc[[i]]@t[which.max(evl_bc[[i]]@TPR + evl_bc[[i]]@TNR -1)]
-  #print(i)
+     #print(i)
 }
 
 auc_bc <- sapply( evl_bc, function(x){slot(x, "auc")} )
 print(auc_bc)
 
-kap_bc<-sapply( evl_bc, function(x){threshold(x)['kappa']} )
-noem_bc<-sapply( evl_bc, function(x){threshold(x)['no_omission']} )
+#kap_bc<-sapply( evl_bc, function(x){threshold(x)['spec_sens']} )
 
-bc_auc<-mean(auc_bc)
-# bc_kap<-mean(unlist(kap_bc))
-# bc_noem<-mean(unlist(noem_bc))
-# bc_tss<-mean(unlist(tss_bc))
-
-bc_kap<-max(unlist(kap_bc))
-bc_noem<-max(unlist(noem_bc))
-bc_tss<-max(unlist(tss_bc))
 
 ```
 
@@ -270,9 +260,6 @@ Running a GAM and evaluating it to get an AUC value using three different thresh
 
 ```{r, cache= TRUE, message=FALSE, warning=FALSE}
 library(mgcv)
-#gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
-#           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-#           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
 
 gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
            s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
@@ -289,32 +276,17 @@ for (i in 1:k){
   back_test<-env_back[(group_back==i),]
   back_train<-env_back[(group_back!=i),]
   envtrain<-rbind(pres_train, back_train)
- # gm1<-gam(pa~ s(Bio_1_1985_2016_average)+ s(Bio_5_1985_2016_average)+ 
-  #           s(Bio_6_1985_2016_average)+ s(Bio_13_1985_2016_average)+ 
-   #          s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-    #         s(Bio_19_1985_2016_average),family= binomial(link = "logit") , data=envtrain)
   gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
            s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
            s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=envtrain)
 
   evl_gam[[i]] <- dismo:::evaluate(pres_test, back_test, gm1, type="response")
-  tss_gam[[i]]<-evl_gam[[i]]@t[which.max(evl_gam[[i]]@TPR + evl_gam[[i]]@TNR -1)]
-  #print(i)
-}
+  }
 
 auc_gam <- sapply( evl_gam, function(x){slot(x, "auc")} )
 print(auc_gam)
-kap_gam<-sapply( evl_gam, function(x){threshold(x)['kappa']} )
-noem_gam<-sapply( evl_gam, function(x){threshold(x)['no_omission']} )
-print(kap_gam)
-gam_auc<-mean(auc_gam)
-# gam_kap<-mean(unlist(kap_gam))
-# gam_noem<-mean(unlist(noem_gam))
-# gam_tss<-mean(unlist(tss_gam))
 
-gam_kap<-max(unlist(kap_gam))
-gam_noem<-max(unlist(noem_gam))
-gam_tss<-max(unlist(tss_gam))
+gam_auc<-mean(auc_gam)
 
 
 ```
@@ -326,17 +298,11 @@ Running a random forest model and evaluating it using three different thresholds
 ```{r, cache= TRUE, message= FALSE, warning=FALSE}
 library(randomForest)
 
-#model<-pa~  Bio_1_1985_2016_average+Bio_5_1985_2016_average+ 
-#  Bio_6_1985_2016_average+ Bio_13_1985_2016_average+ Bio_15_1985_2016_average+ 
-#  Bio_18_1985_2016_average+ Bio_19_1985_2016_average
-
 model<-pa~  Bio_1_2006_2016_average+Bio_5_2006_2016_average+ 
   Bio_6_2006_2016_average+ Bio_13_2006_2016_average+ Bio_15_2006_2016_average+ 
   Bio_18_2006_2016_average+ Bio_19_2006_2016_average
 
-
 evl_rf<- list()
-tss_rf<- list()
 for (i in 1:k){
   pres_train<-env_pres[group_pres!=i,]
   pres_test<-env_pres[(group_pres==i) ,]
@@ -345,23 +311,12 @@ for (i in 1:k){
   envtrain<-rbind(pres_train, back_train)
   rf1 <- randomForest(model, data=envtrain)
   evl_rf[[i]] <- dismo:::evaluate(pres_test, back_test, rf1,type="response")
-  tss_rf[[i]]<-evl_rf[[i]]@t[which.max(evl_rf[[i]]@TPR + evl_rf[[i]]@TNR -1)]
-  
   }
 
 auc_rf <- sapply( evl_rf, function(x){slot(x, "auc")} )
 print(auc_rf)
-kap_rf<-sapply( evl_rf, function(x){threshold(x)['kappa']} )
-noem_rf<-sapply( evl_rf, function(x){threshold(x)['no_omission']} )
 
-rf_auc<-mean(auc_rf)
-# rf_kap<-mean(unlist(kap_rf))
-# rf_noem<-mean(unlist(noem_rf))
-# rf_tss<-mean(unlist(tss_rf))
-
-rf_kap<-max(unlist(kap_rf))
-rf_noem<-max(unlist(noem_rf))
-rf_tss<-max(unlist(tss_rf))
+rf_auc
 
 ```
 
@@ -375,13 +330,9 @@ Creating a weighted (based on AUC) ensemble average suitability model for 2006-2
 #total models
 library(randomForest)
 bc <- bioclim(pred_nf, sp)
-#gm1<-gam(pa~ s(Bio_1_1985_2016_average)+s(Bio_5_1985_2016_average)+ s(Bio_6_1985_2016_average)+ 
-#           s(Bio_13_1985_2016_average)+ s(Bio_15_1985_2016_average)+ s(Bio_18_1985_2016_average)+ 
-#           s(Bio_19_1985_2016_average), family = binomial(link = "logit"),data=env_all)
 gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
            s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
            s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=env_all)
-
 rf1 <- randomForest(model, data=env_all)
 
 pb <- predict(pred_nf, bc, ext=e, progress='') #bioclim predict
@@ -398,6 +349,17 @@ w <- (auc-0.5)^2
 wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
 plot(wm, main="Ensemble model")
 points(sp)
+
+
+
+
+evaluate(spxy, bg, wm)
+threshold(evl_bc[[1]])['spec_sens']
+threshold(evl_rf[[2]])['spec_sens']
+threshold(evl_gam[[2]])['spec_sens']
+
+
+kap_bc<-sapply( evl_bc, function(x){threshold(x)['spec_sens']} )
 ```
 
 ####Thresholds
@@ -1554,9 +1516,8 @@ ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, max_disp,alpine.ID
 
 ```
 
-```{r} 
+```{r, warning=FALSE, message=FALSE} 
 
-head(alpine)
 
 pops<-alpine[,c(1,65:130)]
 colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2015, sep="_")
