@@ -349,6 +349,17 @@ w <- (auc-0.5)^2
 wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
 plot(wm, main="Ensemble model")
 points(sp)
+
+
+
+
+evaluate(spxy, bg, wm)
+threshold(evl_bc[[1]])['spec_sens']
+threshold(evl_rf[[2]])['spec_sens']
+threshold(evl_gam[[2]])['spec_sens']
+
+
+kap_bc<-sapply( evl_bc, function(x){threshold(x)['spec_sens']} )
 ```
 
 ####Thresholds
