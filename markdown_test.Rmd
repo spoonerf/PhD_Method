@@ -1334,7 +1334,7 @@ for (folder in folders){
 }
 
 
-write.csv(rep_df_all, "kern_kap_params.csv")
+#write.csv(rep_df_all, "kern_kap_params.csv")
 ```
 
 
