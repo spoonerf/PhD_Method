@@ -197,10 +197,12 @@ bg_val<-extract(blank, bg_sp)
 bg_pse<-data.frame(bg_sp[bg_val==1,])
 #write.csv(bg_pse, "background_random_points.csv")
 bg_pse<-read.csv("background_random_points.csv")
+bg_pse<-bg_pse[,-1]
 
 group_back<-kfold(bg_pse, k)
 #write.csv(group_back, "k_folds_background.csv")
 group_back<-read.csv("k_folds_background.csv")
+group_back<-group_back[,-1]
 
 sp_backg_train <- bg_pse[group_back != 1, ] #background points split into training and test
 sp_backg_test <- bg_pse[group_back == 1, ]
@@ -218,10 +220,14 @@ test<-rbind(sp_test, sp_backg_test)    #presence and background test points comb
 pb_train <- c(rep(1, nrow(sp_train)), rep(0, nrow(sp_backg_train)))  
 envtrain <- extract(pred_nf, train)
 envtrain <- data.frame( cbind(pa=pb_train, envtrain) ) #training points with environmental  variables
+summary(envtrain)
+envtrain<-na.omit(envtrain)
 
 pb_test<-c(rep(1, nrow(sp_test)), rep(0, nrow(sp_backg_test)))
 envtest <- extract(pred_nf, test)
 envtest <- data.frame( cbind(pa=pb_test, envtest) ) #test points with environmental  variables
+summary(envtest)
+envtrain<-na.omit(envtest)
 
 env_all<-rbind(envtrain, envtest) #all of the training and test data with environmental variables
 
@@ -229,12 +235,15 @@ env_pres<-extract(pred_nf, sp)
 pa<-rep(1, nrow(env_pres))
 env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
 colnames(env_pres)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
+env_pres_xy<-data.frame(sp@coords, env_pres)
+env_pres_xy<-na.omit(env_pres_xy)
 
 env_back<-extract(pred_nf, bg_pse)
 ap<-rep(0, nrow(env_back))
 env_back<-data.frame(ap, env_back) #background points with environmental variables
 colnames(env_back)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
-
+env_back_xy<-data.frame(bg_pse, env_back)
+env_back_xy<-na.omit(env_back_xy)
 
 ```
 
@@ -243,7 +252,6 @@ colnames(env_back)<-c("pa","Bio_1_2006_2016_average", "Bio_5_2006_2016_average",
 Running the Bioclim envelope model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
-
 
 evl_bc<- list()
 tss_bc<-list()
@@ -284,17 +292,19 @@ r<-raster:::calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
 evl_gam<- list()
 tss_gam<-list()
 for (i in 1:k){
-  pres_train<-env_pres[group_pres!=i ,]
-  pres_test<-env_pres[(group_pres==i) ,]
-  back_test<-env_back[(group_back==i),]
-  back_train<-env_back[(group_back!=i),]
+  pres_train<-env_pres_xy[group_pres!=i ,-c(1,2)]
+  pres_test<-env_pres_xy[(group_pres==i) ,-c(1,2)]
+  back_test<-env_back_xy[(group_back==i),-c(1,2)]
+  back_train<-env_back_xy[(group_back!=i),-c(1,2)]
   envtrain<-rbind(pres_train, back_train)
   gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ 
            s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+ 
            s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=envtrain)
 
-  evl_gam[[i]] <- dismo:::evaluate(pres_test, back_test, gm1, type="response")
-  }
+  evl_gam[[i]] <- dismo:::evaluate(p = pres_test, a =back_test,model= gm1,type="response")
+ 
+  evaluate(sp, bg_ps, gm1, ,type="response")
+   }
 
 auc_gam <- sapply( evl_gam, function(x){slot(x, "auc")} )
 print(auc_gam)
