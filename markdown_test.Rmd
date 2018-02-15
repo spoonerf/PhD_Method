@@ -36,6 +36,7 @@ library(data.table)
 library(reshape2)
 library(taRifx)
 library(plyr)
+library(sp)
 
 ```
 
@@ -78,8 +79,7 @@ env_stochas_type<-"normal"   #can also be lognormal
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
 density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha - K_weight<-c(rep(1, length(stages)))  #the weight with which carrying capacity affects each stage was FALSE
-sumweight<-rep(1, length(stages))#weight of stages  - should be equal for all mine just 
-#in plants seed not included in calculating population sizes  
+
 carry_k<-5000
 
   #Things to vary
@@ -133,7 +133,7 @@ for (i in 1:length(years)){
 
 Extracting Alpine ibex (*Capra ibex*) data from GBIF and with additional locations added from the LPI dataset. These points are then formatted to a SpatialPointsDataFrame.
 
-```{r Downloading and filtering gbif data, cache=TRUE, message= FALSE, warning=FALSE, eval=FALSE}
+```{r Downloading and filtering gbif data, cache=TRUE, message= FALSE, warning=FALSE, eval=TRUE}
 
 wd<- getwd()
 capra <-gbif(genus =genus, species = species)
@@ -160,17 +160,17 @@ write.csv(df, paste(species_directory, "Capra_ibex_gbif.csv", sep="/"), row.name
 ```
 
 ```{r Plotting occurrence points, message=FALSE, warning=FALSE}
+library(sp)
+library(raster)
 df<-read.csv(paste(species_directory, "Capra_ibex_gbif.csv", sep="/") )
 
-sp<-SpatialPointsDataFrame(coords=xy, data=df)
+sp<-sp:::SpatialPointsDataFrame(coords=xy, data=df)
 
-e<-extent(sp)
+e<-raster:::extent(sp)
 
 e_big<-e+2
 
 maps:::map('world',  col="light grey", fill=T, xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]))
-
-plot(pol,add=T)
 
 points(sp, col="red", pch=20)
 
@@ -232,14 +232,14 @@ plot(pred_crop)
 
 Using K=4 so 75% of points are used for training and 25% for testing.
 
-```{r Presence Data, cache=TRUE, message=FALSE, warning=FALSE}
+```{r Presence Data, message=FALSE, warning=FALSE}
+library(dismo)
 
 set.seed(10)
 
-
 group_pres<-kfold(sp, k)
 #write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
-group_pres<-read.csv( paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
 sp_ras<-rasterize(sp, pred_crop[[1]])[[3]]
@@ -250,6 +250,7 @@ blank<-sp_ras+1
 sp_train<-sp[group_pres!=1,] #presence points split into training and test
 sp_test<-sp[group_pres ==1,]
 ```
+
 
 ```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
 bg_sam<-sample(1:ncell(sp_ras), no_background_points,replace=F) 
@@ -682,7 +683,8 @@ stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
 #stages<-comadre$matrixClass[keep][[2]]$MatrixClassAuthor
 #stagesf<-stages[1:3]
 proportion_initial<- rep(1/length(stages), length(stages)) #Think spin up sorts this
-
+sumweight<-rep(1, length(stages))#weight of stages  - should be equal for all mine just 
+#in plants seed not included in calculating population sizes  
 list_names_matrices<-colnames(matrices)
 ```
 
