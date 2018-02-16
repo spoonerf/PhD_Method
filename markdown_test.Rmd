@@ -83,7 +83,7 @@ density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 
 carry_k<-5000
 
   #Things to vary
-sd_seq<-1
+sd_seq<-0.5
 LDD_seq<-c(0.9)
 kern_seq<-list(c(19.775,113),c(13.5975, 77.7), c(1000,1000))
 
@@ -94,10 +94,13 @@ kern_mat<-matrix(c(rep(c(19.775,113), (nrow(var_grid)/ncol(var_grid))),rep(c(13.
 
 source("demoniche_setup_me.R")
 source("demoniche_model_me.R")
+source("ensemble_evaluate.R")
 
 density_mine<-2671
 fraction_LDD<-0.1
 fraction_SDD<-0.1
+
+reps<-2
 
 ```
 #####Bioclim Variables 
@@ -157,12 +160,15 @@ xy<-as.matrix(capc[,c(1,2)])
 df<-data.frame(capc[,3])
 
 write.csv(df, paste(species_directory, "Capra_ibex_gbif.csv", sep="/"), row.names = FALSE)
+write.csv(xy, paste(species_directory, "Capra_ibex_locs.csv", sep="/"), row.names=FALSE)
 ```
 
 ```{r Plotting occurrence points, message=FALSE, warning=FALSE}
 library(sp)
 library(raster)
+
 df<-read.csv(paste(species_directory, "Capra_ibex_gbif.csv", sep="/") )
+xy<-read.csv(paste(species_directory, "Capra_ibex_locs.csv", sep="/"))
 
 sp<-sp:::SpatialPointsDataFrame(coords=xy, data=df)
 
@@ -237,12 +243,12 @@ library(dismo)
 
 set.seed(10)
 
-group_pres<-kfold(sp, k)
+#group_pres<-kfold(sp, k)
 #write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
-sp_ras<-rasterize(sp, pred_crop[[1]])[[3]]
+sp_ras<-rasterize(sp, pred_crop[[1]])[[2]]
 
 sp_ras[is.na(sp_ras)]<-0
 blank<-sp_ras+1
@@ -343,10 +349,7 @@ bc_auc<-mean(auc_bc)
 Running a GAM and evaluating it to get an AUC value using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
 ```{r GAM, cache= TRUE, message=FALSE, warning=FALSE}
-library(mgcv)
-
-gp<-predict(pred_nf, gm1)
-r<-raster:::calc(gp, fun=function(x){ exp(x)/(1+exp(x))})
+#library(mgcv)
 
 evl_gam<- list()
 tss_gam<-list()
@@ -375,7 +378,7 @@ gam_auc<-mean(auc_gam)
 Running a random forest model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
 ```{r Random forest model , cache= TRUE, message= FALSE, warning=FALSE}
-library(randomForest)
+
 
 model<-pa~  Bio_1_2006_2016_average+Bio_5_2006_2016_average+ 
   Bio_6_2006_2016_average+ Bio_13_2006_2016_average+ Bio_15_2006_2016_average+ 
@@ -436,8 +439,6 @@ points(sp)
 
 ```{r Weighted threshold}
 
-source("ensemble_evaluate.R")
-
 abs_xy<-env_back_xy[,c(1,2)]
 
 ens<-ensemble_evaluate(sp,abs_xy , wm)
@@ -492,7 +493,7 @@ s<-round(seq(1,nlayers(t),len=16))
 
 plot(t[[s]])
 
-patch<-stack(paste(sdm_folder "/pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch<-stack(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch[[s]])
 
 m<-cellStats(t, stat="mean")
@@ -689,7 +690,7 @@ list_names_matrices<-colnames(matrices)
 ```
 
 
-```{r Scaling Carrying Capacity, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE, echo=FALSE}
+```{r Scaling Carrying Capacity, cache=TRUE, message=FALSE, warning=FALSE,  echo=FALSE}
 
 #Scaling carrying capacity (as estimated above) in three different ways, linear, sigmoidal and linear threshold.
 #plotting functions linking k and hsi
@@ -713,11 +714,11 @@ lt<-function(x) {
 
 #carrying capacity function 
 ```{r}
-lf<-list.files(paste(wd,"/Alp_SDMs/New_Ensembles_2006_2016/", sep=""))   
+lf<-list.files(sdm_folder)   
 
 files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
 
-sdms<-stack(paste(wd,"/Alp_SDMs/New_Ensembles_2006_2016/", files, sep=""))
+sdms<-stack(paste(sdm_folder, files, sep="/"))
 
 hsi<-extract(sdms, Populations[,c(2,3)])
 
@@ -739,7 +740,7 @@ Changed the demoniche_setup function (now demoniche_setup_me.R) to change the di
 
 
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE}
 
 for (s in 1:nrow(var_grid)){
 
@@ -756,7 +757,6 @@ start.time <- Sys.time()
  max_disp<-as.character(kern_mat[s,2])
 dir.create(paste(demoniche_folder, "/max_disp_",max_disp,sep=""),showWarnings = TRUE)
 
-reps<-12
 
 rep_demoniche<-function(i){
   library(demoniche)
@@ -842,7 +842,7 @@ for (folder in folders){
   
 }
 
-#write.csv(rep_df_all, paste(species_directory, "kern_kap_new_params.csv", sep="/")
+write.csv(rep_df_all, paste(species_directory, "kern_kap_new_params_0_5sd.csv", sep="/"))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
