@@ -46,6 +46,7 @@ library(sp)
 wd<-getwd()
 genus<-"Capra"
 species<-"ibex"
+Europe_only<-TRUE
 binomial<-paste(genus, species, sep="_")
 min_lat<- 43
 max_lat<- 47.9
@@ -128,11 +129,36 @@ for (i in 1:length(years)){
   jan_sel<-jans[i]
   dec_sel<-jan_sel+11
   bio_vars_all<-biovars(rr_mon[[jan_sel:dec_sel]], tn_mon[[jan_sel:dec_sel]], tx_mon[[jan_sel:dec_sel]])  
-  writeRaster(bio_vars_all, paste(paste(wd, "/Bioclim/", years[i],"_bioclim_variable_stack.tif", sep=""), overwrite=T)
+  writeRaster(bio_vars_all, paste(paste(wd, "/Bioclim/", years[i],"_bioclim_variable_stack.tif", sep=""), overwrite=T))
   print(years[i])
   }
 ```
 
+```{r Global Bioclim, eval=FALSE}
+path<-"D:/Fiona/Git_Method/Git_Method/CRUTEM"
+files<-list.files(path)
+prec_files<-files[grepl("pre",files )]
+tmx_files<-files[grepl("tmx",files )]
+tmn_files<-files[grepl("tmn",files )]
+
+prec<-stack(paste(path, "/", prec_files, sep=""))
+tmin<-stack(paste(path, "/", tmn_files, sep=""))
+tmax<-stack(paste(path, "/", tmx_files, sep=""))
+
+jans<-seq(1,nlayers(prec), by=12)
+years<-as.character(1954:2016)
+
+for (i in 1:length(years)){
+  jan_sel<-jans[i]
+  dec_sel<-jan_sel+11
+  bio_vars_all<-biovars(prec[[jan_sel:dec_sel]], tmin[[jan_sel:dec_sel]], tmax[[jan_sel:dec_sel]])  
+  writeRaster(bio_vars_all, paste(wd, "/Bioclim/Global/", years[i],"_bioclim_variable_stack.tif", sep=""), overwrite=T)
+  
+  print(years[i])
+  
+}
+
+```
 ####Species distribution modelling with dismo
 
 Extracting Alpine ibex (*Capra ibex*) data from GBIF and with additional locations added from the LPI dataset. These points are then formatted to a SpatialPointsDataFrame.
@@ -203,11 +229,21 @@ Snow depth seems to be an important predictor for alpine ibex but I have struggl
 
 ```{r Creating 2006-2016 bioclim average,cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
-lf<-list.files(paste(wd, "/Bioclim/", sep=""))
+if (Europe_only){
+lf<-list.files(paste(wd, "/Bioclim/", sep=""))  
+} else{
+lf<-list.files(paste(wd, "/Bioclim/Global", sep=""))  
+}
+
 
 first<-which(grepl("2006_bioclim", lf)) #was initially 1985
 last<-which(grepl("2016_bioclim", lf))
+
+if (Europe_only){
 all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
+} else{
+all_years<-stack(paste(wd, "/Bioclim/Global/",lf[first:last], sep=""))
+}
 
 bios<-seq(1,nlayers(all_years), by=19)
 cellStats(all_years[[bios]], stat="mean")
@@ -215,7 +251,11 @@ cellStats(all_years[[bios]], stat="mean")
 for (i in 1:19){
   layers<-bios
   bio_layer<-mean(all_years[[layers]])
-  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_2006_2016_average.tif",sep=""), overwrite=TRUE) #was initially 1985_2016
+  if (Europe_only){
+  writeRaster(bio_layer, paste(wd, "/Bioclim/Bio_",i,"_2006_2016_average.tif",sep=""), overwrite=TRUE)
+  } else {
+  writeRaster(bio_layer, paste(wd, "/Bioclim/Global/Bio_",i,"_2006_2016_average.tif",sep=""), overwrite=TRUE)
+  }
   bios<-bios+1
   #print(layers)
 }
@@ -227,7 +267,11 @@ Selecting out the bioclim layers I'm interested in:
 
 ```{r Stacking bioclim layers}
 
+if (Europe_only){
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
+} else {
+pred_nf<-stack(paste(wd, "/Bioclim/Global/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
+}
 
 pred_crop<-crop(pred_nf, e_big)
 plot(pred_crop)
