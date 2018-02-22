@@ -146,7 +146,7 @@ tmin<-stack(paste(path, "/", tmn_files, sep=""))
 tmax<-stack(paste(path, "/", tmx_files, sep=""))
 
 jans<-seq(1,nlayers(prec), by=12)
-years<-as.character(1954:2016)
+years<-as.character(1954:2016) #should be 1950
 
 for (i in 1:length(years)){
   jan_sel<-jans[i]
@@ -787,7 +787,7 @@ Changed the demoniche_setup function (now demoniche_setup_me.R) to change the di
 
 
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
 
 for (s in 1:nrow(var_grid)){
 
@@ -877,7 +877,7 @@ for (folder in folders){
 
   lf<-list.dirs(f, recursive = F)
 
-  path<-paste(lf,"/Projection_rep1_Reference_matrix.rda", sep="")
+  path<-paste(lf,"Projection_rep1_Reference_matrix.rda", sep="/")
 
   reps<-lapply(path, plot_rep)
   rep_df<-do.call(rbind,reps)
@@ -971,7 +971,7 @@ melt_lambda$year<-as.numeric(gsub("Year_", "", melt_lambda$variable))
 melt_short<-melt_df[melt_df$year>spin_years[length(spin_years)],]
 melt_short$sp_lpi.ID<-as.factor(melt_short$sp_lpi.ID)
 
-melt_lambda_short<-melt_lambda[melt_lambda$year>years[1],]
+melt_lambda_short<-melt_lambda[melt_lambda$year>1950,]
 melt_lambda_short$sp_lpi.ID<-as.factor(melt_lambda_short$sp_lpi.ID)
 
 ggplot(melt_short, aes(x= year, y=value, group=interaction(rep_id, max_disp), colour= sp_lpi.ID))+
@@ -1082,12 +1082,58 @@ both_df_ab[both_df_ab$sp_lpi.ID == "  539",]$sp_lpi.ID<-539
 ```
 
 ```{r}
+library(mgcv)
+
+gam_demon<-function(x){
+  
+  #df<-melt_short[melt_short$sp_lpi.ID ==x,]
+  df<-melt_lambda_short[melt_lambda_short$sp_lpi.ID ==x,]
+  
+#not sure what this does - adding a constant of 1 so that logging doesn't go weird?
+  if (sum(na.omit(df$value<1))>0) {
+    df$value<-df$value+1
+  } 
+    
+  
+  if (points >=6) {           
+    PopN = df$value
+    Year = df$year
+    max_disp = df$max_disp
+    rep_id = df$rep_id
+    if (length(na.omit(PopN)) >=6) {
+      SmoothParm = round(length(na.omit(PopN))/2)    
+    } else {
+      SmoothParm=3
+    }
+    
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=10), fx=TRUE)
+    pv2<-unique(fitted.values(mg2))
+    
+    ial<-data.frame(x, unique(Year),pv2)
+   
+    colnames(ial)<-c("sp_lpi.ID", "Year", "Abundance")
+  }
+
+  return(ial)
+}
+
+gam_demon_r<-lapply(unique(melt_short$sp_lpi.ID), gam_demon)
+gam_r<-do.call( "rbind", gam_demon_r)
+
+gam_demon_r_lambda<-lapply(unique(melt_lambda_short$sp_lpi.ID), gam_demon)
+gam_r_lambda<-do.call( "rbind", gam_demon_r_lambda)
+
+
+```
+
+```{r}
 library(ggplot2)
 
 
-ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, max_disp,sp_lpi.ID), colour= sp_lpi.ID))+
+ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, max_disp, sp_lpi.ID), colour= sp_lpi.ID))+
   geom_line(colour="grey")+
   geom_line(data=both_df_ab[both_df_ab$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_r, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ sp_lpi.ID)
 
 
@@ -1196,6 +1242,7 @@ both_df<-both_df[both_df$max_disp != "1000",]
 ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp,sp_lpi.ID), colour= sp_lpi.ID))+
   geom_line(colour="grey")+
   geom_line(data=both_df[both_df$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ sp_lpi.ID)
 
 
