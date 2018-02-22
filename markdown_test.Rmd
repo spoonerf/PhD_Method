@@ -41,12 +41,11 @@ library(sp)
 ```
 
 
-```{r Constants, message= FALSE, warning = FALSE}
+```{r Constants - change for each species, message= FALSE, warning = FALSE}
 
-wd<-getwd()
-genus<-"Capra"
-species<-"ibex"
-binomial<-paste(genus, species, sep="_")
+
+genus<-"Cervus"
+species<-"elaphus"
 min_lat<- 43
 max_lat<- 47.9
 min_lon<- 0
@@ -54,22 +53,9 @@ max_lon<- 16
 bioclim_layers<-c(1,5,6,13,15,18,19)   
 no_background_points<-1000
 bioclim_names<-c("Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
-k<-4
-years<-1950:2016
-spin_years<-1850:1949
-lpi<-read.csv("LPI_pops_20160523_edited.csv")
-species_directory<-paste(wd, binomial, sep="/")
-dir.create(species_directory)
-sdm_folder<-paste(species_directory, "SDM_folder", sep = "/")
-dir.create(sdm_folder)
-demoniche_folder<-paste(species_directory, "Demoniche_Output", sep = "/")
-dir.create(demoniche_folder)
+
 
 #Comadre
-
-no_yrs_mine<-1 
-prob_scenario<-c(0.5,0.5)    #need to check this
-noise<-0.90 
 transition_affected_niche<-"all"  #which parts of the matrix are affected by the c(1,2) is juveniles
 #niche values
 transition_affected_env <- "all"
@@ -79,8 +65,6 @@ env_stochas_type<-"normal"   #can also be lognormal
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
 density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha - 
-
-
 carry_k<-5000
 
   #Things to vary
@@ -93,15 +77,38 @@ colnames(var_grid)<-c("SD", "LDD", "Kern")
 
 kern_mat<-matrix(c(rep(c(19.775,113), (nrow(var_grid)/ncol(var_grid))),rep(c(13.5975, 77.7), (nrow(var_grid)/ncol(var_grid))),rep(c(1000,1000),(nrow(var_grid)/ncol(var_grid)))), ncol=2, byrow=T)
 
-source("demoniche_setup_me.R")
-source("demoniche_model_me.R")
-source("ensemble_evaluate.R")
-
 density_mine<-2671
 fraction_LDD<-0.1
 fraction_SDD<-0.1
 
-reps<-2
+reps<-12
+
+```
+
+```{r, Same for all species}
+
+wd<-getwd()
+binomial<-paste(genus, species, sep="_")
+
+k<-4
+years<-1950:2016
+spin_years<-1850:1949
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
+species_directory<-paste(wd, binomial, sep="/")
+dir.create(species_directory)
+sdm_folder<-paste(species_directory, "SDM_folder", sep = "/")
+dir.create(sdm_folder)
+demoniche_folder<-paste(species_directory, "Demoniche_Output", sep = "/")
+dir.create(demoniche_folder)
+
+source("demoniche_setup_me.R")
+source("demoniche_model_me.R")
+source("ensemble_evaluate.R")
+
+no_yrs_mine<-1 
+prob_scenario<-c(0.5,0.5)    #need to check this
+noise<-0.90 
+
 
 ```
 #####Bioclim Variables 
@@ -160,16 +167,16 @@ capc<-matrix(capc[complete.cases(capc)], ncol=3)
 xy<-as.matrix(capc[,c(1,2)])
 df<-data.frame(capc[,3])
 
-write.csv(df, paste(species_directory, "Capra_ibex_gbif.csv", sep="/"), row.names = FALSE)
-write.csv(xy, paste(species_directory, "Capra_ibex_locs.csv", sep="/"), row.names=FALSE)
+write.csv(df, paste(species_directory,"/", binomial,"_gbif.csv", sep=""), row.names = FALSE)
+write.csv(xy, paste(species_directory,"/",binomial, "_locs.csv", sep=""), row.names=FALSE)
 ```
 
 ```{r Plotting occurrence points, message=FALSE, warning=FALSE}
 library(sp)
 library(raster)
 
-df<-read.csv(paste(species_directory, "Capra_ibex_gbif.csv", sep="/") )
-xy<-read.csv(paste(species_directory, "Capra_ibex_locs.csv", sep="/"))
+df<-read.csv(paste(species_directory, "/",binomial, "_gbif.csv", sep="") )
+xy<-read.csv(paste(species_directory,"/" ,binomial, "_locs.csv", sep=""))
 
 sp<-sp:::SpatialPointsDataFrame(coords=xy, data=df)
 
@@ -244,8 +251,8 @@ library(dismo)
 
 set.seed(10)
 
-#group_pres<-kfold(sp, k)
-#write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+group_pres<-kfold(sp, k)
+write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
@@ -265,12 +272,12 @@ bg_sp<-xyFromCell(blank, bg_sam)
 bg_val<-extract(blank, bg_sp)
 
 bg_pse<-data.frame(bg_sp[bg_val==1,])
-#write.csv(bg_pse, paste(species_directory, "background_random_points2.csv", sep="/"))
+write.csv(bg_pse, paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-bg_pse[,-1]
 
 group_back<-kfold(bg_pse, k)
-#write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
+write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-read.csv(paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-group_back[,-1]
 
@@ -453,7 +460,7 @@ thresh
 
 Using the ensemble model to predict suitability for each year - 1950-2016 and for each year creating a binary presence/absence map based on a three different thresholding techniques. I will go forward using true skill statistic based on Allouche 2006.
 
-```{r Historical predictions, cache=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
+```{r Historical predictions, cache=TRUE, message=FALSE, warning=FALSE}
 
 bc <- bioclim(pred_nf, sp)
 gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average), data=env_all)
@@ -462,7 +469,7 @@ rf1 <- randomForest:::randomForest(model, data=env_all)
 for (i in 1:length(years)){
   
   pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))  
-  pred_nf<-pred_nf[[bio_layer_pred]]
+  pred_nf<-pred_nf[[bioclim_layers]]
   names(pred_nf)<-bioclim_names
   
   pb <- predict(pred_nf, bc, ext=e_big, progress='')
@@ -488,7 +495,6 @@ for (i in 1:length(years)){
 
 ```{r}
 
-wd<-getwd()
 t<-stack(paste(sdm_folder, "/weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,nlayers(t),len=16))
 
@@ -781,7 +787,7 @@ rep_demoniche<-function(i){
  
 
 c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE, 
-                                     Dispersal = FALSE, repetitions = 1,
+                                     Dispersal = TRUE, repetitions = 1,
                                      foldername = paste(binomial, "/Demoniche_Output/max_disp_",max_disp,"/",i, sep=""))
 }
 
