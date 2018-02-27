@@ -301,23 +301,15 @@ write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep=
 group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
-sp_ras<-rasterize(sp, pred_crop[[1]])[[2]]
-
-sp_ras[is.na(sp_ras)]<-0
-blank<-sp_ras+1
-
 sp_train<-sp[group_pres!=1,] #presence points split into training and test
 sp_test<-sp[group_pres ==1,]
 ```
 
 
 ```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
-bg_sam<-sample(1:ncell(sp_ras), no_background_points,replace=F) 
-bg_sp<-xyFromCell(blank, bg_sam)
-bg_val<-extract(blank, bg_sp)
+bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
-bg_pse<-data.frame(bg_sp[bg_val==1,])
-write.csv(bg_pse, paste(species_directory, "background_random_points2.csv", sep="/"))
+write.csv(sam, paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-bg_pse[,-1]
 
