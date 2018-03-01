@@ -1325,6 +1325,7 @@ bef_ab_map_proj<-bef_ab_map[[100:167]]
 writeRaster(bef_ab_map_proj, "Alpine_Ibex_Projection.tif")
 
 
+
 ```
 
 
