@@ -6,8 +6,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
   Projection <- array(0, dim = c(BEMDEM$no_yrs, length(BEMDEM$stages), 
                                  nrow(BEMDEM$Niche_ID), length(BEMDEM$years_projections)), 
                       dimnames = list(paste("timesliceyear", 1:BEMDEM$no_yrs, 
-                                            sep = "_"), c(paste(BEMDEM$stages)), BEMDEM$Niche_ID[, 
-                                                                                                 "Niche_ID"], paste(BEMDEM$years_projections)))
+                                            sep = "_"), c(paste(BEMDEM$stages)), BEMDEM$Niche_ID[,"Niche_ID"], paste(BEMDEM$years_projections)))
   eigen_results <- vector(mode = "list", length(BEMDEM$list_names_matrices))
   names(eigen_results) <- unlist(BEMDEM$list_names_matrices)
   yrs_total <- BEMDEM$no_yrs * length(BEMDEM$years_projections)
@@ -117,12 +116,21 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                 population_Niche <- BEMDEM$Niche_values[, 
                                                         tx]
               }
-              disp <- demoniche_dispersal(seeds_per_population = Projection[yx, 
-                                                                            1, , tx], fraction_LDD = BEMDEM$fraction_LDD, 
-                                          dispersal_probabilities = BEMDEM$dispersal_probabilities, 
-                                          dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index, 
-                                          fraction_SDD = BEMDEM$fraction_SDD)
+              source("demoniche_dispersal_me.R")
+              disp <- demoniche_dispersal_me(seeds_per_population = Projection[yx,
+                                                                            1, , tx], fraction_LDD = BEMDEM$fraction_LDD,
+                                          dispersal_probabilities = BEMDEM$dispersal_probabilities,
+                                          dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
+                                          fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche)
+
+              # disp <- demoniche_dispersal(seeds_per_population = Projection[yx,
+              #                                                                 1, , tx], fraction_LDD = BEMDEM$fraction_LDD,
+              #                               dispersal_probabilities = BEMDEM$dispersal_probabilities,
+              #                               dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
+              #                               fraction_SDD = BEMDEM$fraction_SDD)
               Projection[yx, 1, , tx] <- disp
+              ##################################################################################
+              #Projection[yx, 1, , tx] <- disp<-BEMDEM$Niche_values[,yx]* Projection[yx, 1, , tx]
             }
           }
           population_sizes[yx_tx, mx, rx] <- sum(rowSums(Projection[yx, 
@@ -142,7 +150,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                           foldername, "/population_sizes", ".rda", sep = ""))
       pop <- data.frame(cbind(BEMDEM$Niche_ID[, 2:3], (colSums(Projection[yx, 
                                                                           , , ] * BEMDEM$sumweight))))
-      write.csv(pop, paste(getwd(), "/", foldername, "/pop_output.csv", sep=""))
+      write.csv(pop, paste(getwd(), "/", foldername, "/",BEMDEM$list_names_matrices[mx],"_pop_output.csv", sep=""))
       form <- as.formula(paste(paste(colnames(pop)[-c(1:2)], 
                                      collapse = "+"), "X+Y", sep = "~"))
       jpeg(filename = paste(getwd(), "/", foldername, "/map_", 
