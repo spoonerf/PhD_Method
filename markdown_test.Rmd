@@ -72,7 +72,7 @@ env_stochas_type<-"normal"   #can also be lognormal
 #standard deviation of matrices
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
-density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha - 
+#density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha - 
 carry_k<-5000
 
   #Things to vary
@@ -100,7 +100,7 @@ binomial<-paste(genus, species, sep="_")
 
 k<-4
 years<-1950:2016
-spin_years<-1850:1949
+spin_years<-1650:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -189,7 +189,7 @@ capg2 <- capg[capg$lon > min_lon & capg$lon< max_lon & capg$lat > min_lat & capg
 capg2<-data.frame(capg2$lon,capg2$lat)
 colnames(capg2)<-c("Longitude", "Latitude")
 
-pyr<-subset(lpi, Binomial == binomial & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
+pyr<-subset(lpi,Binomial == binomial & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
 pyrs<-pyr[,c("Longitude","Latitude")]
 capg2<-rbind(capg2, pyrs)
 capg2<-na.omit(capg2)
@@ -304,7 +304,7 @@ library(dismo)
 set.seed(10)
 
 group_pres<-kfold(sp, k)
-write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+#write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
@@ -316,12 +316,12 @@ sp_test<-sp[group_pres ==1,]
 ```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
 bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
-write.csv(sam, paste(species_directory, "background_random_points2.csv", sep="/"))
+#write.csv(bg_sam, paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-bg_pse[,-1]
 
 group_back<-kfold(bg_pse, k)
-write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
+#write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-read.csv(paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-group_back[,-1]
 
@@ -599,33 +599,57 @@ pyr<-subset(lpi, Binomial ==binomial & Specific_location==1)    #record 11470 ha
 #formatting the data for use in demoniche
 pyrs<-pyr[,c("ID","Longitude","Latitude")]
 
-id<-pyrs$ID*100
-lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
-pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+pyrs$ID<-pyrs$ID * 100
 
-wd<-getwd()
-sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
-e2<-extent(sdm)
+xy<-data.frame(pyrs$Longitude, pyrs$Latitude)
+coordinates(xy)<-c("pyrs.Longitude", "pyrs.Latitude")
+proj4string(xy) <- CRS("+init=epsg:4326") # WGS 84
+CRS.new <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+xy <- spTransform(xy, CRS.new)
+xy<-data.frame(xy)
 
-r<-raster(e2, resolution=res(sdm))
+Populations<-data.frame(pyrs$ID, xy$pyrs.Longitude, xy$pyrs.Latitude)
+colnames(Populations)<-c("PatchID", "X", "Y")
+Populations$area<-1
 
-rz<-rasterize(pyrxy,r,lam )
-crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-rz<-projectRaster(rz, crs ="+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+pop_years<-pyr[,65:130]
+pop_years[pop_years == "NULL"]<-NA
 
-rid<-rasterize(pyrxy,r,id)
-crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-rid<-projectRaster(rid, crs ="+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+first_year<-function(x){
+  pop_first<-min(which(!is.na(x)))
+  pop_value<-x[pop_first]
+  return(pop_value)
+}
+pop_values<-apply(pop_years, 1, first_year)
+density_mine<-as.numeric(pop_values)
 
-rz_spdf<-xyFromCell(rz, 1:ncell(rid))
-
-rzm<-as.vector(rz)
-ridm<-as.vector(rid)
-
-df<-data.frame(ridm,rz_spdf,rzm)
-colnames(df)<-c( "PatchID","X","Y","area")
-
-Populations<-data.frame(na.omit(df)) 
+# id<-pyrs$ID*100
+# lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
+# pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+# 
+# wd<-getwd()
+# sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+# e2<-extent(sdm)
+# 
+# r<-raster(e2, resolution=res(sdm))
+# 
+# rz<-rasterize(pyrxy,r,lam )
+# crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+# rz<-projectRaster(rz, crs ="+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+# 
+# rid<-rasterize(pyrxy,r,id)
+# crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+# rid<-projectRaster(rid, crs ="+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
+# 
+# rz_spdf<-xyFromCell(rz, 1:ncell(rid))
+# 
+# rzm<-as.vector(rz)
+# ridm<-as.vector(rid)
+# 
+# df<-data.frame(ridm,rz_spdf,rzm)
+# colnames(df)<-c( "PatchID","X","Y","area")
+# 
+# Populations<-data.frame(na.omit(df)) 
 
 ```
 
@@ -637,9 +661,9 @@ Here we also create a fake set of habitat suitability models where the suitabili
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
 
 
-sdm_patch_df<-data.frame(ID=1:ncell(rid))
-sdm_df<-data.frame(ID=1:ncell(rid))
-sdm_fake_df<-data.frame(ID=1:ncell(rid))
+sdm_patch_df<-data.frame(ID=1:ncell(patch))
+sdm_df<-data.frame(ID=1:ncell(patch))
+sdm_fake_df<-data.frame(ID=1:ncell(patch))
 
 #formatting data for demoniche
 for (i in 1:length(years)){
@@ -692,7 +716,7 @@ patch_spin_up<-cbind(patch_map_mine[,1:3],patch_spin_up, patch_map_mine[,4:ncol(
 
 
 col_years_short<-paste("Year_", years, sep="")
-col_years<-paste("Year_", 1850:2016, sep="")
+col_years<-paste("Year_", min(spin_years):max(years), sep="")
 
 colnames(niche_map_mine)[4:length(colnames(niche_map_mine))]<-col_years_short
 colnames(patch_map_mine)[4:length(colnames(patch_map_mine))]<-col_years_short
@@ -804,7 +828,7 @@ Changed the demoniche_setup function (now demoniche_setup_me.R) to change the di
 
 
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE, eval=FALSE}
 
 for (s in 1:nrow(var_grid)){
 
@@ -819,7 +843,7 @@ for (s in 1:nrow(var_grid)){
 start.time <- Sys.time()
 
  max_disp<-as.character(kern_mat[s,2])
-  dir.create(paste(demoniche_folder,"/new_patch_disp_",max_disp,sep=""),showWarnings = TRUE)
+  dir.create(paste(demoniche_folder,"/new_patch_disp_dens",max_disp,sep=""),showWarnings = TRUE)
 
 
 rep_demoniche<-function(i){
@@ -831,7 +855,7 @@ rep_demoniche<-function(i){
  demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
-                  density_individuals = density_mine,  
+                  density_individuals = 2671,   #density_mine
                   fraction_LDD = 0.5, fraction_SDD = 0.5,
                   dispersal_constants = kern_mat[s,],
                 transition_affected_niche = transition_affected_niche,
@@ -844,7 +868,7 @@ rep_demoniche<-function(i){
 
 c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE, 
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste(binomial,"/Demoniche_Output/new_patch_disp_",max_disp,"/",i, sep=""))
+                                     foldername = paste(binomial,"/Demoniche_Output/new_patch_disp_dens",max_disp,"/",i, sep=""))
 }
 
 
@@ -873,7 +897,7 @@ time.taken
  plot_rep<-function(proj_path){
   
   load(proj_path)
-  id<-gsub(paste(demoniche_folder, "/new_patch_disp_", sep=""), "", proj_path)
+  id<-gsub(paste(demoniche_folder, "/new_patch_disp_dens", sep=""), "", proj_path)
   id<-gsub("Projection_rep1_Reference_matrix.rda", "",id)
   md_id<-strsplit(id, "/")[[1]][1]
   rep_id<- gsub(".*[/]([^/]+)[/]*", "\\1", id)
@@ -886,6 +910,7 @@ time.taken
 #wd_new<-paste(wd, "/Demoniche_Repetitions/Kern_kap_new/", sep="")
 
 folders<-list.files(demoniche_folder)
+folders<-folders[5:8]
 
 for (folder in folders){
 
@@ -908,13 +933,14 @@ for (folder in folders){
   
 }
 
-write.csv(rep_df_all, paste(species_directory, "my_disp_function.csv", sep="/"))
+write.csv(rep_df_all, paste(species_directory, "my_disp_dens_function.csv", sep="/"))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 
 #rep_df_all<-read.csv(paste(species_directory, "kern_kap_new_params_0_5sd.csv", sep="/"))
 rep_df_all<-read.csv(paste(species_directory, "my_disp_function.csv", sep="/"))
+#rep_df_all<-read.csv(paste(species_directory, "my_disp_dens_function.csv", sep="/"))
 rep_df_all$rep_id<-factor(rep_df_all$rep_id)
 rep_df_all$md_id<-factor(rep_df_all$md_id)
 
@@ -935,7 +961,7 @@ p01
 
 ```{r}
 
-rep_df_small<-rep_df_all[rep_df_all$md_id != "1000000",]
+rep_df_small<-rep_df_all[rep_df_all$md_id != "1000000" & rep_df_all$year>1949,]
 library(ggplot2)
 
 p01<-ggplot(rep_df_small, aes(x=year, y=trend, group=interaction(rep_id, md_id),colour=md_id))+
@@ -954,7 +980,7 @@ l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
 
 highfoldernames<-list.files(demoniche_folder)
-#highfoldernames<-highfoldernames[1:3]
+highfoldernames<-highfoldernames[1:4]
 lowfoldernames<-rep(1:nf, each=length(l))
 
 foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
@@ -1028,9 +1054,7 @@ melt_short<-melt_short[melt_short$max_disp == "113000" ,]
 
 melt_lambda_short<-melt_lambda_short[melt_lambda_short$max_disp == "113000",]
 
-
 ```
-
 
 
 ```{r, message=FALSE}
@@ -1314,9 +1338,13 @@ ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp,sp_lpi.
 
 Test raster plot
 ```{r}
+raster_read<-function(x){
 b<-read.csv(paste(demoniche_folder ,"new_patch_disp_113000/1/Reference_matrix_pop_output.csv", sep="/"))
 b<-b[,-1]
-bef_ab_map<-rasterize(b[,c(1,2)],rid,b[,-c(1,2)] )
+bef_ab_map<-rasterize(b[,c(1,2)],rid,b[,-c(1,2)])
+return(bef_ab_map)
+}
+
 plot(bef_ab_map[[1]])
 plot(bef_ab_map[[100:167]])
 
