@@ -316,6 +316,7 @@ sp_test<-sp[group_pres ==1,]
 ```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
 bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
+
 #write.csv(bg_sam, paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-bg_pse[,-1]
@@ -910,7 +911,7 @@ time.taken
 #wd_new<-paste(wd, "/Demoniche_Repetitions/Kern_kap_new/", sep="")
 
 folders<-list.files(demoniche_folder)
-folders<-folders[5:8]
+#folders<-folders[5:8]
 
 for (folder in folders){
 
