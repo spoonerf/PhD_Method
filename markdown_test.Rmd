@@ -297,7 +297,7 @@ library(dismo)
 set.seed(10)
 
 group_pres<-kfold(sp, k)
-write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+#write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
@@ -309,12 +309,12 @@ sp_test<-sp[group_pres ==1,]
 ```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
 bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
-write.csv(sam, paste(species_directory, "background_random_points2.csv", sep="/"))
+#write.csv(sam, paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-bg_pse[,-1]
 
 group_back<-kfold(bg_pse, k)
-write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
+#write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-read.csv(paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-group_back[,-1]
 
@@ -867,7 +867,7 @@ time.taken
 #wd_new<-paste(wd, "/Demoniche_Repetitions/Kern_kap_new/", sep="")
 
 folders<-list.files(demoniche_folder)
-
+#folders<-folders[1:3]
 for (folder in folders){
 
   print(folder)
