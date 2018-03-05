@@ -142,7 +142,8 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                           foldername, "/population_sizes", ".rda", sep = ""))
       pop <- data.frame(cbind(BEMDEM$Niche_ID[, 2:3], (colSums(Projection[yx, 
                                                                           , , ] * BEMDEM$sumweight))))
-      write.csv(pop, paste(getwd(), "/", foldername, "/pop_output.csv", sep=""))
+      write.csv(pop, paste(getwd(), "/", foldername, "/",BEMDEM$list_names_matrices[mx],"_pop_output.csv", sep=""))
+      #write.csv(pop, paste(getwd(), "/", foldername, "/pop_output.csv", sep=""))
       form <- as.formula(paste(paste(colnames(pop)[-c(1:2)], 
                                      collapse = "+"), "X+Y", sep = "~"))
       jpeg(filename = paste(getwd(), "/", foldername, "/map_", 
