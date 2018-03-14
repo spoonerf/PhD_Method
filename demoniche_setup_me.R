@@ -44,8 +44,8 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
   }
   if (is.vector(Nichemap[, -c(1:3)])) {
     Nichemap <- Nichemap[Nichemap[, -c(1:3)] != 0, ]
-  }
-  else {
+  } else {
+    #get rid of any cells which have no suitable cells in any year
     Nichemap <- Nichemap[rowSums(Nichemap[, -c(1:3)]) != 
                            0, ]
   }
@@ -74,9 +74,14 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
     #distance is in kilometres as longlat = TRUE
     rows <- which(spDistsN1(as.matrix(Nichemap[, 2:3], ncol = 2), 
                             matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2), 
-                            longlat = TRUE) == min(spDistsN1(as.matrix(Nichemap[, 
-                                                                                2:3], ncol = 2), matrix(as.numeric(Populations[pxs, 
-                                                                                                                               2:3]), ncol = 2), longlat = TRUE)))
+                            longlat = FALSE) == min(spDistsN1(as.matrix(Nichemap[, 
+                                                                                 2:3], ncol = 2), matrix(as.numeric(Populations[pxs, 
+                                                                                                                                2:3]), ncol = 2), longlat = FALSE)))
+    # rows <- which(spDistsN1(as.matrix(Nichemap[, 2:3], ncol = 2), 
+    #                         matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2), 
+    #                         longlat = TRUE) == min(spDistsN1(as.matrix(Nichemap[, 
+    #                                                                              2:3], ncol = 2), matrix(as.numeric(Populations[pxs, 
+    #                                                                                                                             2:3]), ncol = 2), longlat = TRUE)))
     Niche_ID[rows, 4] <- Populations[pxs, 1]
     n0_all[rows[1], ] <- n0_all[rows[1], ] + (Populations[pxs, 
                                                           4] * proportion_initial * density_individuals[pxs])
@@ -139,7 +144,7 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
     diag(dispersal_probabilities) <- 0
   }
   dist_latlong <- round(as.matrix(dist(Niche_ID[, 2:3])), 1)
-  neigh_index <- sort(unique(as.numeric(dist_latlong)))[2:3]
+  neigh_index <- sort(unique(as.numeric(dist_latlong)))[2:3] #distance two closest cells
   if (sumweight[1] == "all_stages") 
     sumweight <- rep(1, length(proportion_initial))
   if (Kweight[1] == "FALSE") 
