@@ -50,13 +50,11 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
         if (ncol(BEMDEM$matrices_var) > 1) {
           Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
                                                              1], (BEMDEM$matrices_var[, mx]))
-        }
-        else {
+        } else {
           Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
                                                              1], (BEMDEM$matrices_var[, 1]))
         }
-      }
-      else {
+      } else {
         Matrix_projection_var <- FALSE
       }
       prev_mx <- rep(1, times = yrs_total + 1)
@@ -71,7 +69,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                    0, ]
             n0s_ID <- which(rowSums(BEMDEM$n0_all) > 
                               0)
-          }
+          } 
           else {
             if (tx != 1 && yx == 1) {
               n0s <- t(Projection[BEMDEM$no_yrs, , colSums(Projection[BEMDEM$no_yrs, 
@@ -80,8 +78,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                                  , , tx - 1]) > 0)
               BEMDEM$Niche_ID[colSums(Projection[BEMDEM$no_yrs, 
                                                  , , tx - 1]) > 0, 2]
-            }
-            else {
+            } else {
               n0s <- t(Projection[yx - 1, , colSums(Projection[yx - 
                                                                  1, , , tx]) > 0, tx])
               n0s_ID <- which(colSums(Projection[yx - 
@@ -118,20 +115,27 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
               }
               source("demoniche_dispersal_me.R")
               disp <- demoniche_dispersal_me(seeds_per_population = Projection[yx,
-                                                                            1, , tx], fraction_LDD = BEMDEM$fraction_LDD,
-                                          dispersal_probabilities = BEMDEM$dispersal_probabilities,
-                                          dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
-                                          fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche)
+                                                                               , , tx], fraction_LDD = BEMDEM$fraction_LDD,
+                                             dispersal_probabilities = BEMDEM$dispersal_probabilities,
+                                             dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
+                                             fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche)
+                            # disp <- demoniche_dispersal_me(seeds_per_population = Projection[yx,
+              #                                                               1, , tx], fraction_LDD = BEMDEM$fraction_LDD,
+              #                             dispersal_probabilities = BEMDEM$dispersal_probabilities,
+              #                             dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
+              #                             fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche)
 
               # disp <- demoniche_dispersal(seeds_per_population = Projection[yx,
               #                                                                 1, , tx], fraction_LDD = BEMDEM$fraction_LDD,
               #                               dispersal_probabilities = BEMDEM$dispersal_probabilities,
               #                               dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
               #                               fraction_SDD = BEMDEM$fraction_SDD)
-              Projection[yx, 1, , tx] <- disp
+              Projection[yx, , , tx] <- disp   #age here 0 years/seed
+               #Projection[yx, 1, , tx] <- disp   #age here 0 years/seed
               ##################################################################################
               #Projection[yx, 1, , tx] <- disp<-BEMDEM$Niche_values[,yx]* Projection[yx, 1, , tx]
-            }
+            
+              }
           }
           population_sizes[yx_tx, mx, rx] <- sum(rowSums(Projection[yx, 
                                                                     , , tx]) * BEMDEM$sumweight)
