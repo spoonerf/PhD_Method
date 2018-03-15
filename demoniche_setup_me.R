@@ -45,8 +45,7 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
   if (is.vector(Nichemap[, -c(1:3)])) {
     Nichemap <- Nichemap[Nichemap[, -c(1:3)] != 0, ]
   } else {
-    Nichemap <- Nichemap[rowSums(Nichemap[, -c(1:3)]) !=
-                           0, ]
+    Nichemap <- Nichemap[rowSums(Nichemap[, -c(1:3)]) != 0, ]
   }
   years_projections <- colnames(Nichemap)[4:ncol(Nichemap)]
   if ((ncol(Nichemap) - 3) != length(years_projections))
@@ -141,8 +140,8 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
     diag(dispersal_probabilities) <- 0
   }
   dist_latlong <- round(as.matrix(dist(Niche_ID[, 2:3])), 1)
-  neigh_index <- sort(unique(as.numeric(dist_latlong)))[2:3]
-  if (sumweight[1] == "all_stages")
+  neigh_index <- sort(unique(as.numeric(dist_latlong)))[2:3] #distance two closest cells
+  if (sumweight[1] == "all_stages") 
     sumweight <- rep(1, length(proportion_initial))
   if (Kweight[1] == "FALSE")
     Kweight <- rep(1, length(proportion_initial))
