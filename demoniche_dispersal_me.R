@@ -38,7 +38,7 @@ demoniche_dispersal_me<-function (seeds_per_population, fraction_LDD, fraction_S
   seeds_stay <- (seeds_per_population - seeds_per_population_migrate_SDD -   #seeds that migrate must go out of the cell and are taken off the total
                    seeds_per_population_migrate_LDD)
   #seeds_stay<-niche_values*seeds_stay
-  seeds_total<-niche_values*(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
-  #return(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
+  #seeds_total<-niche_values*(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
+  seeds_total<-(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
   return(seeds_total)
 }
