@@ -44,7 +44,8 @@ demoniche_dispersal_me<-function (seeds_per_population, fraction_LDD, fraction_S
     
     for (i in 1:nrow(seeds_per_population_migrate_LDD)){
       
-      seeds_per_population_new_LDD[i,] <- dispersal_probabilities %*%  seeds_per_population_migrate_LDD[i,]
+     seeds_per_population_new_LDD[i,] <- dispersal_probabilities %*%  seeds_per_population_migrate_LDD[i,]
+      #seeds_per_population_new_LDD[i,] <- disp_prob %*%  seeds_per_population_migrate_LDD[i,]
       
     }
     

@@ -127,18 +127,28 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
   dist_populations <- spDists(as.matrix(Niche_ID[, 2:3]), longlat = TRUE)
   dimnames(dist_populations) <- list(Niche_ID[, 1], Niche_ID[,
                                                              1])
-  dispersal_probabilities <- dist_latlong <- neigh_index <- NA
-   # if (dispersal_constants[1] != FALSE) {
-   #     dispersal_probabilities <- dispersal_constants[1] * exp(-dist_populations^(dispersal_constants[3]/dispersal_constants[2]))
-   #     dispersal_probabilities[dist_populations > dispersal_constants[4]] <- 0
-   #     diag(dispersal_probabilities) <- 0
-   # }
+  # dispersal_probabilities <- dist_latlong <- neigh_index <- NA
+  #  if (dispersal_constants[1] != FALSE) {
+  #      dispersal_probabilities <- dispersal_constants[1] * exp(-dist_populations^(dispersal_constants[3]/dispersal_constants[2]))
+  #      dispersal_probabilities[dist_populations > dispersal_constants[4]] <- 0
+  #      diag(dispersal_probabilities) <- 0
+  #  }
   if (dispersal_constants[1] != FALSE) {
     half_life<-(log(2)/dispersal_constants[1]) * - 1
     dispersal_probabilities<-1 * exp(half_life * dist_populations)
     dispersal_probabilities[dist_populations > dispersal_constants[2]]<-0
     diag(dispersal_probabilities) <- 0
   }
+  
+#next 7 lines are new
+scale_ldd<-function(x){
+  dispersal_probs<-dispersal_probabilities[x, ]/sum(dispersal_probabilities[x, ])
+return(dispersal_probs)
+  }
+
+rep_scale_ldd<-lapply(1:nrow(dispersal_probabilities), scale_ldd)
+dispersal_probabilities<-do.call(rbind,rep_scale_ldd)
+
   dist_latlong <- round(as.matrix(dist(Niche_ID[, 2:3])), 1)
   neigh_index <- sort(unique(as.numeric(dist_latlong)))[2:3] #distance two closest cells
   if (sumweight[1] == "all_stages") 
