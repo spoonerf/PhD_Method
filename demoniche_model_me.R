@@ -51,10 +51,11 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
           Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
                                                              1], (BEMDEM$matrices_var[, mx]))
         } else {
-          Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
+            Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
                                                              1], (BEMDEM$matrices_var[, 1]))
         }
-      } else {
+      } 
+      else {
         Matrix_projection_var <- FALSE
       }
       prev_mx <- rep(1, times = yrs_total + 1)
@@ -69,8 +70,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                    0, ]
             n0s_ID <- which(rowSums(BEMDEM$n0_all) > 
                               0)
-          } 
-          else {
+          } else {
             if (tx != 1 && yx == 1) {
               n0s <- t(Projection[BEMDEM$no_yrs, , colSums(Projection[BEMDEM$no_yrs, 
                                                                       , , tx - 1]) > 0, tx - 1])

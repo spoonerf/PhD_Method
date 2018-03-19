@@ -18,7 +18,7 @@ demoniche_dispersal_me<-function (seeds_per_population, fraction_LDD, fraction_S
     source_patches <- which(colSums(seeds_per_population_migrate_SDD) >
                               0)
     for (px_orig in source_patches) {
-      for (pxdisp_new in 1:length(seeds_per_population_migrate_SDD)) {
+      for (pxdisp_new in 1:length(seeds_per_population_migrate_SDD[1,])) {
         if (dist_latlong[pxdisp_new, px_orig] == neigh_index[1]) {
           # seeds_per_population_new_SDD[pxdisp_new] <- seeds_per_population_new_SDD[pxdisp_new] + 
           #   (seeds_per_population_migrate_SDD[px_orig] * 
@@ -44,7 +44,8 @@ demoniche_dispersal_me<-function (seeds_per_population, fraction_LDD, fraction_S
     
     for (i in 1:nrow(seeds_per_population_migrate_LDD)){
       
-      seeds_per_population_new_LDD[i,] <- dispersal_probabilities %*%  seeds_per_population_migrate_LDD[i,]
+     seeds_per_population_new_LDD[i,] <- dispersal_probabilities %*%  seeds_per_population_migrate_LDD[i,]
+      #seeds_per_population_new_LDD[i,] <- disp_prob %*%  seeds_per_population_migrate_LDD[i,]
       
     }
     
