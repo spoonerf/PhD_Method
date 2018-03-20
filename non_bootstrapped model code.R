@@ -129,6 +129,13 @@ nrow(dt)
 
 #write.csv(dt, "GCB_Data.csv")
 
+#removing atlantic forest populations
+
+#dt<-dt[dt$loc_id != 109 ,]
+
+dt<-dt[dt$mean_slope_scale < 5 | dt$mean_slope_scale > -5 ,]
+
+
 source("rsquaredglmm.R")
 
   library(lme4) 
