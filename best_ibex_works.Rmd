@@ -282,7 +282,7 @@ for (i in 1:19){
 Selecting out the bioclim layers I'm interested in:
 
 ```{r Stacking bioclim layers}
-
+#bioclim_layers<-c(3,10,12,13,18)
 if (Europe_only){
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
 } else {
@@ -290,6 +290,9 @@ pred_nf<-stack(paste(wd, "/Bioclim/Global/Bio_", bioclim_layers,"_2006_2016_aver
 }
 
 pred_crop<-crop(pred_nf, e_big)
+# e_nor<-extent(0,120,50,80)
+# 
+# pred_nor<-crop(pred_nf, e_nor)
 plot(pred_crop)
 
 ```

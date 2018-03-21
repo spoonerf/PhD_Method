@@ -80,7 +80,7 @@ nrow(dfd)
 
 df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-            & (Class=="Mammalia" |Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
+            & ( Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
 nrow(df2)
 
 df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
@@ -131,9 +131,9 @@ nrow(dt)
 
 #removing atlantic forest populations
 
-#dt<-dt[dt$loc_id != 109 ,]
+dt<-dt[dt$loc_id != 109 ,]
 
-dt<-dt[dt$mean_slope_scale < 5 | dt$mean_slope_scale > -5 ,]
+#dt<-dt[dt$mean_slope_scale < 5 & dt$mean_slope_scale > -5 ,]
 
 
 source("rsquaredglmm.R")
@@ -308,9 +308,10 @@ coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <
 coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "eBM"
 coef_both$Var_name[coef_both$Var_name == "Protected_statues"] <- "fPA"
 
+write.csv(coef_both, "Model_Average_coefs_No_Atlantic_Forest.csv")
 #write.csv(coef_both, "Model_Average_coefs4.csv")
-coefs_both<-read.csv("Model_Average_coefs4.csv")
-
+#coefs_both<-read.csv("Model_Average_coefs4.csv")
+coefs_both<-read.csv("Model_Average_coefs_No_Atlantic_Forest.csv")
 # coef_old<-coef_both
 
 library(ggplot2)
@@ -318,13 +319,14 @@ p1<-ggplot(coef_both, aes(colour=Class))
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
 p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
 p1<- p1 + scale_y_continuous(breaks=seq(-10, 14, 4), limits=(c(-10,15)))
-#p1<-p1 + theme_bw() + labs(y = "Population Change (%)", x = "")  
-#p1<- p1 + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
-#p1<- p1 + scale_color_manual(values=c("black", "black"))
+p1<-p1 + theme_bw() + labs(y = "Population Change (%)", x = "")
+p1<- p1 + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+p1<- p1 + scale_color_manual(values=c("black", "black"))
 p1<-p1 + theme_bw() 
 p1<-p1+theme(panel.border = element_blank(), panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 p1<- p1+ geom_hline(yintercept = 0, linetype=2)
+p1<- p1+ geom_vline(xintercept = 1.5, linetype=2)
 print(p1)
 
 ((10^msAICc[,1:5])-1)*100
