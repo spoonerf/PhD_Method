@@ -2,7 +2,7 @@
 # transition_affected_niche <- c(2,29)
 # transition_affected_env <- c(2,29)
 
-demoniche_population<-function (Matrix_projection, Matrix_projection_var, n, populationmax, 
+demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, populationmax, 
           K = NULL, Kweight = BEMDEM$Kweight, onepopulation_Niche, 
           sumweight, noise, prob_scenario, prev_mx, transition_affected_demogr, 
           transition_affected_niche, transition_affected_env, env_stochas_type, 
@@ -49,6 +49,7 @@ demoniche_population<-function (Matrix_projection, Matrix_projection_var, n, pop
       }
     }
   }
+  print(n[1])
   return(n)
 }
 
