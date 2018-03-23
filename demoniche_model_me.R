@@ -85,13 +85,15 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                                    1, , , tx]) > 0)
             }
           }
+
+
           population_Niche_short <- population_Niche[n0s_ID]
           if (nrow(n0s) > 0) {
             for (px in 1:nrow(n0s)) {
               n <- as.vector(n0s[px, ])
               populationmax <- BEMDEM$populationmax_all[n0s_ID[px], 
                                                         tx]
-              Projection[yx, , n0s_ID[px], tx] <- demoniche_population(Matrix_projection = Matrix_projection, 
+              Projection[yx, , n0s_ID[px], tx] <- demoniche_population_me(Matrix_projection = Matrix_projection, 
                                                                        Matrix_projection_var = Matrix_projection_var, 
                                                                        n = n, populationmax = populationmax, 
                                                                        onepopulation_Niche = population_Niche_short[px], 
@@ -103,10 +105,16 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                                                        transition_affected_env = BEMDEM$transition_affected_env, 
                                                                        env_stochas_type = BEMDEM$env_stochas_type, 
                                                                        yx_tx = yx_tx)
+              print(px)
+              print(tx)
             }
           }
-          metapop_results[yx_tx, mx, rx] <- length(intersect(which(colSums(Projection[yx, 
-                                                                                      , , tx]) > 1), n0s_ID))
+          metapop_results[yx_tx, mx, rx] <- length(intersect(which(colSums(Projection[yx, , , tx]) > 1), n0s_ID))
+          
+          ###added in by me - rogue NAs appearing
+          Projection[yx, 1, , tx][is.na(Projection[yx, 1, , tx])] <-0
+          ###
+          
           if (sum(Projection[yx, 1, , tx]) > 0) {
             if (Dispersal == TRUE) {
               if (Niche == TRUE) {
