@@ -58,4 +58,5 @@ demoniche_dispersal_me<-function (seeds_per_population, fraction_LDD, fraction_S
   #seeds_total<-niche_values*(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
   return(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
   #return(seeds_stay)
+
 }

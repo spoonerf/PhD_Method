@@ -7,6 +7,12 @@ output:
     theme: hpstr
     highlight: github
 ---
+###Things that need to be sorted manually:
+
+* Matrices 
+* Checking of GBIF data 
+* Writing GBIF data
+* Writing K fold data
 
 ```{r Install packages, eval=FALSE, message=FALSE}
 install.packages('climates',,'http://www.rforge.net/')

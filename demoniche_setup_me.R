@@ -145,7 +145,6 @@ scale_ldd<-function(x){
   dispersal_probs<-dispersal_probabilities[x, ]/sum(dispersal_probabilities[x, ])
 return(dispersal_probs)
   }
-
 rep_scale_ldd<-lapply(1:nrow(dispersal_probabilities), scale_ldd)
 dispersal_probabilities<-do.call(rbind,rep_scale_ldd)
 
