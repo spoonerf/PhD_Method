@@ -78,19 +78,32 @@ carry_k<-5000
   #Things to vary
 sd_seq<-0.5
 LDD_seq<-c(0.9)
-kern_seq<-list(c(1,1), c(19.775,113.000),c(13.5975, 77.700), c(1000.000,1000.000))
+#kern_seq<-list(c(1,1), c(19.775,113.000),c(13.5975, 77.700), c(1000.000,1000.000))
 
+
+med_disp<-seq(13.5975, 19.775, length.out = 5)
+#max_disp<-seq(77.7, 113, length.out = 5)
+
+#how to deal with max_dispersal
+
+
+
+#kern_seq<-list(c(13.5975, 77.700),c(19.775,113.000))
+kern_seq<-list(c(med_disp[1], 113),c(med_disp[2],113.000),c(med_disp[3],113.000),c(med_disp[4],113.000),c(med_disp[5],113.000))
 var_grid<-expand.grid(sd_seq, LDD_seq, kern_seq)
 colnames(var_grid)<-c("SD", "LDD", "Kern")
 
 #median and maximum disperal in KILOMETRES
-kern_mat<-matrix(c(rep(c(1,1), (nrow(var_grid)/ncol(var_grid))),rep(c(19.775,113.000), (nrow(var_grid)/ncol(var_grid))),rep(c(13.5975, 77.700), (nrow(var_grid)/ncol(var_grid))),rep(c(1000.000,1000.000),(nrow(var_grid)/ncol(var_grid)))), ncol=2, byrow=T)
+#kern_mat<-matrix(c(rep(c(19.775,113.000), (nrow(var_grid)/ncol(var_grid))),rep(c(13.5975, 77.700), (nrow(var_grid)/ncol(var_grid)))), ncol=2, byrow=T)
+
+#kern_mat<-matrix(c(13.5975, 77.700,19.775,113.000), ncol=2, byrow=T)
+kern_mat<-cbind(med_disp, 113)  
 
 density_mine<-2671
 fraction_LDD<-0.1
 fraction_SDD<-0.1
 
-reps<-12
+reps<-10
 
 ```
 
@@ -101,7 +114,7 @@ binomial<-paste(genus, species, sep="_")
 
 k<-4
 years<-1950:2016
-spin_years<-1650:1949
+spin_years<-1250:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -250,7 +263,6 @@ lf<-list.files(paste(wd, "/Bioclim/", sep=""))
 } else{
 lf<-list.files(paste(wd, "/Bioclim/Global", sep=""))
 }
-
 
 first<-which(grepl("2006_bioclim", lf)) #was initially 1985
 last<-which(grepl("2016_bioclim", lf))
@@ -558,8 +570,6 @@ lines(years, m+(2*sd), col="red", lty=3)
 lines(years, m-(2*sd), col="red", lty=3)
 
 
-
-
 ```
 
 ####Patches
@@ -838,7 +848,7 @@ for (s in 1:nrow(var_grid)){
 
 start.time <- Sys.time()
 
- max_disp<-as.character(kern_mat[s,2])
+ max_disp<-as.character(kern_mat[s,1])
   dir.create(paste(demoniche_folder,"/new_patch_disp_test_",max_disp,sep=""),showWarnings = TRUE)
 
 
@@ -852,7 +862,7 @@ rep_demoniche<-function(i){
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = 2671,
-                  fraction_LDD = 0.5, fraction_SDD = 0.5,
+                  fraction_LDD = 0.05, fraction_SDD = 0.5,
                   dispersal_constants = kern_mat[s,],
                 transition_affected_niche = transition_affected_niche,
                   transition_affected_demogr = transition_affected_demogr,
@@ -906,7 +916,7 @@ time.taken
 #wd_new<-paste(wd, "/Demoniche_Repetitions/Kern_kap_new/", sep="")
 
 folders<-list.files(demoniche_folder)
-folders<-folders[1:4]
+#folders<-folders[1:4]
 
 for (folder in folders){
 
@@ -926,7 +936,8 @@ for (folder in folders){
   rep_df$md_id<-as.factor(rep_df$md_id)
   rep_df_short<-rep_df[rep_df$year >=1950,]
   rep_df_all<-rbind(rep_df,rep_df_all)
-
+  
+  
 }
 
 write.csv(rep_df_all, paste(species_directory, "my_disp_function_test.csv", sep="/"))
@@ -957,7 +968,7 @@ p01
 
 ```{r}
 
-rep_df_small<-rep_df_all[rep_df_all$md_id != "1000000"& rep_df_all$year>1949,]
+rep_df_small<-rep_df_all[rep_df_all$md_id != "1000"& rep_df_all$year>1949,]
 library(ggplot2)
 
 p01<-ggplot(rep_df_small, aes(x=year, y=trend, group=interaction(rep_id, md_id),colour=md_id))+
@@ -976,7 +987,6 @@ l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
 
 highfoldernames<-list.files(demoniche_folder)
-highfoldernames<-highfoldernames[1:4]
 lowfoldernames<-rep(1:nf, each=length(l))
 
 foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
@@ -997,7 +1007,7 @@ convert_pop_out<-function(foldername){
   gridded(pop_out) <- TRUE
   rasterDF <- stack(pop_out)
   #proj4string(rasterDF)<-CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
-  trends<-extract(rasterDF,xy)
+  trends<-raster:::extract(rasterDF,xy)
   max_disp<-strsplit(foldername, "[/_]")[[1]][5]
   rep_id<-strsplit(foldername, "[/_]")[[1]][6]
   trends_df<-data.frame(sp_lpi$ID,max_disp, rep_id,trends)
@@ -1045,10 +1055,13 @@ ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, max_di
 
 ```{r Removing unlimited dispersal}
 
-melt_short<-melt_short[melt_short$max_disp == "113000" ,]
+melt_short<-melt_short[melt_short$max_disp != "13.5975" ,]
 
-melt_lambda_short<-melt_lambda_short[melt_lambda_short$max_disp == "113000",]
+melt_lambda_short<-melt_lambda_short[melt_lambda_short$max_disp != "13.5975",]
 
+ddply(melt_lambda_short, .(max_disp, sp_lpi.ID), summarize, foo = sum(value))
+
+melt_lambda_short<-melt_lambda_short[melt_lambda_short$max_disp != "15.141875"& melt_lambda_short$sp_lpi.ID != "10710",]
 
 ```
 
@@ -1184,6 +1197,7 @@ gam_r<-do.call( "rbind", gam_demon_r)
 
 ```{r}
 
+
 library(mgcv)
 
 gam_demon<-function(id){
@@ -1194,7 +1208,7 @@ gam_demon<-function(id){
   rep_id = df$rep_id
   SmoothParm = round(length(na.omit(PopN))/2)
 
-  mg2<-mgcv:::gam(PopN ~ s(Year, k=15), fx=TRUE)
+  mg2<-mgcv:::gam(PopN ~ s(Year, k=10), fx=TRUE)
   pv2<-unique(fitted.values(mg2))
 
   ial<-data.frame(id, unique(Year),pv2)
@@ -1324,6 +1338,9 @@ library(ggplot2)
 
 both_df<-both_df[both_df$max_disp != "1000",]
 
+
+
+
 ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp,sp_lpi.ID), colour= sp_lpi.ID))+
   geom_line(colour="grey")+
   geom_line(data=both_df[both_df$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
@@ -1331,16 +1348,24 @@ ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp,sp_lpi.
   facet_grid(.~ sp_lpi.ID)
 
 
+for (i in 1:length(unique(both_df$sp_lpi.ID))){
+pp<-ggplot(both_df[both_df$sp_lpi.ID == unique(both_df$sp_lpi.ID)[i],], aes(x= year, y=value, group=interaction(rep_id, max_disp)))+
+  geom_line(colour="grey")+
+  geom_line(data=both_df[both_df$max_disp=="Observed" & both_df$sp_lpi.ID == both_df$sp_lpi.ID[i],], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_r_lambda[gam_r_lambda$sp_lpi.ID ==gam_r_lambda$sp_lpi.ID[i], ], aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )
+plot(pp)
+}
+
 ```
 
-Test raster plot
+Raster population plots
 ```{r}
 patch<-stack(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch[[s]])
 #patch<-projectRaster(patch, crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
 
 raster_read<-function(x){
-  b<-read.csv(paste(demoniche_folder ,"patch_old_disp113000/",x,"/Reference_matrix_pop_output.csv", sep="/"))
+  b<-read.csv(paste(demoniche_folder ,"new_patch_disp_test_19.775/",x,"/Reference_matrix_pop_output.csv", sep="/"))
   bef_ab_map<-rasterize(b[,c(1,2)],patch,b[,-c(1,2)])
   return(bef_ab_map)
 }
