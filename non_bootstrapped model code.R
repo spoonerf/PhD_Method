@@ -55,7 +55,7 @@ pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 temp<-temp[,c("ID", "Estimate")]
 #temp<-temp[,c("ID","Estimate" ,"Sum_Mean_Change")]
 
-LPI<-LPI[,c("ID","Binomial","Confidential","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest", "Confidential")]
+LPI<-LPI[,c("ID","Binomial","Confidential","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest", "Confidential", "Red_list_category")]
 
 df<-merge(merge(temp,body4[,c(2:4)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
@@ -80,7 +80,7 @@ nrow(dfd)
 
 df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-            & (Class=="Mammalia" |Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
+            & (Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
 nrow(df2)
 
 df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
@@ -93,6 +93,18 @@ table(df2$Class)
 
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
+
+# # #mammals
+# diet<-read.csv("mammaldiet.csv")
+# diet$Binomial<-paste(diet$Genus, diet$Species, sep= "_")
+# df2<-merge(df2, diet[,c(6,24,31)], by="Binomial")
+# 
+# nrow(df2)
+# library(dplyr)
+# #birds 
+# diet<-read.csv("birddiet.csv")
+# diet$Binomial<-gsub(" ", "_", diet$Scientific)
+# df2<-merge(df2, diet[,c(20,41)], by="Binomial")
 
 nrow(df2)
 
@@ -177,6 +189,7 @@ source("rsquaredglmm.R")
   #m1r<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
  #m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|loc_id),data=dt, REML=F)
+  #m1d<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+TrophicLevel+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
   m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   #m1ar<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+WWF_REALM2+(1|Binomial)+(1|loc_id),data=dt, REML=F)
@@ -193,6 +206,8 @@ source("rsquaredglmm.R")
   #m1ce<-lmer(lambda_mean ~ mean_slope_scale+Elevation + (1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1cf<-lmer(lambda_mean ~ mean_slope_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
 
+  m1p<-lmer(lambda_mean ~ Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
+  
   
   #m1c<-lmer(lambda_mean ~ mean_slope_scale+(1|loc_id),data=dt, REML=F)
   
@@ -206,20 +221,15 @@ source("rsquaredglmm.R")
   
   # #Weights
   library(MuMIn)
-  
-  #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
-  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
-  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
-  #msAICc <- model.sel(m0,m0r,m0f,m0a,m0ar,m0af,m0b,m0br,m0bf,m0c,m0cr,m0cf,m0d,m0dr,m0df,m1,m1r,m1f,m1a,m1ar,m1af,m1b,m1br,m1bf,m1c,m1cr,m1cf,mnull)
 
-  #msAICc <- model.sel(m1,m1a,m1b,m1c,mnull)
+  msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf, m1p)
   msAICc$model<-rownames(msAICc)
   msAICc<-data.frame(msAICc)
   msAICc
   
   ((10^msAICc[,c(1:5)]) - 1)*100
   
-  AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull)
+
   AIC(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
   
   #Rsq
@@ -230,7 +240,7 @@ source("rsquaredglmm.R")
     #models_list<-list(m1,m1a,m1b,m1c,mnull)
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
+  #rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
   rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull","m0f","m0af","m0bf","m0cf","m0df","m1f","m1af","m1bf","m1cf")
   modelsRsq
     
