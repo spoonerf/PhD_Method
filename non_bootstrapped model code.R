@@ -52,6 +52,13 @@ sum(rowSums(df_hab  !="NULL") >1)/sum(rowSums(df_hab  !="NULL") >0)
 # nrow(df2)
 
 
+df2<-subset(dfd, !is.na(Estimate) &length_time >=5& System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
+            & (Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
+
+nrow(df2)
+
+
 df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
 df2$Protected_status[df2$Protected_status == "No (large survey area)"] <- "No"
 
@@ -59,6 +66,18 @@ table(df2$Class)
 
 
 df2[is.na(df2$lambda_mean),]$lambda_mean<-0
+
+# # #mammals
+# diet<-read.csv("mammaldiet.csv")
+# diet$Binomial<-paste(diet$Genus, diet$Species, sep= "_")
+# df2<-merge(df2, diet[,c(6,24,31)], by="Binomial")
+# 
+# nrow(df2)
+# library(dplyr)
+# #birds 
+# diet<-read.csv("birddiet.csv")
+# diet$Binomial<-gsub(" ", "_", diet$Scientific)
+# df2<-merge(df2, diet[,c(20,41)], by="Binomial")
 
 nrow(df2)
 
@@ -118,7 +137,7 @@ source("rsquaredglmm.R")
 
   m1<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1f<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+change_rate_scale:mean_slope_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
-  
+
   m1a<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   m1af<-lmer(lambda_mean ~ change_rate_scale+mean_slope_scale+Protected_status+(1|Binomial)+(1|loc_id),data=dt, REML=F)
   
@@ -136,7 +155,7 @@ source("rsquaredglmm.R")
   
   # #Weights
   library(MuMIn)
-  
+
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
 
@@ -147,7 +166,7 @@ source("rsquaredglmm.R")
   
   ((10^msAIC[,c(1:5)]) - 1)*100
   
-  AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull)
+
   AIC(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
   
   #Rsq
@@ -156,7 +175,7 @@ source("rsquaredglmm.R")
 
   modelsR<-lapply(models_list,rsquared.glmm)
   modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-  rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
+  #rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
   rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull","m0f","m0af","m0bf","m0cf","m0df","m1f","m1af","m1bf","m1cf")
   modelsRsq
     
