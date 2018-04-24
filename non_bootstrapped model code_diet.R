@@ -327,7 +327,10 @@ modelsRsq
 library(MuMIn)
 var_imp<-summary(model.avg(models_list))
 
-mav<-model.avg(models_list, subset =  cumsum(weight) <= .95)
+
+mav<-model.avg(models_list, subset =  cumsum(weight) <= .95, fit=TRUE)
+
+mav<-model.avg(models_list, subset =  delta < 2, fit=TRUE)
 
 smav<-summary(mav)
 

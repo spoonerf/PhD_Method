@@ -35,15 +35,14 @@ nrow(df)
 nrow(dfd) 
 
 
-# df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine" 
-#             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-#             & ( Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
-# nrow(df2)
-
-df2<-subset(dfd, !is.na(Estimate) &length_time >=5& System!="Marine" 
+df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine"
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-            & (Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
+            & ( Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
+nrow(df2)
 
+df2<-subset(dfd, !is.na(Estimate) &length_time >=5& System!="Marine"
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
+            & ( Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
 nrow(df2)
 
 
@@ -154,7 +153,7 @@ source("rsquaredglmm.R")
   ((10^msAICc[,c(1:5)]) - 1)*100
   
 
-  AIC(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
+  mAIC<-AIC(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
   
   #Rsq
   models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
@@ -214,6 +213,13 @@ coef_pcntm<-coef_pcnt
 df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine" 
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
             & ( Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
+
+nrow(df2)
+
+df2<-subset(dfd, !is.na(Estimate)  &length_time >=5& System!="Marine" 
+            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
+            & ( Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
+
 nrow(df2)
 
 df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
@@ -387,10 +393,10 @@ coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <
 coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "eBM"
 coef_both$Var_name[coef_both$Var_name == "Protected_statues"] <- "fPA"
 
-write.csv(coef_both, "Model_Average_coefs_No_Atlantic_Forest.csv")
+write.csv(coef_both, "Model_Average_coefs_extended.csv")
 #write.csv(coef_both, "Model_Average_coefs4.csv")
-coef_both<-read.csv("Model_Average_coefs4.csv")
-#coef_both<-read.csv("Model_Average_coefs_No_Atlantic_Forest.csv")
+#coef_both<-read.csv("Model_Average_coefs4.csv")
+coef_both<-read.csv("Model_Average_coefs_extended.csv")
 # coef_old<-coef_both
 
 library(ggplot2)
