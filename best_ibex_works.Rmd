@@ -76,7 +76,7 @@ density_individuals <- 4000  #4292.32 to 16096.2 based on density being between 
 carry_k<-5000
 
   #Things to vary
-sd_seq<-0.5
+sd_seq<-0.1
 LDD_seq<-c(0.9)
 #kern_seq<-list(c(1,1), c(19.775,113.000),c(13.5975, 77.700), c(1000.000,1000.000))
 
@@ -652,8 +652,28 @@ first_year<-function(x){
   return(pop_value)
 }
 pop_values<-apply(pop_years, 1, first_year)
-#density_mine<-as.numeric(pop_values)
 
+density_mine<-as.numeric(pop_values)
+
+
+id<-pyrs$ID*100
+lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
+pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+wd<-getwd()
+sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+e2<-extent(sdm)
+r<-raster(e2, resolution=res(sdm))
+rz<-rasterize(pyrxy,r,lam )
+crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+rid<-rasterize(pyrxy,r,id)
+crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+rz_spdf<-xyFromCell(rz, 1:ncell(rid))
+rzm<-as.vector(rz)
+ridm<-as.vector(rid)
+df<-data.frame(ridm,rz_spdf,rzm)
+colnames(df)<-c( "PatchID","X","Y","area")
+#df<-data.frame(na.omit(df))
+#Populations<-data.frame(na.omit(df))
 
 
 ```
@@ -716,7 +736,22 @@ colnames(patch_spin_up)[4:length(colnames(patch_spin_up))]<-col_years
 
 plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
 
-plot(min(spin_years):max(years),colMeans(na.omit(patch_spin_up)[4:length(colnames(patch_spin_up))]), type="l", ylab="Mean suitability index")
+
+plot(min(spin_years):max(years),colMeans(na.omit(niche_spin_up)[4:length(colnames(niche_spin_up))]), type="l", ylab="Mean suitability index")
+
+opt_patch_spin_up<-patch_spin_up
+opt_patch_spin_up[,4:304]<-1
+
+plot(min(spin_years):max(years),colMeans(na.omit(opt_patch_spin_up)[4:length(colnames(opt_patch_spin_up))]), type="l", ylab="Mean suitability index")
+
+
+# niche_map_mine<-na.omit(niche_map_mine)
+# patch_map_mine<-na.omit(patch_map_mine)
+# #fake_map_mine<-na.omit(fake_map_mine)
+# 
+# niche_spin_up<-na.omit(niche_spin_up)
+# patch_spin_up<-na.omit(patch_spin_up)
+#fake_spin_up<-na.omit(fake_spin_up)
 
 patch_map_mine[is.na(patch_map_mine)]<-0
 
@@ -792,7 +827,6 @@ sdms<-stack(paste(sdm_folder, files, sep="/"))
 
 hsi<-raster:::extract(sdms, Populations[,c(2,3)])
 
-
 link<-lin(hsi)
 #sigk<-sig(hsi)
 #ltk<-lt(hsi)
@@ -810,9 +844,10 @@ colnames(link_spin)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_
 Changed the demoniche_setup function (now demoniche_setup_me.R) to change the dispersal function to a decay curve where the half-life is the median estimated dispersal distance.This was based on Bowman et al 2012 where it suggests that the maximum dispersal is 40x the square root of a species home range and median dispersal is 7x the square root of HR.
 
 
-
 ```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE}
-reps<-1000
+
+reps<-12
+
 for (s in 1:nrow(var_grid)){
 
   print(paste (s, " out of ", nrow(var_grid) ), sep="")
@@ -821,12 +856,13 @@ for (s in 1:nrow(var_grid)){
   LDD<-var_grid[s,2]
 
 
-  matrices_var<-matrix(SD, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd"))
+  matrices_var<-matrix(0, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd"))
 
 start.time <- Sys.time()
 
- max_disp<-as.character(kern_mat[s,1])
-  dir.create(paste(demoniche_folder,"/new_patch_disp_test_",max_disp,sep=""),showWarnings = TRUE)
+max_disp<-as.character(kern_mat[s,2]) #this should be 2?
+dir.create(paste(demoniche_folder,"/new_patch_disp_test_",max_disp,sep=""),showWarnings = TRUE)
+
 
 
 rep_demoniche<-function(i){
@@ -839,8 +875,8 @@ rep_demoniche<-function(i){
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = 2671,
-                  fraction_LDD = 0.5, fraction_SDD = 0.5,
-                  dispersal_constants = kern_mat[s,],
+                  fraction_LDD = 0.25, fraction_SDD = 0.5,
+                dispersal_constants = kern_mat[s,],
                 transition_affected_niche = transition_affected_niche,
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
@@ -887,6 +923,7 @@ time.taken
   p<-Projection
   trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
   tid<-cbind(md_id, rep_id, trend)
+  #print(proj_path)
   return(tid)
   }
 
@@ -1123,6 +1160,20 @@ colnames(all_year_ab)[1:3]<-c("sp_lpi.ID", "year", "value")
 
 
 ```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(all_year_ab, aes(x = year, y = value, group= sp_lpi.ID, col=sp_lpi.ID))+
+  geom_line(size =2)+
+  xlab("Year")+
+  ylab("Ibex abundance")+
+   theme(text = element_text(size=20))
+
+
+```
+
 
 ```{r}
 mldab<-melt_short[,-4]

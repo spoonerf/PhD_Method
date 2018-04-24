@@ -22,7 +22,7 @@ pop<-read.csv("Global_Population_Trends_Rsq_Lambda_07_10_16.csv")
 
 temp<-temp[,c("ID", "Estimate")]
 
-LPI<-LPI[,c("ID","Binomial","Confidential","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat", "Migratory", "Forest", "Confidential", "Red_list_category")]
+LPI<-LPI[,c("ID","Binomial","Confidential","Common_name", "Order","Family", "Protected_status", "Country","Region", "System", "Class","Specific_location", "Longitude", "Latitude", "Primary_threat", "Secondary_threat", "Tertiary_threat",  "Confidential", "Forest","Savanna", "Shrubland", "Grassland", "Wetland_Inland", "Rocky_areas", "Caves", "Desert")]
 
 df<-merge(merge(temp,body4[,c(2:4)], by="ID", all=TRUE), merge(LPI, pop, by="ID", all=TRUE),by="ID", all=TRUE)
 
@@ -146,11 +146,12 @@ source("rsquaredglmm.R")
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
   msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
 
-  msAICc$model<-rownames(msAICc)
-  msAICc<-data.frame(msAICc)
-  msAICc
+  msAIC<-msAICc
+  msAIC$model<-rownames(msAICc)
+  msAIC<-data.frame(msAIC)
+  msAIC
   
-  ((10^msAICc[,c(1:5)]) - 1)*100
+  ((10^msAIC[,c(1:5)]) - 1)*100
   
 
   mAIC<-AIC(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
@@ -166,10 +167,12 @@ source("rsquaredglmm.R")
   modelsRsq
     
   library(MuMIn)
-  var_imp<-summary(model.avg(models_list))
+  var_imp<-summary(model.avg(msAICc))
 
-  mav<-model.avg(models_list, subset =  cumsum(weight) <= .95)
+  
+  mav<-model.avg(msAICc, subset =  cumsum(weight) <= .95)
 
+  mav_aic6<-model.avg(msAICc, subset =  delta < 6)
   
   smav<-summary(mav)
   
@@ -183,6 +186,7 @@ source("rsquaredglmm.R")
   coef_pcnt<-data.frame(((10^coef_df) - 1)*100)
   coef_pcnt
 
+  
 
   coef_pcnt$Var_name<-rownames(coef_pcnt)
 
@@ -200,12 +204,49 @@ coef_pcnt$var_name <- factor(coef_pcnt$Var_name, levels = coef_pcnt$Var_name[ord
   print(p1)
   
   
-#coef_pcnt$Class<-"Birds"  
-coef_pcnt$Class<-"Mammals"  
-
-#coef_pcntb<-coef_pcnt
-coef_pcntm<-coef_pcnt  
-
+  #coef_pcnt$Class<-"Birds"  
+  coef_pcnt$Class<-"Mammals"  
+  
+  #coef_pcntb<-coef_pcnt
+  coef_pcntm<-coef_pcnt  
+  
+  
+  
+  smav6<-summary(mav_aic6)
+  
+  coef_av6<-smav6$coefmat.subset[,"Estimate"]
+  coef_df6<-data.frame(coef_av6)
+  coef_df6$lowCI<-confint(mav_aic6)[,1]
+  coef_df6$highCI<-confint(mav_aic6)[,2]
+  coef_df6
+  
+  
+  coef_pcnt6<-data.frame(((10^coef_df6) - 1)*100)
+  coef_pcnt6
+  
+  coef_pcnt6$Var_name<-rownames(coef_pcnt6)
+  
+  library(coefplot)
+  library(ggplot2)
+  
+  coef_pcnt6$val<-1:6
+  coef_pcnt6$var_name <- factor(coef_pcnt6$Var_name, levels = coef_pcnt6$Var_name[order(coef_pcnt6$val)])
+  
+  p16<-ggplot(coef_pcnt6)
+  p16<- p16 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
+  p16<- p16 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=1.5, position = position_dodge(width=1/2))
+  p16<- p16 + geom_pointrange(aes(x= Var_name, y=coef_av6, ymin=lowCI, ymax=highCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
+  p16<- p16 + scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 5, 0, 0), "mm")))
+  print(p16)
+  
+  
+  #coef_pcnt$Class<-"Birds"  
+  coef_pcnt6$Class<-"Mammals"  
+  
+  #coef_pcntb<-coef_pcnt
+  coef_pcntm6<-coef_pcnt6
+  
+  
 
 #####Birds
 
@@ -316,11 +357,12 @@ library(MuMIn)
 msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
 msAICc <- model.sel(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
 
-msAICc$model<-rownames(msAICc)
-msAICc<-data.frame(msAICc)
-msAICc
+msAIC<-msAICc
+msAIC$model<-rownames(msAICc)
+msAIC<-data.frame(msAIC)
+msAIC
 
-((10^msAICc[,c(1:5)]) - 1)*100
+((10^msAIC[,c(1:5)]) - 1)*100
 
 AIC(m0,m0a,m0b,m0c,m1,m1a,m1b,m1c,mnull)
 AIC(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
@@ -328,21 +370,19 @@ AIC(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1b
 #Rsq
 models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull)
 models_list<-list(m0,m0a,m0b,m0c,m0d,m1,m1a,m1b,m1c,mnull,m0f,m0af,m0bf,m0cf,m0df,m1f,m1af,m1bf,m1cf)
-#models_list<-list(m0,m0r,m0f,m0a,m0ar,m0af,m0b,m0br,m0bf,m0c,m0cr,m0cf,m0d,m0dr,m0df,m1,m1r,m1f,m1a,m1ar,m1af,m1b,m1br,m1bf,m1c,m1cr,m1cf,mnull)
 
-#models_list<-list(m1,m1a,m1b,m1c,mnull)
 modelsR<-lapply(models_list,rsquared.glmm)
 modelsRsq <- matrix(unlist(modelsR), ncol=6, byrow=T)
-rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull")
 rownames(modelsRsq)<-c("m0","m0a","m0b","m0c","m0d","m1","m1a","m1b","m1c","mnull","m0f","m0af","m0bf","m0cf","m0df","m1f","m1af","m1bf","m1cf")
 modelsRsq
 
 library(MuMIn)
-var_imp<-summary(model.avg(models_list))
+var_imp<-summary(model.avg(msAICc))
 
-#mav<-model.avg(models_list, subset = cumsum(weight) <= 0.95)
-mav<-model.avg(models_list, subset =  cumsum(weight) <= .95)
-#mav<-model.avg(models_list, subset =  delta < 6)
+
+mav<-model.avg(msAICc, subset =  cumsum(weight) <= .95)
+
+mav_aic6<-model.avg(msAICc, subset =  delta < 6)
 
 smav<-summary(mav)
 
@@ -380,10 +420,44 @@ coef_pcnt$Class<-"Birds"
 coef_pcntb<-coef_pcnt
 #coef_pcntm<-coef_pcnt  
 
+smav6<-summary(mav_aic6)
 
+coef_av6<-smav6$coefmat.subset[,"Estimate"]
+coef_df6<-data.frame(coef_av6)
+coef_df6$lowCI<-confint(mav_aic6)[,1]
+coef_df6$highCI<-confint(mav_aic6)[,2]
+coef_df6
+
+
+coef_pcnt6<-data.frame(((10^coef_df6) - 1)*100)
+coef_pcnt6
+
+coef_pcnt6$Var_name<-rownames(coef_pcnt6)
+
+library(coefplot)
+library(ggplot2)
+
+coef_pcnt6$val<-1:6
+coef_pcnt6$var_name <- factor(coef_pcnt6$Var_name, levels = coef_pcnt6$Var_name[order(coef_pcnt6$val)])
+
+p16<-ggplot(coef_pcnt6)
+p16<- p16 + geom_hline(yintercept = 0, colour=gray(1/2), lty=2)
+p16<- p16 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=1.5, position = position_dodge(width=1/2))
+p16<- p16 + geom_pointrange(aes(x= Var_name, y=coef_av6, ymin=lowCI, ymax=highCI), lwd=1, position=position_dodge(width=1/2), shape=21, fill="White")
+p16<- p16 + scale_y_continuous(breaks=seq(-8, 4, 2)) +theme_bw() + labs(y = "Annual Population Change (%)", x = "Variable") + theme(legend.title=element_blank(), text = element_text(size=20),axis.title.x = element_text(margin = unit(c(5, 5, 0, 0), "mm")))
+print(p16)
+
+
+coef_pcnt6$Class<-"Birds"  
+#coef_pcnt$Class<-"Mammals"  
+
+coef_pcntb6<-coef_pcnt6
+#coef_pcntm<-coef_pcnt
 
 
 coef_both<-rbind(coef_pcntb[,c(1,2,3,4,7)], coef_pcntm[,c(1,2,3,4,7)])
+
+coef_both6<-rbind(coef_pcntb6[,c(1,2,3,4,7)], coef_pcntm6[,c(1,2,3,4,7)])
 
 coef_both$Var_name
 coef_both$Var_name[coef_both$Var_name == "(Intercept)"] <- "aIntercept"
@@ -393,16 +467,33 @@ coef_both$Var_name[coef_both$Var_name == "change_rate_scale:mean_slope_scale"] <
 coef_both$Var_name[coef_both$Var_name == "Bodymass_scale"] <- "eBM"
 coef_both$Var_name[coef_both$Var_name == "Protected_statues"] <- "fPA"
 
-write.csv(coef_both, "Model_Average_coefs_extended.csv")
+
+coef_both6$Var_name
+coef_both6$Var_name[coef_both6$Var_name == "(Intercept)"] <- "aIntercept"
+coef_both6$Var_name[coef_both6$Var_name == "mean_slope_scale"] <- "bMTC"
+coef_both6$Var_name[coef_both6$Var_name == "change_rate_scale"] <- "cLUC"
+coef_both6$Var_name[coef_both6$Var_name == "change_rate_scale:mean_slope_scale"] <- "dMTC*LUC"
+coef_both6$Var_name[coef_both6$Var_name == "Bodymass_scale"] <- "eBM"
+coef_both6$Var_name[coef_both6$Var_name == "Protected_statues"] <- "fPA"
+
+
+#write.csv(coef_both, "Model_Average_coefs_No_Atlantic_Forest.csv")
+
+#write.csv(coef_both, "Model_Average_coefs_aic6.csv")
 #write.csv(coef_both, "Model_Average_coefs4.csv")
-#coef_both<-read.csv("Model_Average_coefs4.csv")
-coef_both<-read.csv("Model_Average_coefs_extended.csv")
+coef_both<-read.csv("Model_Average_coefs4.csv")
+#coef_both<-read.csv("Model_Average_coefs_No_Atlantic_Forest.csv")
+coef_both6<-read.csv("Model_Average_coefs_aic6.csv")
+
+
+
+
 # coef_old<-coef_both
 
 library(ggplot2)
-p1<-ggplot(coef_both, aes(colour=Class))
+p1<-ggplot(coef_both6, aes(colour=Class))
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
-p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
+p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av6, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
 p1<- p1 + scale_y_continuous(breaks=seq(-10, 14, 4), limits=(c(-10,15)))
 p1<-p1 + theme_bw() + labs(y = "Population Change (%)", x = "")
 p1<- p1 + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
@@ -415,6 +506,27 @@ p1<- p1+ geom_vline(xintercept = 1.5, linetype=2)
 print(p1)
 
 ((10^msAICc[,1:5])-1)*100
+
+
+coef_diff<-data.frame((coef_both$coef_av - coef_both6$coef_av6),(coef_both$lowCI - coef_both6$lowCI),  (coef_both$highCI - coef_both6$highCI), coef_both$Var_name, coef_both$Class)
+colnames(coef_diff)<-colnames(coef_both)
+
+
+library(ggplot2)
+p1<-ggplot(coef_diff, aes(colour=Class))
+p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
+p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
+#p1<- p1 + scale_y_continuous(breaks=seq(-10, 14, 4), limits=(c(-10,15)))
+p1<-p1 + theme_bw() + labs(y = "Population Change (%)", x = "")
+p1<- p1 + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
+p1<- p1 + scale_color_manual(values=c("black", "black"))
+p1<-p1 + theme_bw() 
+p1<-p1+theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p1<- p1+ geom_hline(yintercept = 0, linetype=2)
+p1<- p1+ geom_vline(xintercept = 1.5, linetype=2)
+print(p1)
+
 
 
 library(ggplot2)

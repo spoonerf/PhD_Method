@@ -99,7 +99,6 @@ nrow(dt)
 
 source("rsquaredglmm.R")
 
-library(lme4) 
 
 library(lme4) 
 
@@ -181,7 +180,7 @@ coef_pcnt<-data.frame(((10^coef_df) - 1)*100)
 coef_pcnt
 
 
-coef_pcnt$Var_name<-rownames(coef_pcnt)
+coef_pcnt$Var_name<-c("Intercept", "RCW", "PA", "BM", "RCA", "RCA:RCW", "Diet-Invert", "Diet-Omni", "Diet-Herb", "Diet-Carni")
 
 
 library(coefplot)
@@ -345,7 +344,7 @@ coef_pcnt<-data.frame(((10^coef_df) - 1)*100)
 coef_pcnt
 
 
-coef_pcnt$Var_name<-rownames(coef_pcnt)
+coef_pcnt$Var_name<-c("Intercept", "RCA", "RCW", "RCA:RCW", "BM", "PA", "Herbivore", "Omnivore")
 
 
 library(coefplot)
