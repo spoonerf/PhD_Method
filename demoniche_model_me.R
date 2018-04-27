@@ -105,8 +105,8 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                                                        transition_affected_env = BEMDEM$transition_affected_env, 
                                                                        env_stochas_type = BEMDEM$env_stochas_type, 
                                                                        yx_tx = yx_tx)
-              print(px)
-              print(tx)
+              #print(px)
+              #print(tx)
             }
           }
           metapop_results[yx_tx, mx, rx] <- length(intersect(which(colSums(Projection[yx, , , tx]) > 1), n0s_ID))

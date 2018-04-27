@@ -42,6 +42,9 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
   }
   n <- as.vector(A %*% n)    #n is the number of ibex in each stage of the matrix - a row from n0s which is all of the populations - here it is multipled by the matrix
   n <- floor(n)
+  ###me
+  n[is.na(n)]<-0
+  ###
   if (sum(n) > 0) {
     if (is.numeric(populationmax)) {
       if (sum(n * Kweight) > populationmax) {
