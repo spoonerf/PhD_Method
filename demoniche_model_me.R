@@ -93,7 +93,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
               n <- as.vector(n0s[px, ])
               populationmax <- BEMDEM$populationmax_all[n0s_ID[px], 
                                                         tx]
-              Projection[yx, , n0s_ID[px], tx] <- demoniche_population_me(Matrix_projection = Matrix_projection, 
+              Projection[yx, , n0s_ID[px], tx] <- demoniche_population(Matrix_projection = Matrix_projection, 
                                                                        Matrix_projection_var = Matrix_projection_var, 
                                                                        n = n, populationmax = populationmax, 
                                                                        onepopulation_Niche = population_Niche_short[px], 
