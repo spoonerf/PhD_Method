@@ -93,7 +93,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
               n <- as.vector(n0s[px, ])
               populationmax <- BEMDEM$populationmax_all[n0s_ID[px], 
                                                         tx]
-              Projection[yx, , n0s_ID[px], tx] <- demoniche_population_me(Matrix_projection = Matrix_projection, 
+              Projection[yx, , n0s_ID[px], tx] <- demoniche_population(Matrix_projection = Matrix_projection, 
                                                                        Matrix_projection_var = Matrix_projection_var, 
                                                                        n = n, populationmax = populationmax, 
                                                                        onepopulation_Niche = population_Niche_short[px], 
@@ -105,8 +105,8 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                                                        transition_affected_env = BEMDEM$transition_affected_env, 
                                                                        env_stochas_type = BEMDEM$env_stochas_type, 
                                                                        yx_tx = yx_tx)
-              print(px)
-              print(tx)
+              #print(px)
+              #print(tx)
             }
           }
           metapop_results[yx_tx, mx, rx] <- length(intersect(which(colSums(Projection[yx, , , tx]) > 1), n0s_ID))
