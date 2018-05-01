@@ -742,8 +742,6 @@ plot(min(spin_years):max(years),colMeans(na.omit(niche_spin_up)[4:length(colname
 opt_patch_spin_up<-patch_spin_up
 opt_patch_spin_up[,4:704]<-1
 
-plot(min(spin_years):max(years),colMeans(na.omit(opt_patch_spin_up)[min(spin_years):max(years),]), type="l", ylab="Mean suitability index")
-
 
 # niche_map_mine<-na.omit(niche_map_mine)
 # patch_map_mine<-na.omit(patch_map_mine)
@@ -867,7 +865,7 @@ Changed the demoniche_setup function (now demoniche_setup_me.R) to change the di
 
 reps<-12
 
-for (s in 6:nrow(var_grid)){
+for (s in 34:nrow(var_grid)){
 
   print(paste (s, " out of ", nrow(var_grid) ), sep="")
 
@@ -884,7 +882,7 @@ for (s in 6:nrow(var_grid)){
   start.time <- Sys.time()
   
   med_disp<-as.character(kern_mat[kern,1]) #this should be 2?
-  dir.create(paste(demoniche_folder,"/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,sep=""),showWarnings = TRUE)
+  dir.create(paste(demoniche_folder,"/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
 
 
 
@@ -904,13 +902,13 @@ rep_demoniche<-function(i){
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
-                  no_yrs = no_yrs_mine, K=link_spin[1], Kweight = K_weight, Ktype="ceiling",
+                  no_yrs = no_yrs_mine, K=link_spin[link_id], Kweight = K_weight, Ktype="ceiling",
                   sumweight =sumweight)
 
 
 c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste(binomial,"/Demoniche_Output/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, sep = ""))
+                                     foldername = paste(binomial,"/Demoniche_Output/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
  }
 
 if (Sys.info()["nodename"] == "FIONA-PC"){
