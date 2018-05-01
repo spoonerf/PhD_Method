@@ -832,11 +832,11 @@ link2<-lin(hsi, carry_k[2])
 link3<-lin(hsi, carry_k[3])
 #sigk<-sig(hsi)
 #ltk<-lt(hsi)
-
-spin<-replicate(length(spin_years),link[,1])
-link_spin<-cbind(spin, link)
-colnames(link_spin)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
-
+# 
+# spin<-replicate(length(spin_years),link[,1])
+# link_spin<-cbind(spin, link)
+# colnames(link_spin)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
+# 
 
 spin1<-replicate(length(spin_years),link1[,1])
 link_spin1<-cbind(spin1, link1)
@@ -865,7 +865,7 @@ Changed the demoniche_setup function (now demoniche_setup_me.R) to change the di
 
 reps<-12
 
-for (s in 34:nrow(var_grid)){
+for (s in 1:nrow(var_grid)){
 
   print(paste (s, " out of ", nrow(var_grid) ), sep="")
 
@@ -881,7 +881,7 @@ for (s in 34:nrow(var_grid)){
 
   start.time <- Sys.time()
   
-  med_disp<-as.character(kern_mat[kern,1]) #this should be 2?
+  med_disp<-as.character(kern_seq[[kern]][1]) 
   dir.create(paste(demoniche_folder,"/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
 
 
