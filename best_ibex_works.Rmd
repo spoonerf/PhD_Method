@@ -273,6 +273,7 @@ all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
 all_years<-stack(paste(wd, "/Bioclim/Global/",lf[first:last], sep=""))
 }
 
+
 bios<-seq(1,nlayers(all_years), by=19)
 cellStats(all_years[[bios]], stat="mean")
 #creating a 1985-2016 average of each bioclim variable
@@ -291,6 +292,23 @@ for (i in 1:19){
 #pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 ```
 
+
+```{r}
+hyde<-stack(paste(wd,"/Hyde_Interpolated.tif", sep=""))
+#hyde<-crop(hyde, all_years)
+names(hyde)<-paste("Hyde_Year", 1950:2005, sep="_")
+
+hyde_resample<-raster:::resample(hyde, all_years)
+
+for (i in 1:nlayers(hyde_resample)){
+  
+  writeRaster(hyde_resample[[i]], paste(wd,"/hyde/", names(hyde_resample)[i], ".tif",sep=""))
+  print(i)
+  
+}
+
+```
+
 Selecting out the bioclim layers I'm interested in:
 
 ```{r Stacking bioclim layers}
@@ -300,6 +318,8 @@ pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bioclim_layers,"_2006_2016_average.tif
 } else {
 pred_nf<-stack(paste(wd, "/Bioclim/Global/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
 }
+
+pred_nf<-stack(pred_nf, hyde_resample[[56]])
 
 pred_crop<-crop(pred_nf, e_big)
 # e_nor<-extent(0,120,50,80)
@@ -497,7 +517,7 @@ plot(models)
 #cols <-colorspace::terrain_hcl(10, c=c(65,0), l=c(45,95), power=c(1/3,1.5))
 
 
-
+library(RColorBrewer)
 cols <-brewer.pal(10, "YlGn")
 breakpoints<-seq(0.1,1,by=0.1)
 plot(models[[1]],axes=FALSE,legend=TRUE,main =names(models[[1]]),  col=cols, breaks=breakpoints) 
@@ -512,7 +532,7 @@ maps:::map('world', xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]), add=T)
 
 auc<-c(bc_auc, gam_auc, rf_auc)
 w <- (auc-0.5)^2
-wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
+wm <- weighted.mean( models[[c("Bioclim", "GAM", "Random.Forest")]], w)
 
 
 plot(wm, main="Ensemble model",axes=FALSE,legend=TRUE, col=cols, breaks=breakpoints)
@@ -550,7 +570,10 @@ for (i in 1:length(years)){
   pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))
   pred_nf<-pred_nf[[bioclim_layers]]
   names(pred_nf)<-bioclim_names
-
+  hyde_yr<-raster(paste(wd, "/hyde/Hyde_Year_", years[i], ".tif",sep=""))
+  names(hyde_yr)<-"Hyde_Year_2005"
+  pred_nf<-stack(pred_nf, hyde_yr)
+  
   pb <- predict(pred_nf, bc, ext=e_big, progress='')
   pg <- predict(pred_nf, gm1, ext=e_big) #gam predict
   pgl<-raster:::calc(pg, fun=function(x){ exp(x)/(1+exp(x))})
@@ -562,8 +585,8 @@ for (i in 1:length(years)){
 
   pa_sss<-wm>thresh
 
- writeRaster(wm , paste(sdm_folder, "/weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
- writeRaster(pa_sss , paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+ writeRaster(wm , paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
+ writeRaster(pa_sss , paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
 
   plot(pa_sss, main=years[i])
 }
@@ -575,11 +598,13 @@ for (i in 1:length(years)){
 ```{r}
 
 t<-stack(paste(sdm_folder, "/weighted_ensemble_sdm_", years,".tif", sep=""))
+t<-stack(paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,nlayers(t),len=16))
 
 plot(t[[s]])
 
 patch<-stack(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch[[s]])
 #patch<-projectRaster(patch, crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
 
