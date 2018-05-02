@@ -865,7 +865,7 @@ Changed the demoniche_setup function (now demoniche_setup_me.R) to change the di
 
 reps<-12
 
-for (s in 34:nrow(var_grid)){
+for (s in 1:nrow(var_grid)){
 
   print(paste (s, " out of ", nrow(var_grid) ), sep="")
 
