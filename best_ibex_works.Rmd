@@ -832,11 +832,11 @@ link2<-lin(hsi, carry_k[2])
 link3<-lin(hsi, carry_k[3])
 #sigk<-sig(hsi)
 #ltk<-lt(hsi)
-
-spin<-replicate(length(spin_years),link[,1])
-link_spin<-cbind(spin, link)
-colnames(link_spin)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
-
+# 
+# spin<-replicate(length(spin_years),link[,1])
+# link_spin<-cbind(spin, link)
+# colnames(link_spin)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
+# 
 
 spin1<-replicate(length(spin_years),link1[,1])
 link_spin1<-cbind(spin1, link1)
@@ -873,6 +873,8 @@ for (s in 1:nrow(var_grid)){
   LDD<-var_grid[s,"LDD"]
   kern<-var_grid[s, "Kern"]
   SD<-var_grid[s, "SD"]
+  SD<-0.1
+  
   K<-var_grid[s, "K"]
   dens<-var_grid[s, "Density"]
   link_id<-var_grid[s, "K_scale"]
@@ -881,7 +883,7 @@ for (s in 1:nrow(var_grid)){
 
   start.time <- Sys.time()
   
-  med_disp<-as.character(kern_mat[kern,1]) #this should be 2?
+  med_disp<-as.character(kern_seq[[kern]][1]) 
   dir.create(paste(demoniche_folder,"/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
 
 
@@ -892,12 +894,12 @@ rep_demoniche<-function(i){
   source("demoniche_setup_me.R")
   source("demoniche_model_me.R")
   source("demoniche_dispersal_me.R")
- demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = niche_spin_up,
+ demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = dens,
                   fraction_LDD = LDD, fraction_SDD = SDD,
-                dispersal_constants = kern_mat[kern,],
+                dispersal_constants = kern_seq[[kern]],
                 transition_affected_niche = transition_affected_niche,
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
