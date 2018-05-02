@@ -73,7 +73,7 @@ hyde_interp<-calc(s, fun = na.approx)
 
 names(hyde_interp)<-paste("Year_", 1950:2005, sep="")
 
-writeRaster(hyde_interp, "Hyde_Interpolated.tif")
+writeRaster(hyde_interp, "Hyde_Interpolated.tif", overwrite=TRUE)
 
 
 
