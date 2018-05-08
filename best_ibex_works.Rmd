@@ -256,7 +256,7 @@ Creating the 2006-2016 average for each bioclim variable and then selecting out 
 
 Snow depth seems to be an important predictor for alpine ibex but I have struggled to find historical data on this. Existing papers are based on historical data from one weather station, which means there is no spatial variation and therefore it is not appropriate for these models.
 
-```{r Creating 2006-2016 bioclim average,cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
 if (Europe_only){
 lf<-list.files(paste(wd, "/Bioclim/", sep=""))
@@ -273,6 +273,9 @@ all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
 all_years<-stack(paste(wd, "/Bioclim/Global/",lf[first:last], sep=""))
 }
 
+```
+
+```{r Creating 2006-2016 bioclim average,cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE} 
 
 bios<-seq(1,nlayers(all_years), by=19)
 cellStats(all_years[[bios]], stat="mean")
@@ -293,7 +296,7 @@ for (i in 1:19){
 ```
 
 
-```{r}
+```{r cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 hyde<-stack(paste(wd,"/Hyde_Interpolated.tif", sep=""))
 #hyde<-crop(hyde, all_years)
 names(hyde)<-paste("Hyde_Year", 1950:2005, sep="_")
@@ -656,17 +659,36 @@ Formatting the LPI population data for use in Demoniche, they start as the "seed
 
 pyr<-subset(lpi, Binomial ==binomial & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
 
-#formatting the data for use in demoniche
+#formatting the lpi data for use in demoniche
 pyrs<-pyr[,c("ID","Longitude","Latitude")]
 pyrs$ID<-pyrs$ID * 100
-xy<-data.frame(pyrs$Longitude, pyrs$Latitude)
-coordinates(xy)<-c("pyrs.Longitude", "pyrs.Latitude")
-proj4string(xy) <- CRS("+init=epsg:4326") # WGS 84
-#CRS.new <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
-#xy <- spTransform(xy, CRS.new)
-xy<-data.frame(xy)
-Populations<-data.frame(pyrs$ID, xy$pyrs.Longitude, xy$pyrs.Latitude)
-colnames(Populations)<-c("PatchID", "X", "Y")
+xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
+
+#formatting the gbif data for use in demoniche
+
+gbif_xy<-data.frame(xy$V1, xy$V2)
+coordinates(gbif_xy)<-c("xy.V1","xy.V2")
+proj4string(gbif_xy)<- CRS("+init=epsg:4326")
+gbif_xy<-raster:::rasterize(gbif_xy, patch)
+gbif_xy<-as.data.frame(gbif_xy, xy=TRUE)
+gbif_xy<-na.omit(gbif_xy)
+gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
+gbif_xy<-gbif_xy[,c("ID", "x", "y")]
+colnames(gbif_xy)<-c("ID", "Longitude", "Latitude")
+
+# coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
+# proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
+# xy_lpi<-data.frame(xy_lpi)
+
+
+Populations_lpi<-data.frame(pyrs$ID, xy_lpi$pyrs.Longitude, xy_lpi$pyrs.Latitude)
+colnames(Populations_lpi)<-c("PatchID", "X", "Y")
+
+Populations_gbif<-data.frame(gbif_xy$ID, gbif_xy$Longitude, gbif_xy$Latitude)
+colnames(Populations_gbif)<-c("PatchID", "X", "Y")
+
+Populations<-rbind(Populations_lpi, Populations_gbif)
+
 Populations$area<-1
 pop_years<-pyr[,65:130]
 pop_years[pop_years == "NULL"]<-NA
@@ -684,7 +706,6 @@ density_mine<-as.numeric(pop_values)
 id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-wd<-getwd()
 sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 r<-raster(e2, resolution=res(sdm))
@@ -848,20 +869,12 @@ lf<-list.files(sdm_folder)
 files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
 
 sdms<-stack(paste(sdm_folder, files, sep="/"))
-#sdms<-projectRaster(sdms, crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
 
 hsi<-raster:::extract(sdms, Populations[,c(2,3)])
 
 link1<-lin(hsi, carry_k[1])
 link2<-lin(hsi, carry_k[2])
 link3<-lin(hsi, carry_k[3])
-#sigk<-sig(hsi)
-#ltk<-lt(hsi)
-# 
-# spin<-replicate(length(spin_years),link[,1])
-# link_spin<-cbind(spin, link)
-# colnames(link_spin)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
-# 
 
 spin1<-replicate(length(spin_years),link1[,1])
 link_spin1<-cbind(spin1, link1)
@@ -911,8 +924,6 @@ for (s in 1:nrow(var_grid)){
   med_disp<-as.character(kern_seq[[kern]][1]) 
   dir.create(paste(demoniche_folder,"/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
 
-
-
 rep_demoniche<-function(i){
   library(demoniche)
   library(doParallel)
@@ -930,7 +941,7 @@ rep_demoniche<-function(i){
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
                   no_yrs = no_yrs_mine, K=link_spin[link_id], Kweight = K_weight, Ktype="ceiling",
-                  sumweight =sumweight)
+                  sumweight = sumweight)
 
 
 c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
