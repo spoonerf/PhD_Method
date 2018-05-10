@@ -54,13 +54,13 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
             Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
                                                              1], (BEMDEM$matrices_var[, 1]))
         }
-      } 
-      else {
+      } else {
         Matrix_projection_var <- FALSE
       }
       prev_mx <- rep(1, times = yrs_total + 1)
       for (tx in 1:length(BEMDEM$years_projections)) {
-        if (Niche == TRUE) {
+        print(tx)
+         if (Niche == TRUE) {
           population_Niche <- BEMDEM$Niche_values[, tx]
         }
         for (yx in 1:BEMDEM$no_yrs) {
@@ -72,13 +72,20 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                               0)
           } else {
             if (tx != 1 && yx == 1) {
+              ###added by me###
+              Projection[BEMDEM$no_yrs, , , tx - 1][is.na(Projection[BEMDEM$no_yrs, , , tx - 1])]<-0
+              ######
+              
               n0s <- t(Projection[BEMDEM$no_yrs, , colSums(Projection[BEMDEM$no_yrs, 
                                                                       , , tx - 1]) > 0, tx - 1])
               n0s_ID <- which(colSums(Projection[BEMDEM$no_yrs, 
                                                  , , tx - 1]) > 0)
-              BEMDEM$Niche_ID[colSums(Projection[BEMDEM$no_yrs, 
-                                                 , , tx - 1]) > 0, 2]
-            } else {
+              
+              #BEMDEM$Niche_ID[colSums(Projection[BEMDEM$no_yrs, 
+                                       #          , , tx - 1]) > 0, 2]
+
+               #never this one vv - used when the time period is not 1 year
+              } else {
               n0s <- t(Projection[yx - 1, , colSums(Projection[yx - 
                                                                  1, , , tx]) > 0, tx])
               n0s_ID <- which(colSums(Projection[yx - 
@@ -90,10 +97,14 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
           population_Niche_short <- population_Niche[n0s_ID]
           if (nrow(n0s) > 0) {
             for (px in 1:nrow(n0s)) {
+             print(paste("Population ", px, sep=""))
               n <- as.vector(n0s[px, ])
               populationmax <- BEMDEM$populationmax_all[n0s_ID[px], 
                                                         tx]
-              Projection[yx, , n0s_ID[px], tx] <- demoniche_population(Matrix_projection = Matrix_projection, 
+              #added by FS
+              populationmax[is.na(populationmax)]<-min(BEMDEM$populationmax_all)
+              ##
+              Projection[yx, , n0s_ID[px], tx] <- demoniche_population_me(Matrix_projection = Matrix_projection, 
                                                                        Matrix_projection_var = Matrix_projection_var, 
                                                                        n = n, populationmax = populationmax, 
                                                                        onepopulation_Niche = population_Niche_short[px], 
@@ -112,7 +123,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
           metapop_results[yx_tx, mx, rx] <- length(intersect(which(colSums(Projection[yx, , , tx]) > 1), n0s_ID))
           
           ###added in by me - rogue NAs appearing
-          Projection[yx, 1, , tx][is.na(Projection[yx, 1, , tx])] <-0
+          #Projection[yx, 1, , tx][is.na(Projection[yx, 1, , tx])] <-0
           ###
           
           if (sum(Projection[yx, 1, , tx]) > 0) {
@@ -122,6 +133,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                                         tx]
               }
               source("demoniche_dispersal_me.R")
+              print(paste("Dispersal ", tx, sep=""))
               disp <- demoniche_dispersal_me(seeds_per_population = Projection[yx,
                                                                                , , tx], fraction_LDD = BEMDEM$fraction_LDD,
                                              dispersal_probabilities = BEMDEM$dispersal_probabilities,

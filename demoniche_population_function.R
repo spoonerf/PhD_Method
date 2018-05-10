@@ -34,17 +34,18 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
               byrow = FALSE)
   Atest <- A
   Atest[1, ][-1] <- 0   #getting fertility values 
-  if (sum(colSums(Atest) > 1)) {      #picking out fertility scores higher than 1 
+  if (sum(colSums(Atest) > 1)) {      #picking out survival scores higher than 1 
     for (zerox in which(colSums(Atest) > 1)) {
       Atest[, zerox] <- Atest[, zerox]/sum(Atest[, zerox])
     }
     A[-1, ] <- Atest[-1, ] #changing survival values
   }
+  ##me
+  n[is.na(n)]<-0
+  ##
   n <- as.vector(A %*% n)    #n is the number of ibex in each stage of the matrix - a row from n0s which is all of the populations - here it is multipled by the matrix
   n <- floor(n)
-  ###me
-  n[is.na(n)]<-0
-  ###
+
   if (sum(n) > 0) {
     if (is.numeric(populationmax)) {
       if (sum(n * Kweight) > populationmax) {

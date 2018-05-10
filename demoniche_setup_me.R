@@ -74,13 +74,12 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
     #                         longlat = FALSE) == min(spDistsN1(as.matrix(Nichemap[,
     #                                                                              2:3], ncol = 2), matrix(as.numeric(Populations[pxs,
     #                                                                                                                             2:3]), ncol = 2), longlat = FALSE)))
-
          rows <- which(spDistsN1(as.matrix(Nichemap[, 2:3], ncol = 2),
              matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2),
              longlat = TRUE) == min(spDistsN1(as.matrix(Nichemap[,
              2:3], ncol = 2), matrix(as.numeric(Populations[pxs,
              2:3]), ncol = 2), longlat = TRUE)))
-
+         
     Niche_ID[rows, 4] <- Populations[pxs, 1]
     n0_all[rows[1], ] <- n0_all[rows[1], ] + (Populations[pxs,
                                                           4] * proportion_initial * density_individuals[pxs])
@@ -118,8 +117,9 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
   if (length(dim(K)) == 2) {
     populationmax_all[, ] <- matrix(colMeans(K), ncol = length(years_projections),
                                     nrow = nrow(Nichemap), byrow = TRUE)
-    populationmax_all[rowSums(n0_all) > 0, ] <- K
+    populationmax_all[rowSums(n0_all) > 0, ] <- K #NA in rowsums where there shouldn't be
   }
+  
   if (is.null(K)) {
     populationmax_all <- matrix("no_K", ncol = length(years_projections),
                                 nrow = nrow(Nichemap))
@@ -141,12 +141,12 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
   }
   
 #next 7 lines are new
-scale_ldd<-function(x){
-  dispersal_probs<-dispersal_probabilities[x, ]/sum(dispersal_probabilities[x, ])
-return(dispersal_probs)
-  }
-rep_scale_ldd<-lapply(1:nrow(dispersal_probabilities), scale_ldd)
-dispersal_probabilities<-do.call(rbind,rep_scale_ldd)
+  scale_ldd<-function(x){
+    dispersal_probs<-dispersal_probabilities[x, ]/sum(dispersal_probabilities[x, ])
+    return(dispersal_probs)
+    }
+  rep_scale_ldd<-lapply(1:nrow(dispersal_probabilities), scale_ldd)
+  dispersal_probabilities<-do.call(rbind,rep_scale_ldd)
 
   dist_latlong <- round(as.matrix(dist(Niche_ID[, 2:3])), 1)
   neigh_index <- sort(unique(as.numeric(dist_latlong)))[2:3] #distance two closest cells
