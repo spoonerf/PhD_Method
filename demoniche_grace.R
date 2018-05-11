@@ -31,7 +31,7 @@ transition_affected_demogr <- "all"
 env_stochas_type<-"normal"   #can also be lognormal
 
 density_individuals <- c(1250, 2671, 5000)  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha -
-carry_k<-c(1250, 2500, 5000)
+carry_k<-c(5000)
 
 #Things to vary
 SDD_seq<-c(0.1, 0.25, 0.5)
@@ -68,11 +68,15 @@ pyrs<-pyr[,c("ID","Longitude","Latitude")]
 pyrs$ID<-pyrs$ID * 100
 xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
 
+xy<-read.csv(paste(wd, "/", binomial, "_locs.csv", sep=""))
+
 #formatting the gbif data for use in demoniche
 
 gbif_xy<-data.frame(xy$V1, xy$V2)
 coordinates(gbif_xy)<-c("xy.V1","xy.V2")
 proj4string(gbif_xy)<- CRS("+init=epsg:4326")
+patch<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+
 gbif_xy<-raster:::rasterize(gbif_xy, patch)
 gbif_xy<-as.data.frame(gbif_xy, xy=TRUE)
 gbif_xy<-na.omit(gbif_xy)
@@ -110,7 +114,7 @@ density_mine<-as.numeric(pop_values)
 id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 r<-raster(e2, resolution=res(sdm))
 rz<-rasterize(pyrxy,r,lam )
@@ -127,14 +131,14 @@ colnames(df)<-c( "PatchID","X","Y","area")
 
 
 ###formatting environmental data
-patch<-raster(paste(sdm_folder,"/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
 
 sdm_patch_df<-data.frame(ID=1:ncell(patch))
 sdm_df<-data.frame(ID=1:ncell(patch))
 
 for (i in 1:length(years)){
-  sdm<-raster(paste(sdm_folder,"/hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
-  patch<-raster(paste(sdm_folder,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  sdm<-raster(paste(wd,"/hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
 
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
@@ -208,11 +212,11 @@ lin<-function(x, carry_k){
   x*carry_k
 }
 
-lf<-list.files(sdm_folder)
+lf<-list.files(wd)
 
 files<-lf[grepl("^hyde_weighted_ensemble_sdm_.*.tif$", lf)]
 
-sdms<-stack(paste(files, sep="/"))
+sdms<-stack(paste(wd,files, sep="/"))
 
 hsi<-raster:::extract(sdms, Populations[,c(2,3)])
 
