@@ -73,6 +73,8 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
           } else {
             if (tx != 1 && yx == 1) {
               ###added by me###
+              paste(sum(is.na(Projection[BEMDEM$no_yrs, , , tx - 1]))," NAs")
+              
               Projection[BEMDEM$no_yrs, , , tx - 1][is.na(Projection[BEMDEM$no_yrs, , , tx - 1])]<-0
               ######
               

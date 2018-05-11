@@ -305,6 +305,8 @@ for (i in 1:nlayers(hyde_resample)){
 Selecting out the bioclim layers I'm interested in:
 
 ```{r Stacking bioclim layers}
+hyde_resample<-stack(paste(wd,"/hyde/Hyde_Year_", years, ".tif", sep = ""))
+
 #bioclim_layers<-c(3,10,12,13,18)
 if (Europe_only){
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
@@ -371,26 +373,26 @@ colnames(sp_test)<-c("lon", "lat")
 test<-rbind(sp_test, sp_backg_test)    #presence and background test points combined
 
 pb_train <- c(rep(1, nrow(sp_train)), rep(0, nrow(sp_backg_train)))
-envtrain <- extract(pred_nf, train)
+envtrain <- extract(pred_crop, train)
 envtrain <- data.frame( cbind(pa=pb_train, envtrain) ) #training points with environmental  variables
 
 envtrain<-na.omit(envtrain)
 
 pb_test<-c(rep(1, nrow(sp_test)), rep(0, nrow(sp_backg_test)))
-envtest <- extract(pred_nf, test)
+envtest <- extract(pred_crop, test)
 envtest <- data.frame( cbind(pa=pb_test, envtest) ) #test points with environmental  variables
 envtest<-na.omit(envtest)
 
 env_all<-rbind(envtrain, envtest) #all of the training and test data with environmental variables
 
-env_pres<-extract(pred_nf, sp)
+env_pres<-extract(pred_crop, sp)
 pa<-rep(1, nrow(env_pres))
 env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
 colnames(env_pres)<-c("pa", bioclim_names)
 env_pres_xy<-data.frame(sp@coords, env_pres)
 env_pres_xy<-na.omit(env_pres_xy)
 
-env_back<-extract(pred_nf, bg_pse)
+env_back<-extract(pred_crop, bg_pse)
 ap<-rep(0, nrow(env_back))
 env_back<-data.frame(ap, env_back) #background points with environmental variables
 colnames(env_back)<-c("pa",bioclim_names)

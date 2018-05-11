@@ -63,17 +63,20 @@ transition_affected_niche<-"all"  #which parts of the matrix are affected by the
 transition_affected_env <- "all"
 transition_affected_demogr <- "all"
 
-sd_seq<-0.5
-LDD_seq<-c(0.1)
+SD<-c(0.1,0.25, 0.5)
+SDD_seq<-c(0.1, 0.25, 0.5)
+LDD_seq<-c(0.1, 0.25, 0.5)
 kern_seq<-list(c(49.7,284.2),c(13.7, 89.4), c(1000,1000))   #first values is median derived from median home range and second value is maximum dispersal distance
 
-var_grid<-expand.grid(sd_seq, LDD_seq, kern_seq)
-colnames(var_grid)<-c("SD", "LDD", "Kern")
+density_mine<- c(500, 1000,1564)  
+carry_k<-1617
+
+var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine)
+colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density")
 
 kern_mat<-matrix(c(rep(c(49.7,284.2), (nrow(var_grid)/ncol(var_grid))),rep(c(13.7,89.4), (nrow(var_grid)/ncol(var_grid))),rep(c(1000,1000),(nrow(var_grid)/ncol(var_grid)))), ncol=2, byrow=T)
 
-density_mine<- 1564  
-carry_k<-1617
+
 
 # density_mine<- 3000  
 # carry_k<-3000
