@@ -11,6 +11,7 @@ library(popbio)
 source("demoniche_setup_me.R")
 source("demoniche_model_me.R")
 source("demoniche_dispersal_me.R")
+source("demoniche_population_function.R")
 
 genus<-"Capra"
 species<-"ibex"
@@ -48,7 +49,7 @@ colnames(var_grid)<-c("SDD", "LDD", "Kern", "SD", "K", "Density", "K_scale")
 binomial<-paste(genus, species, sep="_")
 
 years<-1950:2005 #can only go up to 2005 with hyde
-spin_years<-1750:1949
+spin_years<-1850:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -61,6 +62,10 @@ no_yrs_mine<-1
 prob_scenario<-c(0.5,0.5)    #need to check this
 noise<-0.90
 
+#formatting the lpi data for use in demoniche
+xy<-read.csv(paste(binomial, "_locs.csv", sep=""))
+patch<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+
 pyr<-subset(lpi, Binomial ==binomial & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
 
 #formatting the lpi data for use in demoniche
@@ -68,17 +73,24 @@ pyrs<-pyr[,c("ID","Longitude","Latitude")]
 pyrs$ID<-pyrs$ID * 100
 xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
 
-xy<-read.csv(paste(wd,"/",binomial, "_locs.csv", sep=""))
-
 #formatting the gbif data for use in demoniche
 
 gbif_xy<-data.frame(xy$V1, xy$V2)
 coordinates(gbif_xy)<-c("xy.V1","xy.V2")
 proj4string(gbif_xy)<- CRS("+init=epsg:4326")
-patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
-
 gbif_xy<-raster:::rasterize(gbif_xy, patch)
-gbif_xy<-as.data.frame(gbif_xy, xy=TRUE)
+values(gbif_xy)[values(!is.na(gbif_xy))]<-1
+
+coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
+proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
+lpi_xy<-raster:::rasterize(xy_lpi, patch)
+values(lpi_xy)[values(!is.na(lpi_xy))]<-1
+values(lpi_xy)[values(is.na(lpi_xy))]<-0
+
+gbif_xy2<-gbif_xy - lpi_xy
+values(gbif_xy2)[values(gbif_xy2==0)]<-NA
+
+gbif_xy<-as.data.frame(gbif_xy2, xy=TRUE)
 gbif_xy<-na.omit(gbif_xy)
 gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
 gbif_xy<-gbif_xy[,c("ID", "x", "y")]
@@ -103,12 +115,13 @@ first_year<-function(x){
 }
 pop_values<-apply(pop_years, 1, first_year)
 
-density_mine<-as.numeric(pop_values)
+#density_mine<-as.numeric(pop_values)
+
 
 id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
 e2<-extent(sdm)
 r<-raster(e2, resolution=res(sdm))
 rz<-rasterize(pyrxy,r,lam )
@@ -120,6 +133,8 @@ rzm<-as.vector(rz)
 ridm<-as.vector(rid)
 df<-data.frame(ridm,rz_spdf,rzm)
 colnames(df)<-c( "PatchID","X","Y","area")
+#df<-data.frame(na.omit(df))
+#Populations<-data.frame(na.omit(df))
 
 ###formatting environmental data
 
@@ -261,7 +276,8 @@ for (s in 400:nrow(var_grid)){
     source("demoniche_setup_me.R")
     source("demoniche_model_me.R")
     source("demoniche_dispersal_me.R")
-    demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
+    source("demoniche_population_function.R")
+    demoniche_setup_me(modelname = binomial,Populations = Populations, Nichemap = patch_spin_up,
                        matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                        stages = stages, proportion_initial = proportion_initial,
                        density_individuals = dens,
@@ -277,8 +293,13 @@ for (s in 400:nrow(var_grid)){
     
     c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                          Dispersal = TRUE, repetitions = 1,
-                                         foldername = paste("hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
-  }
+                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
+  
+    lf<-list.files(wd)
+    
+    files<-lf[grepl("*.rda", lf)]
+    file.remove(files)
+    }
   
   if (Sys.info()["nodename"] == "FIONA-PC"){
     cl <- makeCluster(4)
@@ -294,6 +315,7 @@ for (s in 400:nrow(var_grid)){
   time.taken <- end.time - start.time
   time.taken
 }
+
 
 
 

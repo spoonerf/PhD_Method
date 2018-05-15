@@ -22,7 +22,7 @@ min_lat<- 35    #one degree more/less than the iucn range extent
 max_lat<- 68
 min_lon<- -11
 max_lon<- 33
-bioclim_layers<-c(2,4,5,6,7,10,11)   
+bioclim_layers<-c(2,4,5,6,7,10,11)
 no_background_points<-1000
 bioclim_names<-c("Bio_2_2006_2016_average", "Bio_4_2006_2016_average","Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_7_2006_2016_average","Bio_10_2006_2016_average","Bio_11_2006_2016_average")
 
@@ -41,17 +41,16 @@ SD<-c(0.1,0.25, 0.5)
 
 kern_seq<-list(c(49.7,284.2),c(13.7, 89.4), c(1000,1000))   #first values is median derived from median home range and second value is maximum dispersal distance
 
-density_mine<- c(500, 1000,1564)  
+density_mine<- c(500, 1000,1564)
 carry_k<-c(1000, 1617, 2000)
 
-var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine)
-colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density")
-
+var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine, 1:length(carry_k))
+colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density", "K_scale")
 
 binomial<-paste(genus, species, sep="_")
 
 years<-1950:2005 #can only go up to 2005 with hyde
-spin_years<-1750:1949
+spin_years<-1850:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -64,8 +63,11 @@ no_yrs_mine<-1
 prob_scenario<-c(0.5,0.5)    #need to check this
 noise<-0.90
 
-env_stochas_type<-"normal"  
+env_stochas_type<-"normal"
 
+#formatting the lpi data for use in demoniche
+xy<-read.csv(paste(binomial, "_locs.csv", sep=""))
+patch<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
 
 pyr<-subset(lpi, Binomial ==binomial & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
 
@@ -74,26 +76,28 @@ pyrs<-pyr[,c("ID","Longitude","Latitude")]
 pyrs$ID<-pyrs$ID * 100
 xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
 
-xy<-read.csv(paste(wd, "/", binomial, "_locs.csv", sep=""))
-
 #formatting the gbif data for use in demoniche
 
 gbif_xy<-data.frame(xy$V1, xy$V2)
 coordinates(gbif_xy)<-c("xy.V1","xy.V2")
 proj4string(gbif_xy)<- CRS("+init=epsg:4326")
-patch<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
-
 gbif_xy<-raster:::rasterize(gbif_xy, patch)
-gbif_xy<-as.data.frame(gbif_xy, xy=TRUE)
+values(gbif_xy)[values(!is.na(gbif_xy))]<-1
+
+coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
+proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
+lpi_xy<-raster:::rasterize(xy_lpi, patch)
+values(lpi_xy)[values(!is.na(lpi_xy))]<-1
+values(lpi_xy)[values(is.na(lpi_xy))]<-0
+
+gbif_xy2<-gbif_xy - lpi_xy
+values(gbif_xy2)[values(gbif_xy2==0)]<-NA
+
+gbif_xy<-as.data.frame(gbif_xy2, xy=TRUE)
 gbif_xy<-na.omit(gbif_xy)
 gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
 gbif_xy<-gbif_xy[,c("ID", "x", "y")]
 colnames(gbif_xy)<-c("ID", "Longitude", "Latitude")
-
-# coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
-# proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
-# xy_lpi<-data.frame(xy_lpi)
-
 
 Populations_lpi<-data.frame(pyrs$ID, xy_lpi$pyrs.Longitude, xy_lpi$pyrs.Latitude)
 colnames(Populations_lpi)<-c("PatchID", "X", "Y")
@@ -114,13 +118,13 @@ first_year<-function(x){
 }
 pop_values<-apply(pop_years, 1, first_year)
 
-density_mine<-as.numeric(pop_values)
+#density_mine<-as.numeric(pop_values)
 
 
 id<-pyrs$ID*100
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
 e2<-extent(sdm)
 r<-raster(e2, resolution=res(sdm))
 rz<-rasterize(pyrxy,r,lam )
@@ -137,14 +141,14 @@ colnames(df)<-c( "PatchID","X","Y","area")
 
 
 ###formatting environmental data
-patch<-raster(paste(sdm_folder,"/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+patch<-raster(paste("hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
 
 sdm_patch_df<-data.frame(ID=1:ncell(patch))
 sdm_df<-data.frame(ID=1:ncell(patch))
 
 for (i in 1:length(years)){
-  sdm<-raster(paste(sdm_folder,"/hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
-  patch<-raster(paste(sdm_folder,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  sdm<-raster(paste("hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  patch<-raster(paste("hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
   
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
@@ -206,7 +210,6 @@ AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix")
 
-
 MatListA<-list(tempMat[[3]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatA<-unlist(MatListA)
 matricesA<-matrix(AllMatA, ncol=length(MatListA))
@@ -217,9 +220,7 @@ AllMatB<-unlist(MatListB)
 matricesB<-matrix(AllMatB, ncol=length(MatListB))
 colnames(matricesB)<- c("Matrix B")
 
-
 matrices<-cbind(matrices, matricesA, matricesB)
-
 
 #not yet active in demoniche
 
@@ -239,7 +240,7 @@ lin<-function(x, carry_k){
   x*carry_k
 }
 
-lf<-list.files(sdm_folder)
+lf<-list.files(wd)
 
 files<-lf[grepl("^hyde_weighted_ensemble_sdm_.*.tif$", lf)]
 
@@ -263,9 +264,11 @@ spin3<-replicate(length(spin_years),link3[,1])
 link_spin3<-cbind(spin3, link3)
 colnames(link_spin3)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_", spin_years, sep="")
 
+link_spin1[is.na(link_spin1)]<-0.6188643*carry_k[1]   #number is threshold value
+link_spin2[is.na(link_spin2)]<-0.6188643*carry_k[2]   #number is threshold value
+link_spin3[is.na(link_spin3)]<-0.6188643*carry_k[3]   #number is threshold value
+
 link_spin<-list(link_spin1, link_spin2, link_spin3)
-
-
 
 ###Running Demoniche Model
 
@@ -279,7 +282,6 @@ for (s in 1:nrow(var_grid)){
   LDD<-var_grid[s,"LDD"]
   kern<-var_grid[s, "Kern"]
   SD<-var_grid[s, "SD"]
-  SD<-0.1
   
   K<-var_grid[s, "K"]
   dens<-var_grid[s, "Density"]
@@ -292,6 +294,8 @@ for (s in 1:nrow(var_grid)){
   med_disp<-as.character(kern_seq[[kern]][1])
   dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
   
+  link_k<-matrix(unlist(link_spin[link_id]), nrow = nrow(Populations))
+  
   rep_demoniche<-function(i){
     wd<-getwd()
     
@@ -301,6 +305,7 @@ for (s in 1:nrow(var_grid)){
     source("demoniche_setup_me.R")
     source("demoniche_model_me.R")
     source("demoniche_dispersal_me.R")
+    source("demoniche_population_function.R")
     demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
                        matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                        stages = stages, proportion_initial = proportion_initial,
@@ -311,19 +316,23 @@ for (s in 1:nrow(var_grid)){
                        transition_affected_demogr = transition_affected_demogr,
                        transition_affected_env=transition_affected_env,
                        env_stochas_type = env_stochas_type,
-                       no_yrs = no_yrs_mine, K=link_spin[link_id], Kweight = K_weight, Ktype="ceiling",
+                       no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
                        sumweight =sumweight)
     
     
     c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                          Dispersal = TRUE, repetitions = 1,
                                          foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
+    
+    files<-lf[grepl("*.rda", lf)]
+    file.remove(files)
+    
   }
   
   if (Sys.info()["nodename"] == "FIONA-PC"){
     cl <- makeCluster(4)
   } else {
-    cl <- makeCluster(16)
+    cl <- makeCluster(128)
   }
   
   registerDoParallel(cl)
@@ -334,8 +343,3 @@ for (s in 1:nrow(var_grid)){
   time.taken <- end.time - start.time
   time.taken
 }
-
-
-
-
-
