@@ -54,8 +54,7 @@ min_lon<- 0
 max_lon<- 16
 bioclim_layers<-c(1,5,6,13,15,18,19)
 no_background_points<-1000
-bioclim_names<-c("Bio_1_2006_2016_average", "Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_13_2006_2016_average","Bio_15_2006_2016_average","Bio_18_2006_2016_average","Bio_19_2006_2016_average")
-
+bioclim_names<-paste("Bio_", bioclim_layers, "_2006_2016_average", sep="")
 
 #Comadre
 
@@ -116,7 +115,8 @@ dir.create(demoniche_folder)
 source("demoniche_setup_me.R")
 source("demoniche_model_me.R")
 source("ensemble_evaluate.R")
-#source("demoniche_dispersal_function.R")
+source("demoniche_population_function.R")
+source("demoniche_dispersal_me.R")
 
 no_yrs_mine<-1
 prob_scenario<-c(0.5,0.5)    #need to check this
@@ -335,7 +335,10 @@ library(dismo)
 set.seed(10)
 
 group_pres<-kfold(sp, k)
-#write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+
+if (!file.exists(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))){
+  write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+  }
 group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
@@ -347,12 +350,16 @@ sp_test<-sp[group_pres ==1,]
 ```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
 bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
-#write.csv(bg_sam, paste(species_directory, "background_random_points2.csv", sep="/"))
+if (!file.exists(paste(species_directory, "background_random_points2.csv", sep="/"))){
+  write.csv(bg_sam, paste(species_directory, "background_random_points2.csv", sep="/"))
+  }
 bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-bg_pse[,-1]
 
 group_back<-kfold(bg_pse, k)
-#write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
+if (!file.exists(paste(species_directory, "k_folds_background2.csv", sep="/"))){
+ write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/")) 
+}
 group_back<-read.csv(paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-group_back[,-1]
 
@@ -388,14 +395,14 @@ env_all<-rbind(envtrain, envtest) #all of the training and test data with enviro
 env_pres<-extract(pred_crop, sp)
 pa<-rep(1, nrow(env_pres))
 env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
-colnames(env_pres)<-c("pa", bioclim_names)
+colnames(env_pres)<-c("pa", bioclim_names, "Hyde_Year_2005")
 env_pres_xy<-data.frame(sp@coords, env_pres)
 env_pres_xy<-na.omit(env_pres_xy)
 
 env_back<-extract(pred_crop, bg_pse)
 ap<-rep(0, nrow(env_back))
 env_back<-data.frame(ap, env_back) #background points with environmental variables
-colnames(env_back)<-c("pa",bioclim_names)
+colnames(env_back)<-c("pa",bioclim_names, "Hyde_Year_2005")
 env_back_xy<-data.frame(bg_pse, env_back)
 env_back_xy<-na.omit(env_back_xy)
 
@@ -444,7 +451,7 @@ for (i in 1:k){
   envtrain<-rbind(pres_train, back_train)
   gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+
            s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+
-           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=envtrain)
+           s(Bio_19_2006_2016_average) + s(Hyde_Year_2005), family = binomial(link = "logit"),data=envtrain)
 
   evl_gam[[i]] <- dismo:::evaluate(p = pres_test, a = back_test,model= gm1,type="response")
     }
@@ -465,7 +472,7 @@ Running a random forest model and evaluating it using three different thresholds
 
 model<-pa~  Bio_1_2006_2016_average+Bio_5_2006_2016_average+
   Bio_6_2006_2016_average+ Bio_13_2006_2016_average+ Bio_15_2006_2016_average+
-  Bio_18_2006_2016_average+ Bio_19_2006_2016_average
+  Bio_18_2006_2016_average+ Bio_19_2006_2016_average + Hyde_Year_2005
 
 evl_rf<- list()
 for (i in 1:k){
@@ -497,7 +504,7 @@ library(randomForest)
 bc <- bioclim(pred_nf, sp)
 gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+
            s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+
-           s(Bio_19_2006_2016_average), family = binomial(link = "logit"),data=env_all)
+           s(Bio_19_2006_2016_average) +s(Hyde_Year_2005), family = binomial(link = "logit"),data=env_all)
 rf1 <- randomForest(model, data=env_all)
 
 pb <- predict(pred_nf, bc, ext=e_big, progress='') #bioclim predict
@@ -557,7 +564,7 @@ Using the ensemble model to predict suitability for each year - 1950-2016 and fo
 ```{r Historical predictions, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
 bc <- bioclim(pred_nf, sp)
-gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average), data=env_all)
+gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average) + s(Hyde_Year_2005), data=env_all)
 rf1 <- randomForest:::randomForest(model, data=env_all)
 
 for (i in 1:length(years)){
@@ -592,13 +599,13 @@ for (i in 1:length(years)){
 
 ```{r}
 
-t<-stack(paste(sdm_folder, "/weighted_ensemble_sdm_", years,".tif", sep=""))
+#t<-stack(paste(sdm_folder, "/weighted_ensemble_sdm_", years,".tif", sep=""))
 t<-stack(paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,nlayers(t),len=16))
 
 plot(t[[s]])
 
-patch<-stack(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
+#patch<-stack(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 patch<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch[[s]])
 #patch<-projectRaster(patch, crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
