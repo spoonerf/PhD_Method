@@ -246,7 +246,7 @@ Creating the 2006-2016 average for each bioclim variable and then selecting out 
 
 Snow depth seems to be an important predictor for alpine ibex but I have struggled to find historical data on this. Existing papers are based on historical data from one weather station, which means there is no spatial variation and therefore it is not appropriate for these models.
 
-```{r cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Creating 2006-2016 bioclim average,cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
 if (Europe_only){
 lf<-list.files(paste(wd, "/Bioclim/", sep=""))
@@ -262,11 +262,9 @@ all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
 } else{
 all_years<-stack(paste(wd, "/Bioclim/Global/",lf[first:last], sep=""))
 }
-
 ```
 
-```{r Creating 2006-2016 bioclim average,cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE} 
-
+```{r}
 bios<-seq(1,nlayers(all_years), by=19)
 cellStats(all_years[[bios]], stat="mean")
 #creating a 1985-2016 average of each bioclim variable
@@ -282,37 +280,50 @@ for (i in 1:19){
   #print(layers)
 }
 
-#pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bio_layer_pred,"_1985_2016_average.tif",sep="" ))
 ```
-
 
 ```{r cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 hyde<-stack(paste(wd,"/Hyde_Interpolated.tif", sep=""))
-#hyde<-crop(hyde, all_years)
+
 names(hyde)<-paste("Hyde_Year", 1950:2005, sep="_")
 
 hyde_resample<-raster:::resample(hyde, all_years)
+```
 
-for (i in 1:nlayers(hyde_resample)){
-  
-  writeRaster(hyde_resample[[i]], paste(wd,"/hyde/", names(hyde_resample)[i], ".tif",sep=""))
+```{r}
+dir.create(paste(wd, "/hyde_global", sep=""))
+dir.create(paste(wd, "/hyde_europe", sep=""))
+
+if (Europe_only){
+  for (i in 1:nlayers(hyde_resample)){
+  writeRaster(hyde_resample[[i]], paste(wd,"/hyde_europe/", names(hyde_resample)[i], ".tif",sep=""),overwrite = TRUE)
   print(i)
-  
+  }
+} else {
+   for (i in 1:nlayers(hyde_resample)){
+  writeRaster(hyde_resample[[i]], paste(wd,"/hyde_global/", names(hyde_resample)[i], ".tif",sep=""),overwrite = TRUE)
+  print(i)
+   }
 }
+
+
 
 ```
 
 Selecting out the bioclim layers I'm interested in:
 
 ```{r Stacking bioclim layers}
-hyde_resample<-stack(paste(wd,"/hyde/Hyde_Year_", years, ".tif", sep = ""))
 
-#bioclim_layers<-c(3,10,12,13,18)
 if (Europe_only){
+hyde_files<-list.files(paste(wd,"/hyde_europe/", sep=""))
+hyde_resample<-stack(paste(wd,"/hyde_europe/", hyde_files,sep=""))
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
 } else {
+hyde_files<-list.files(paste(wd,"/hyde_global/", sep=""))
+hyde_resample<-stack(paste(wd,"/hyde_global/", hyde_files,sep=""))
 pred_nf<-stack(paste(wd, "/Bioclim/Global/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
 }
+
 
 pred_nf<-stack(pred_nf, hyde_resample[[56]])
 
@@ -703,24 +714,24 @@ pop_values<-apply(pop_years, 1, first_year)
 
 density_mine<-as.numeric(pop_values)
 
-
-id<-pyrs$ID*100
-lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
-pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
-e2<-extent(sdm)
-r<-raster(e2, resolution=res(sdm))
-rz<-rasterize(pyrxy,r,lam )
-crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-rid<-rasterize(pyrxy,r,id)
-crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-rz_spdf<-xyFromCell(rz, 1:ncell(rid))
-rzm<-as.vector(rz)
-ridm<-as.vector(rid)
-df<-data.frame(ridm,rz_spdf,rzm)
-colnames(df)<-c( "PatchID","X","Y","area")
-#df<-data.frame(na.omit(df))
-#Populations<-data.frame(na.omit(df))
+# 
+# id<-pyrs$ID*100
+# lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
+# pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+# sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+# e2<-extent(sdm)
+# r<-raster(e2, resolution=res(sdm))
+# rz<-rasterize(pyrxy,r,lam )
+# crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+# rid<-rasterize(pyrxy,r,id)
+# crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+# rz_spdf<-xyFromCell(rz, 1:ncell(rid))
+# rzm<-as.vector(rz)
+# ridm<-as.vector(rid)
+# df<-data.frame(ridm,rz_spdf,rzm)
+# colnames(df)<-c( "PatchID","X","Y","area")
+# #df<-data.frame(na.omit(df))
+# #Populations<-data.frame(na.omit(df))
 
 
 ```
@@ -905,8 +916,8 @@ Changed the demoniche_setup function (now demoniche_setup_me.R) to change the di
 reps<-12
 
 for (s in 1:nrow(var_grid)){
-
-  print(paste (s, " out of ", nrow(var_grid) ), sep="")
+  
+ print(paste (s, " out of ", nrow(var_grid) ), sep="")
 
   SDD<-var_grid[s,"SDD"]
   LDD<-var_grid[s,"LDD"]
@@ -922,15 +933,18 @@ for (s in 1:nrow(var_grid)){
 
   start.time <- Sys.time()
   
+  link_k<-matrix(unlist(link_spin[link_id]), nrow = nrow(Populations))
+  
   med_disp<-as.character(kern_seq[[kern]][1]) 
   dir.create(paste(demoniche_folder,"/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
-
+  
 rep_demoniche<-function(i){
   library(demoniche)
   library(doParallel)
   source("demoniche_setup_me.R")
   source("demoniche_model_me.R")
   source("demoniche_dispersal_me.R")
+  source("demoniche_population_function.R")
  demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
@@ -941,8 +955,9 @@ rep_demoniche<-function(i){
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
-                  no_yrs = no_yrs_mine, K=link_spin[link_id], Kweight = K_weight, Ktype="ceiling",
+                  no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
                   sumweight = sumweight)
+
 
 
 c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,

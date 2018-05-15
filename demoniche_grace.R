@@ -84,10 +84,6 @@ gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
 gbif_xy<-gbif_xy[,c("ID", "x", "y")]
 colnames(gbif_xy)<-c("ID", "Longitude", "Latitude")
 
-# coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
-# proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
-# xy_lpi<-data.frame(xy_lpi)
-
 
 Populations_lpi<-data.frame(pyrs$ID, xy_lpi$pyrs.Longitude, xy_lpi$pyrs.Latitude)
 colnames(Populations_lpi)<-c("PatchID", "X", "Y")
@@ -126,8 +122,6 @@ rzm<-as.vector(rz)
 ridm<-as.vector(rid)
 df<-data.frame(ridm,rz_spdf,rzm)
 colnames(df)<-c( "PatchID","X","Y","area")
-#df<-data.frame(na.omit(df))
-#Populations<-data.frame(na.omit(df))
 
 
 ###formatting environmental data
@@ -239,7 +233,6 @@ colnames(link_spin3)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_",
 link_spin<-list(link_spin1, link_spin2, link_spin3)
 
 
-
 ###Running Demoniche Model
 
 reps<-12
@@ -263,8 +256,12 @@ for (s in 1:nrow(var_grid)){
   start.time <- Sys.time()
 
   med_disp<-as.character(kern_seq[[kern]][1])
-  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
-
+  #dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
+  #dir.create(paste(wd,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
+  
+  link_k<-matrix(unlist(link_spin[link_id]), nrow=nrow(link_spin1), ncol=ncol(link_spin1))
+  colnames(link_k)<-colnames(link_spin1)
+  
   rep_demoniche<-function(i){
     wd<-getwd()
     
@@ -284,14 +281,18 @@ for (s in 1:nrow(var_grid)){
                        transition_affected_demogr = transition_affected_demogr,
                        transition_affected_env=transition_affected_env,
                        env_stochas_type = env_stochas_type,
-                       no_yrs = no_yrs_mine, K=link_spin[link_id], Kweight = K_weight, Ktype="ceiling",
+                       no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
                        sumweight =sumweight)
 
 
+    # c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
+    #                                      Dispersal = TRUE, repetitions = 1,
+    #                                      foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
     c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                          Dispersal = TRUE, repetitions = 1,
-                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
-  }
+                                         foldername = paste(paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
+
+      }
 
   if (Sys.info()["nodename"] == "FIONA-PC"){
     cl <- makeCluster(4)

@@ -1,8 +1,10 @@
 library(devtools)
 install_github("timnewbold/GISOperations")
 library(GISOperations)
-
+library(zoo)
 library(raster)
+
+
 crop1940<-raster("crop1940AD.asc")
 gras1940<-raster("gras1940AD.asc")
 
