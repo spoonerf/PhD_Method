@@ -38,6 +38,11 @@ library(taRifx)
 library(plyr)
 library(sp)
 
+source("demoniche_setup_me.R")
+source("demoniche_model_me.R")
+source("ensemble_evaluate.R")
+source("demoniche_population_function.R")
+
 ```
 
 
@@ -54,8 +59,7 @@ min_lon<- -11
 max_lon<- 33
 bioclim_layers<-c(2,4,5,6,7,10,11)   
 no_background_points<-1000
-bioclim_names<-c("Bio_2_2006_2016_average", "Bio_4_2006_2016_average","Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_7_2006_2016_average","Bio_10_2006_2016_average","Bio_11_2006_2016_average")
-
+bioclim_names<-paste("Bio_", bioclim_layers, "_2006_2016_average", sep="")
 
 #Comadre
 transition_affected_niche<-"all"  #which parts of the matrix are affected by the c(1,2) is juveniles
@@ -63,29 +67,23 @@ transition_affected_niche<-"all"  #which parts of the matrix are affected by the
 transition_affected_env <- "all"
 transition_affected_demogr <- "all"
 
-SD<-c(0.1,0.25, 0.5)
+
 SDD_seq<-c(0.1, 0.25, 0.5)
 LDD_seq<-c(0.1, 0.25, 0.5)
+
+SD<-c(0.1,0.25, 0.5)
+
 kern_seq<-list(c(49.7,284.2),c(13.7, 89.4), c(1000,1000))   #first values is median derived from median home range and second value is maximum dispersal distance
 
 density_mine<- c(500, 1000,1564)  
-carry_k<-1617
+carry_k<-c(1000, 1617, 2000)
 
 var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine)
 colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density")
 
-kern_mat<-matrix(c(rep(c(49.7,284.2), (nrow(var_grid)/ncol(var_grid))),rep(c(13.7,89.4), (nrow(var_grid)/ncol(var_grid))),rep(c(1000,1000),(nrow(var_grid)/ncol(var_grid)))), ncol=2, byrow=T)
+# kern_mat<-matrix(c(rep(c(49.7,284.2), (nrow(var_grid)/ncol(var_grid))),rep(c(13.7,89.4), (nrow(var_grid)/ncol(var_grid))),rep(c(1000,1000),(nrow(var_grid)/ncol(var_grid)))), ncol=2, byrow=T)
 
 
-
-# density_mine<- 3000  
-# carry_k<-3000
-
-
-
-fraction_SDD<-0.25
-fraction_LDD<-0.15
-reps<-12
 
 ```
 
@@ -102,10 +100,6 @@ sdm_folder<-paste(species_directory, "SDM_folder", sep = "/")
 dir.create(sdm_folder)
 demoniche_folder<-paste(species_directory, "Demoniche_Output", sep = "/")
 dir.create(demoniche_folder)
-
-source("demoniche_setup_me.R")
-source("demoniche_model_me.R")
-source("ensemble_evaluate.R")
 
 no_yrs_mine<-1 
 prob_scenario<-c(0.5,0.5)    #need to check this
@@ -182,7 +176,9 @@ all_years<-stack(paste(wd, "/Bioclim/",lf[first:last], sep=""))
 } else{
 all_years<-stack(paste(wd, "/Bioclim/Global/",lf[first:last], sep=""))
 }
+```
 
+```{r}
 bios<-seq(1,nlayers(all_years), by=19)
 cellStats(all_years[[bios]], stat="mean")
 #creating a 1985-2016 average of each bioclim variable
@@ -207,6 +203,11 @@ hyde<-stack(paste(wd,"/Hyde_Interpolated.tif", sep=""))
 names(hyde)<-paste("Hyde_Year", 1950:2005, sep="_")
 
 hyde_resample<-raster:::resample(hyde, all_years)
+```
+
+```{r}
+
+dir.create(paste(wd, "/hyde", sep=""))
 
 for (i in 1:nlayers(hyde_resample)){
   
@@ -220,6 +221,10 @@ for (i in 1:nlayers(hyde_resample)){
 Selecting out the bioclim layers I'm interested in:
 
 ```{r Stacking bioclim layers}
+
+hyde_files<-list.files(paste(wd,"/hyde/", sep=""))
+
+hyde_resample<-stack(paste(wd,"/hyde/", hyde_files,sep=""))
 
 if (Europe_only){
 pred_nf<-stack(paste(wd, "/Bioclim/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
@@ -247,7 +252,11 @@ library(dismo)
 set.seed(10)
 
 group_pres<-kfold(sp, k)
-#write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+
+if (!file.exists(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))){
+  write.csv(group_pres, paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
+}
+
 group_pres<-read.csv(paste(species_directory, "k_folds_presence_2006.csv", sep="/"))
 group_pres<-group_pres[,-1]  #all presence points
 
@@ -259,12 +268,19 @@ sp_test<-sp[group_pres ==1,]
 ```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
 bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
-#write.csv(bg_sam, paste(species_directory, "background_random_points2.csv", sep="/"))
+if (!file.exists(paste(species_directory, "background_random_points2.csv", sep="/"))){
+  write.csv(bg_sam, paste(species_directory, "background_random_points2.csv", sep="/"))
+}
+
 bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="/"))
 bg_pse<-bg_pse[,-1]
 
 group_back<-kfold(bg_pse, k)
-#write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/"))
+
+if (!file.exists(paste(species_directory, "k_folds_background2.csv", sep="/"))){
+ write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/")) 
+}
+
 group_back<-read.csv(paste(species_directory, "k_folds_background2.csv", sep="/"))
 group_back<-group_back[,-1]
 
@@ -300,14 +316,14 @@ env_all<-rbind(envtrain, envtest) #all of the training and test data with enviro
 env_pres<-extract(pred_nf, sp)
 pa<-rep(1, nrow(env_pres))
 env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
-colnames(env_pres)<-c("pa", bioclim_names)
+colnames(env_pres)<-c("pa", bioclim_names, "Hyde_Year_2005")
 env_pres_xy<-data.frame(sp@coords, env_pres)
 env_pres_xy<-na.omit(env_pres_xy)
 
 env_back<-extract(pred_nf, bg_pse)
 ap<-rep(0, nrow(env_back))
 env_back<-data.frame(ap, env_back) #background points with environmental variables
-colnames(env_back)<-c("pa",bioclim_names)
+colnames(env_back)<-c("pa",bioclim_names, "Hyde_Year_2005")
 env_back_xy<-data.frame(bg_pse, env_back)
 env_back_xy<-na.omit(env_back_xy)
 
@@ -356,7 +372,7 @@ for (i in 1:k){
   envtrain<-rbind(pres_train, back_train)
   gm1<-gam(pa~ s(Bio_2_2006_2016_average)+s(Bio_4_2006_2016_average)+ s(Bio_5_2006_2016_average)+ 
            s(Bio_6_2006_2016_average)+ s(Bio_7_2006_2016_average)+ s(Bio_10_2006_2016_average)+ 
-           s(Bio_11_2006_2016_average), family = binomial(link = "logit"),data=envtrain)
+           s(Bio_11_2006_2016_average) + s(Hyde_Year_2005), family = binomial(link = "logit"),data=envtrain)
 
 
   evl_gam[[i]] <- dismo:::evaluate(p = pres_test, a = back_test,model= gm1,type="response")
@@ -379,7 +395,7 @@ Running a random forest model and evaluating it using three different thresholds
 
 model<-pa~  Bio_2_2006_2016_average+Bio_4_2006_2016_average+ 
   Bio_5_2006_2016_average+ Bio_6_2006_2016_average+ Bio_7_2006_2016_average+ 
-  Bio_10_2006_2016_average+ Bio_11_2006_2016_average
+  Bio_10_2006_2016_average+ Bio_11_2006_2016_average + Hyde_Year_2005
 
 
 evl_rf<- list()
@@ -412,7 +428,7 @@ library(randomForest)
 bc <- bioclim(pred_crop, sp)
 gm1<-gam(pa~ s(Bio_2_2006_2016_average)+s(Bio_4_2006_2016_average)+ s(Bio_5_2006_2016_average)+ 
            s(Bio_6_2006_2016_average)+ s(Bio_7_2006_2016_average)+ s(Bio_10_2006_2016_average)+ 
-           s(Bio_11_2006_2016_average), family = binomial(link = "logit"),data=env_all)
+           s(Bio_11_2006_2016_average) + s(Hyde_Year_2005), family = binomial(link = "logit"),data=env_all)
 rf1 <- randomForest(model, data=env_all)
 
 pb <- predict(pred_crop, bc, ext=e_big, progress='') #bioclim predict
@@ -453,7 +469,7 @@ Using the ensemble model to predict suitability for each year - 1950-2016 and fo
 ```{r Historical predictions, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
 bc <- bioclim(pred_nf, sp)
-gm1<-mgcv:::gam(pa~ s(Bio_2_2006_2016_average)+ s(Bio_4_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_7_2006_2016_average)+s(Bio_10_2006_2016_average)+ s(Bio_11_2006_2016_average), data=env_all)
+gm1<-mgcv:::gam(pa~ s(Bio_2_2006_2016_average)+ s(Bio_4_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_7_2006_2016_average)+s(Bio_10_2006_2016_average)+ s(Bio_11_2006_2016_average) + s(Hyde_Year_2005), data=env_all)
 rf1 <- randomForest:::randomForest(model, data=env_all)
 
 for (i in 1:length(years)){
