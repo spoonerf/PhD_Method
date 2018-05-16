@@ -120,37 +120,6 @@ a<-area(patch)
 
 Populations$area<-extract(a, pxy)
 
-# pop_years<-pyr[,65:130]
-# pop_years[pop_years == "NULL"]<-NA
-
-# first_year<-function(x){
-#   pop_first<-min(which(!is.na(x)))
-#   pop_value<-x[pop_first]
-#   return(pop_value)
-# }
-# pop_values<-apply(pop_years, 1, first_year)
-
-#density_mine<-as.numeric(pop_values)
-
-# 
-# id<-pyrs$ID*100
-# lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
-# pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-# sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
-# e2<-extent(sdm)
-# r<-raster(e2, resolution=res(sdm))
-# rz<-rasterize(pyrxy,r,lam )
-# crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-# rid<-rasterize(pyrxy,r,id)
-# crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-# rz_spdf<-xyFromCell(rz, 1:ncell(rid))
-# rzm<-as.vector(rz)
-# ridm<-as.vector(rid)
-# df<-data.frame(ridm,rz_spdf,rzm)
-# colnames(df)<-c( "PatchID","X","Y","area")
-# #df<-data.frame(na.omit(df))
-# #Populations<-data.frame(na.omit(df))
-
 
 ###formatting environmental data
 patch<-raster(paste("hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
