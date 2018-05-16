@@ -41,8 +41,8 @@ SD<-c(0.1,0.25, 0.5)
 
 kern_seq<-list(c(49.7,284.2),c(13.7, 89.4), c(1000,1000))   #first values is median derived from median home range and second value is maximum dispersal distance
 
-density_mine<- c(500, 1000,1564)
-carry_k<-c(1000, 1617, 2000)
+density_mine<- c(4.75, 14.83)
+carry_k<-c(25, 33.3)
 
 var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine, 1:length(carry_k))
 colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density", "K_scale")
@@ -68,6 +68,13 @@ env_stochas_type<-"normal"
 #formatting the lpi data for use in demoniche
 xy<-read.csv(paste(binomial, "_locs.csv", sep=""))
 patch<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+patch_stack<-stack(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch_sum<-raster::calc(patch_stack, sum)
+values(patch_sum)[(values(patch_sum)>=1)]<-1
+
+test_patch<-patch
+values(test_patch)[values(test_patch==0) & !is.na(values(test_patch))]<-1
+values(test_patch)[is.na(values(test_patch))]<-0
 
 pyr<-subset(lpi, Binomial ==binomial & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
 
@@ -90,54 +97,59 @@ lpi_xy<-raster:::rasterize(xy_lpi, patch)
 values(lpi_xy)[values(!is.na(lpi_xy))]<-1
 values(lpi_xy)[values(is.na(lpi_xy))]<-0
 
-gbif_xy2<-gbif_xy - lpi_xy
-values(gbif_xy2)[values(gbif_xy2==0)]<-NA
 
-gbif_xy<-as.data.frame(gbif_xy2, xy=TRUE)
+gbif_xy2<-gbif_xy - lpi_xy
+#values(gbif_xy2)[values(gbif_xy2==0)]<-NA
+odd<-(test_patch +gbif_xy2)
+values(odd)[values(odd) <2 | is.na(values(odd))]<-NA
+values(odd)[values(odd) ==2]<-1
+
+#removing populations from any cells which are unsuitable in all years (0/1)
+pop_suit<-odd+patch_sum
+values(pop_suit)[values(pop_suit) ==1]<-NA
+values(pop_suit)[values(pop_suit) ==2]<-1
+
+gbif_xy<-as.data.frame(pop_suit, xy=TRUE)
 gbif_xy<-na.omit(gbif_xy)
 gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
-gbif_xy<-gbif_xy[,c("ID", "x", "y")]
-colnames(gbif_xy)<-c("ID", "Longitude", "Latitude")
+Populations<-gbif_xy[,c("ID", "x", "y")]
+colnames(Populations)<-c("PatchID", "X", "Y")
 
-Populations_lpi<-data.frame(pyrs$ID, xy_lpi$pyrs.Longitude, xy_lpi$pyrs.Latitude)
-colnames(Populations_lpi)<-c("PatchID", "X", "Y")
+pxy<-cbind(Populations$X, Populations$Y)
+a<-area(patch)
 
-Populations_gbif<-data.frame(gbif_xy$ID, gbif_xy$Longitude, gbif_xy$Latitude)
-colnames(Populations_gbif)<-c("PatchID", "X", "Y")
+Populations$area<-extract(a, pxy)
 
-Populations<-rbind(Populations_lpi, Populations_gbif)
+# pop_years<-pyr[,65:130]
+# pop_years[pop_years == "NULL"]<-NA
 
-Populations$area<-1
-pop_years<-pyr[,65:130]
-pop_years[pop_years == "NULL"]<-NA
-
-first_year<-function(x){
-  pop_first<-min(which(!is.na(x)))
-  pop_value<-x[pop_first]
-  return(pop_value)
-}
-pop_values<-apply(pop_years, 1, first_year)
+# first_year<-function(x){
+#   pop_first<-min(which(!is.na(x)))
+#   pop_value<-x[pop_first]
+#   return(pop_value)
+# }
+# pop_values<-apply(pop_years, 1, first_year)
 
 #density_mine<-as.numeric(pop_values)
 
-
-id<-pyrs$ID*100
-lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
-pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
-e2<-extent(sdm)
-r<-raster(e2, resolution=res(sdm))
-rz<-rasterize(pyrxy,r,lam )
-crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-rid<-rasterize(pyrxy,r,id)
-crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-rz_spdf<-xyFromCell(rz, 1:ncell(rid))
-rzm<-as.vector(rz)
-ridm<-as.vector(rid)
-df<-data.frame(ridm,rz_spdf,rzm)
-colnames(df)<-c( "PatchID","X","Y","area")
-#df<-data.frame(na.omit(df))
-#Populations<-data.frame(na.omit(df))
+# 
+# id<-pyrs$ID*100
+# lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
+# pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+# sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+# e2<-extent(sdm)
+# r<-raster(e2, resolution=res(sdm))
+# rz<-rasterize(pyrxy,r,lam )
+# crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+# rid<-rasterize(pyrxy,r,id)
+# crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+# rz_spdf<-xyFromCell(rz, 1:ncell(rid))
+# rzm<-as.vector(rz)
+# ridm<-as.vector(rid)
+# df<-data.frame(ridm,rz_spdf,rzm)
+# colnames(df)<-c( "PatchID","X","Y","area")
+# #df<-data.frame(na.omit(df))
+# #Populations<-data.frame(na.omit(df))
 
 
 ###formatting environmental data
@@ -234,6 +246,7 @@ list_names_matrices<-colnames(matrices)
 K_weight<-c(rep(1, length(stages)))  #the weight with which carrying capacity affects each stage was FALSE
 
 
+
 ####Scaling Carrying Capacity
 
 lin<-function(x, carry_k){
@@ -248,9 +261,12 @@ sdms<-stack(paste(files, sep="/"))
 
 hsi<-raster:::extract(sdms, Populations[,c(2,3)])
 
+
 link1<-lin(hsi, carry_k[1])
+link1<-link1*Populations$area
+
 link2<-lin(hsi, carry_k[2])
-link3<-lin(hsi, carry_k[3])
+link2<-link2*Populations$area
 
 spin1<-replicate(length(spin_years),link1[,1])
 link_spin1<-cbind(spin1, link1)
@@ -260,15 +276,7 @@ spin2<-replicate(length(spin_years),link2[,1])
 link_spin2<-cbind(spin2, link2)
 colnames(link_spin2)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_", spin_years, sep="")
 
-spin3<-replicate(length(spin_years),link3[,1])
-link_spin3<-cbind(spin3, link3)
-colnames(link_spin3)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_", spin_years, sep="")
-
-link_spin1[is.na(link_spin1)]<-0.6188643*carry_k[1]   #number is threshold value
-link_spin2[is.na(link_spin2)]<-0.6188643*carry_k[2]   #number is threshold value
-link_spin3[is.na(link_spin3)]<-0.6188643*carry_k[3]   #number is threshold value
-
-link_spin<-list(link_spin1, link_spin2, link_spin3)
+link_spin<-list(link_spin1, link_spin2)
 
 ###Running Demoniche Model
 
@@ -318,7 +326,7 @@ for (s in 1:nrow(var_grid)){
                        env_stochas_type = env_stochas_type,
                        no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
                        sumweight =sumweight)
-    
+     
     
     c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                          Dispersal = TRUE, repetitions = 1,
@@ -343,3 +351,4 @@ for (s in 1:nrow(var_grid)){
   time.taken <- end.time - start.time
   time.taken
 }
+
