@@ -38,6 +38,12 @@ library(taRifx)
 library(plyr)
 library(sp)
 
+source("demoniche_setup_me.R")
+source("demoniche_model_me.R")
+source("ensemble_evaluate.R")
+source("demoniche_population_function.R")
+source("demoniche_dispersal_me.R")
+
 ```
 
 
@@ -71,8 +77,9 @@ env_stochas_type<-"normal"   #can also be lognormal
 #standard deviation of matrices
 #- just doing eqaul splits for now
 #proportion_initialf<- c(1/3,1/3,1/3)
-density_individuals <- c(1250, 2671, 5000)  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha -
+density_mine <- 4.29  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha -
 carry_k<-c(5000)
+
 
   #Things to vary
 SDD_seq<-c(0.1, 0.25, 0.5)
@@ -92,7 +99,6 @@ kern_seq<-list(c(med_disp[1], 113),c(med_disp[2],113.000),c(med_disp[3],113.000)
 var_grid<-expand.grid(SDD_seq, LDD_seq, 1:length(kern_seq), SD, carry_k, density_individuals, 1:length(carry_k))
 colnames(var_grid)<-c("SDD", "LDD", "Kern", "SD", "K", "Density", "K_scale")
 
-reps<-10
 
 ```
 
@@ -103,7 +109,7 @@ binomial<-paste(genus, species, sep="_")
 
 k<-4
 years<-1950:2005
-spin_years<-1750:1949
+spin_years<-1850:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -111,12 +117,6 @@ sdm_folder<-paste(species_directory, "SDM_folder", sep = "/")
 dir.create(sdm_folder)
 demoniche_folder<-paste(species_directory, "Demoniche_Output", sep = "/")
 dir.create(demoniche_folder)
-
-source("demoniche_setup_me.R")
-source("demoniche_model_me.R")
-source("ensemble_evaluate.R")
-source("demoniche_population_function.R")
-source("demoniche_dispersal_me.R")
 
 no_yrs_mine<-1
 prob_scenario<-c(0.5,0.5)    #need to check this
@@ -288,13 +288,32 @@ hyde<-stack(paste(wd,"/Hyde_Interpolated.tif", sep=""))
 names(hyde)<-paste("Hyde_Year", 1950:2005, sep="_")
 
 hyde_resample<-raster:::resample(hyde, all_years)
+
+if (Europe_only){
+
+  writeRaster(hyde_resample, "hyde_resample_europe.tif")  
+  
+} else {
+  
+  writeRaster(hyde_resample, "hyde_resample_global.tif")  
+}
 ```
 
 ```{r}
+
+if (Europe_only){
+    hyde_resample<-stack("hyde_resample_europe.tif")
+  } else {
+    hyde_resample<-stack("hyde_resample_global.tif") 
+  }
+```
+
+```{r, eval=FALSE}
 dir.create(paste(wd, "/hyde_global", sep=""))
 dir.create(paste(wd, "/hyde_europe", sep=""))
 
-if (Europe_only){
+
+if (Europe_only == TRUE){
   for (i in 1:nlayers(hyde_resample)){
   writeRaster(hyde_resample[[i]], paste(wd,"/hyde_europe/", names(hyde_resample)[i], ".tif",sep=""),overwrite = TRUE)
   print(i)
@@ -305,8 +324,6 @@ if (Europe_only){
   print(i)
    }
 }
-
-
 
 ```
 
@@ -324,13 +341,9 @@ hyde_resample<-stack(paste(wd,"/hyde_global/", hyde_files,sep=""))
 pred_nf<-stack(paste(wd, "/Bioclim/Global/Bio_", bioclim_layers,"_2006_2016_average.tif",sep="" ))
 }
 
-
 pred_nf<-stack(pred_nf, hyde_resample[[56]])
 
 pred_crop<-crop(pred_nf, e_big)
-# e_nor<-extent(0,120,50,80)
-# 
-# pred_nor<-crop(pred_nf, e_nor)
 plot(pred_crop)
 
 ```
@@ -340,7 +353,7 @@ plot(pred_crop)
 
 Using K=4 so 75% of points are used for training and 25% for testing.
 
-```{r Presence Data, message=FALSE, warning=FALSE}
+```{r Presence Data, message=FALSE, warning=FALSE, eval=FALSE}
 library(dismo)
 
 set.seed(10)
@@ -358,7 +371,7 @@ sp_test<-sp[group_pres ==1,]
 ```
 
 
-```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
+```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
 if (!file.exists(paste(species_directory, "background_random_points2.csv", sep="/"))){
@@ -376,7 +389,7 @@ group_back<-group_back[,-1]
 
 ```
 
-```{r Testing and training data}
+```{r Testing and training data, eval=FALSE}
 sp_backg_train <- bg_pse[group_back != 1, ] #background points split into training and test
 sp_backg_test <- bg_pse[group_back == 1, ]
 colnames(sp_backg_train)<-c("lon", "lat")
@@ -426,7 +439,7 @@ group_back<-group_back[1:nrow(env_back_xy)]
 
 Running the Bioclim envelope model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
-```{r Bioclim model, cache=TRUE, message=FALSE, warning=FALSE}
+```{r Bioclim model, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
 evl_bc<- list()
 tss_bc<-list()
@@ -449,7 +462,7 @@ bc_auc<-mean(auc_bc)
 
 Running a GAM and evaluating it to get an AUC value using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
-```{r GAM, cache= TRUE, message=FALSE, warning=FALSE}
+```{r GAM, cache= TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 #library(mgcv)
 
 evl_gam<- list()
@@ -478,7 +491,7 @@ gam_auc<-mean(auc_gam)
 
 Running a random forest model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
-```{r Random forest model , cache= TRUE, message= FALSE, warning=FALSE}
+```{r Random forest model , cache= TRUE, message= FALSE, warning=FALSE, eval=FALSE}
 
 
 model<-pa~  Bio_1_2006_2016_average+Bio_5_2006_2016_average+
@@ -509,7 +522,7 @@ rf_auc<-mean(auc_rf)
 Creating a weighted (based on AUC) ensemble average suitability model for 2006-2016 from the Bioclim, GAM and Random Forest models. This will be used to predict habitat suitability for Alpine ibex for each year 1950-2016.
 
 
-```{r Weighted ensemble one, cache=TRUE, warning=FALSE, message=FALSE}
+```{r Weighted ensemble one, cache=TRUE, warning=FALSE, message=FALSE, eval=FALSE}
 #total models
 library(randomForest)
 bc <- bioclim(pred_nf, sp)
@@ -557,7 +570,7 @@ points(sp)
 
 ####Weighted Threshold
 
-```{r Weighted threshold}
+```{r Weighted threshold, eval=FALSE}
 
 abs_xy<-env_back_xy[,c(1,2)]
 
@@ -580,10 +593,18 @@ rf1 <- randomForest:::randomForest(model, data=env_all)
 
 for (i in 1:length(years)){
 
-  pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))
+    if (Europe_only){
+    pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep=""))  
+  } else{
+    pred_nf<-stack(paste(wd, "/Bioclim/Global/", years[i], "_bioclim_variable_stack.tif", sep="" ))
+  }
   pred_nf<-pred_nf[[bioclim_layers]]
   names(pred_nf)<-bioclim_names
-  hyde_yr<-raster(paste(wd, "/hyde/Hyde_Year_", years[i], ".tif",sep=""))
+  if (Europe_only){
+    hyde_yr<-raster(paste(wd, "/hyde_europe/Hyde_Year_", years[i], ".tif",sep=""))
+  } else {
+    hyde_yr<-raster(paste(wd, "/hyde_global/Hyde_Year_", years[i], ".tif",sep=""))
+  }
   names(hyde_yr)<-"Hyde_Year_2005"
   pred_nf<-stack(pred_nf, hyde_yr)
   
@@ -668,6 +689,13 @@ Formatting the LPI population data for use in Demoniche, they start as the "seed
 ```{r, warning=FALSE, message=FALSE}
 xy<-read.csv(paste(species_directory,"/" ,binomial, "_locs.csv", sep=""))
 patch<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+patch_stack<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch_sum<-raster::calc(patch_stack, sum)
+values(patch_sum)[(values(patch_sum)>=1)]<-1
+
+test_patch<-patch
+values(test_patch)[values(test_patch==0) & !is.na(values(test_patch))]<-1
+values(test_patch)[is.na(values(test_patch))]<-0
 
 pyr<-subset(lpi, Binomial ==binomial & Specific_location==1)    #record 11470 had wrong longitude - in Russia!
 
@@ -682,56 +710,36 @@ gbif_xy<-data.frame(xy$V1, xy$V2)
 coordinates(gbif_xy)<-c("xy.V1","xy.V2")
 proj4string(gbif_xy)<- CRS("+init=epsg:4326")
 gbif_xy<-raster:::rasterize(gbif_xy, patch)
-gbif_xy<-as.data.frame(gbif_xy, xy=TRUE)
+values(gbif_xy)[values(!is.na(gbif_xy))]<-1
+
+coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
+proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
+lpi_xy<-raster:::rasterize(xy_lpi, patch)
+values(lpi_xy)[values(!is.na(lpi_xy))]<-1
+values(lpi_xy)[values(is.na(lpi_xy))]<-0
+
+
+gbif_xy2<-gbif_xy - lpi_xy
+#values(gbif_xy2)[values(gbif_xy2==0)]<-NA
+odd<-(test_patch +gbif_xy2)
+values(odd)[values(odd) <2 | is.na(values(odd))]<-NA
+values(odd)[values(odd) ==2]<-1
+
+#removing populations from any cells which are unsuitable in all years (0/1)
+pop_suit<-odd+patch_sum
+values(pop_suit)[values(pop_suit) ==1]<-NA
+values(pop_suit)[values(pop_suit) ==2]<-1
+
+gbif_xy<-as.data.frame(pop_suit, xy=TRUE)
 gbif_xy<-na.omit(gbif_xy)
 gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
-gbif_xy<-gbif_xy[,c("ID", "x", "y")]
-colnames(gbif_xy)<-c("ID", "Longitude", "Latitude")
+Populations<-gbif_xy[,c("ID", "x", "y")]
+colnames(Populations)<-c("PatchID", "X", "Y")
 
-# coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
-# proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
-# xy_lpi<-data.frame(xy_lpi)
+pxy<-cbind(Populations$X, Populations$Y)
+a<-area(patch)
 
-
-Populations_lpi<-data.frame(pyrs$ID, xy_lpi$pyrs.Longitude, xy_lpi$pyrs.Latitude)
-colnames(Populations_lpi)<-c("PatchID", "X", "Y")
-
-Populations_gbif<-data.frame(gbif_xy$ID, gbif_xy$Longitude, gbif_xy$Latitude)
-colnames(Populations_gbif)<-c("PatchID", "X", "Y")
-
-Populations<-rbind(Populations_lpi, Populations_gbif)
-
-Populations$area<-1
-pop_years<-pyr[,65:130]
-pop_years[pop_years == "NULL"]<-NA
-
-first_year<-function(x){
-  pop_first<-min(which(!is.na(x)))
-  pop_value<-x[pop_first]
-  return(pop_value)
-}
-pop_values<-apply(pop_years, 1, first_year)
-
-density_mine<-as.numeric(pop_values)
-
-# 
-# id<-pyrs$ID*100
-# lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
-# pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-# sdm<-raster(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
-# e2<-extent(sdm)
-# r<-raster(e2, resolution=res(sdm))
-# rz<-rasterize(pyrxy,r,lam )
-# crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-# rid<-rasterize(pyrxy,r,id)
-# crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-# rz_spdf<-xyFromCell(rz, 1:ncell(rid))
-# rzm<-as.vector(rz)
-# ridm<-as.vector(rid)
-# df<-data.frame(ridm,rz_spdf,rzm)
-# colnames(df)<-c( "PatchID","X","Y","area")
-# #df<-data.frame(na.omit(df))
-# #Populations<-data.frame(na.omit(df))
+Populations$area<-extract(a, pxy)
 
 
 ```
@@ -742,7 +750,7 @@ Formatting the habitat suitability model maps into vectors for use in Demoniche 
 Here we also create a fake set of habitat suitability models where the suitability is driven down at a constant rate over time.
 
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
-patch<-raster(paste(sdm_folder,"/pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+patch<-raster(paste(sdm_folder,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
 #patch<-projectRaster(patch, crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
 
 sdm_patch_df<-data.frame(ID=1:ncell(patch))
@@ -751,8 +759,8 @@ sdm_df<-data.frame(ID=1:ncell(patch))
 
 #formatting data for demoniche
 for (i in 1:length(years)){
-  sdm<-raster(paste(sdm_folder,"/weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
-  patch<-raster(paste(sdm_folder,"/pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  sdm<-raster(paste(sdm_folder,"/hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  patch<-raster(paste(sdm_folder,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
 
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
@@ -878,30 +886,21 @@ lt<-function(x) {
 ```{r, warning = FALSE, message = FALSE}
 lf<-list.files(sdm_folder)
 
-files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
+files<-lf[grepl("^hyde_weighted_ensemble_sdm_.*.tif$", lf)]
 
 sdms<-stack(paste(sdm_folder, files, sep="/"))
 
 hsi<-raster:::extract(sdms, Populations[,c(2,3)])
 
 link1<-lin(hsi, carry_k[1])
-link2<-lin(hsi, carry_k[2])
-link3<-lin(hsi, carry_k[3])
+link1<-link1*Populations$area
 
 spin1<-replicate(length(spin_years),link1[,1])
 link_spin1<-cbind(spin1, link1)
-colnames(link_spin1)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
+colnames(link_spin1)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_", spin_years, sep="")
 
-spin2<-replicate(length(spin_years),link2[,1])
-link_spin2<-cbind(spin2, link2)
-colnames(link_spin2)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
+link_spin<-list(link_spin1)
 
-spin3<-replicate(length(spin_years),link3[,1])
-link_spin3<-cbind(spin3, link3)
-colnames(link_spin3)[1:length(spin_years)]<-paste("weighted_ensemble_sdm_", spin_years, sep="")
-
-
-link_spin<-list(link_spin1, link_spin2, link_spin3)
 
 ```
 
@@ -923,8 +922,7 @@ for (s in 1:nrow(var_grid)){
   LDD<-var_grid[s,"LDD"]
   kern<-var_grid[s, "Kern"]
   SD<-var_grid[s, "SD"]
-  SD<-0.1
-  
+
   K<-var_grid[s, "K"]
   dens<-var_grid[s, "Density"]
   link_id<-var_grid[s, "K_scale"]
