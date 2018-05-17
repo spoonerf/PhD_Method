@@ -825,7 +825,6 @@ plot(min(spin_years):max(years),colMeans(na.omit(niche_spin_up)[4:length(colname
 opt_patch_spin_up<-patch_spin_up
 opt_patch_spin_up[,4:704]<-1
 
-
 # niche_map_mine<-na.omit(niche_map_mine)
 # patch_map_mine<-na.omit(patch_map_mine)
 # #fake_map_mine<-na.omit(fake_map_mine)
@@ -835,7 +834,6 @@ opt_patch_spin_up[,4:704]<-1
 #fake_spin_up<-na.omit(fake_spin_up)
 
 patch_map_mine[is.na(patch_map_mine)]<-0
-
 
 niche_spin_up[is.na(niche_spin_up)]<-0
 patch_spin_up[is.na(patch_spin_up)]<-0
