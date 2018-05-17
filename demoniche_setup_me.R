@@ -73,13 +73,13 @@ demoniche_setup_me<-function (modelname, Populations, stages, Nichemap = "oneper
     #                         matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2),
     #                         longlat = FALSE) == min(spDistsN1(as.matrix(Nichemap[,
     #                                                                              2:3], ncol = 2), matrix(as.numeric(Populations[pxs,
-    #                                                                                                                             2:3]), ncol = 2), longlat = FALSE)))
+    #                                                                                                                            2:3]), ncol = 2), longlat = FALSE)))
          rows <- which(spDistsN1(as.matrix(Nichemap[, 2:3], ncol = 2),
              matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2),
              longlat = TRUE) == min(spDistsN1(as.matrix(Nichemap[,
              2:3], ncol = 2), matrix(as.numeric(Populations[pxs,
              2:3]), ncol = 2), longlat = TRUE)))
-         
+
     Niche_ID[rows, 4] <- Populations[pxs, 1]
     n0_all[rows[1], ] <- n0_all[rows[1], ] + (Populations[pxs,
                                                           4] * proportion_initial * density_individuals[pxs])
