@@ -379,6 +379,7 @@ for (s in 1:nrow(var_grid)){
     file.remove(files)
     
     
+    
   }
   
   if (Sys.info()["nodename"] == "FIONA-PC"){
