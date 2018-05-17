@@ -356,7 +356,7 @@ for (s in 1:nrow(var_grid)){
     source("demoniche_dispersal_me.R")
     source("demoniche_population_function.R")
     demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
-                       matrices = matrices[,1:2],matrices_var = matrices_var, prob_scenario = prob_scenario,
+                       matrices = matrices ,matrices_var = matrices_var, prob_scenario = prob_scenario,
                        stages = stages, proportion_initial = proportion_initial,
                        density_individuals = dens,
                        fraction_LDD = LDD, fraction_SDD = SDD,
