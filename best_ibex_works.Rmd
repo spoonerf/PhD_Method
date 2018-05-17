@@ -664,16 +664,22 @@ gbif_xy<-data.frame(xy$V1, xy$V2)
 coordinates(gbif_xy)<-c("xy.V1","xy.V2")
 proj4string(gbif_xy)<- CRS("+init=epsg:4326")
 gbif_xy<-raster:::rasterize(gbif_xy, patch)
-gbif_xy<-as.data.frame(gbif_xy, xy=TRUE)
+values(gbif_xy)[values(!is.na(gbif_xy))]<-1
+
+coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
+proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
+lpi_xy<-raster:::rasterize(xy_lpi, patch)
+values(lpi_xy)[values(!is.na(lpi_xy))]<-1
+values(lpi_xy)[values(is.na(lpi_xy))]<-0
+
+gbif_xy2<-gbif_xy - lpi_xy
+values(gbif_xy2)[values(gbif_xy2==0)]<-NA
+
+gbif_xy<-as.data.frame(gbif_xy2, xy=TRUE)
 gbif_xy<-na.omit(gbif_xy)
 gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
 gbif_xy<-gbif_xy[,c("ID", "x", "y")]
 colnames(gbif_xy)<-c("ID", "Longitude", "Latitude")
-
-# coordinates(xy_lpi)<-c("pyrs.Longitude", "pyrs.Latitude")
-# proj4string(xy_lpi) <- CRS("+init=epsg:4326") # WGS 84
-# xy_lpi<-data.frame(xy_lpi)
-
 
 Populations_lpi<-data.frame(pyrs$ID, xy_lpi$pyrs.Longitude, xy_lpi$pyrs.Latitude)
 colnames(Populations_lpi)<-c("PatchID", "X", "Y")
@@ -694,7 +700,7 @@ first_year<-function(x){
 }
 pop_values<-apply(pop_years, 1, first_year)
 
-density_mine<-as.numeric(pop_values)
+#density_mine<-as.numeric(pop_values)
 
 
 id<-pyrs$ID*100
@@ -714,6 +720,8 @@ df<-data.frame(ridm,rz_spdf,rzm)
 colnames(df)<-c( "PatchID","X","Y","area")
 #df<-data.frame(na.omit(df))
 #Populations<-data.frame(na.omit(df))
+
+
 
 
 ```
@@ -782,7 +790,6 @@ plot(min(spin_years):max(years),colMeans(na.omit(niche_spin_up)[4:length(colname
 opt_patch_spin_up<-patch_spin_up
 opt_patch_spin_up[,4:704]<-1
 
-
 # niche_map_mine<-na.omit(niche_map_mine)
 # patch_map_mine<-na.omit(patch_map_mine)
 # #fake_map_mine<-na.omit(fake_map_mine)
@@ -792,7 +799,6 @@ opt_patch_spin_up[,4:704]<-1
 #fake_spin_up<-na.omit(fake_spin_up)
 
 patch_map_mine[is.na(patch_map_mine)]<-0
-
 
 niche_spin_up[is.na(niche_spin_up)]<-0
 patch_spin_up[is.na(patch_spin_up)]<-0
@@ -860,7 +866,7 @@ lt<-function(x) {
 ```{r, warning = FALSE, message = FALSE}
 lf<-list.files(sdm_folder)
 
-files<-lf[grepl("^weighted_ensemble_sdm_.*.tif$", lf)]
+files<-lf[grepl("^hyde_weighted_ensemble_sdm_.*.tif$", lf)]
 
 sdms<-stack(paste(sdm_folder, files, sep="/"))
 
@@ -924,6 +930,7 @@ rep_demoniche<-function(i){
   source("demoniche_setup_me.R")
   source("demoniche_model_me.R")
   source("demoniche_dispersal_me.R")
+  source("demoniche_population_function.R")
  demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
@@ -934,7 +941,8 @@ rep_demoniche<-function(i){
                   transition_affected_demogr = transition_affected_demogr,
                   transition_affected_env=transition_affected_env,
                   env_stochas_type = env_stochas_type,
-                  no_yrs = no_yrs_mine, K=link_spin[link_id], Kweight = K_weight, Ktype="ceiling",
+                 # no_yrs = no_yrs_mine, K=link_spin[link_id], Kweight = K_weight, Ktype="ceiling",
+                 no_yrs = no_yrs_mine, K=link_spin[[1]], Kweight = K_weight, Ktype="ceiling",
                   sumweight = sumweight)
 
 
