@@ -246,7 +246,6 @@ Selecting out the bioclim layers I'm interested in:
 
 ```{r Stacking bioclim layers}
 
-
 if (Europe_only){
 hyde_files<-list.files(paste(wd,"/hyde_europe/", sep=""))
 hyde_resample<-stack(paste(wd,"/hyde_europe/", hyde_files,sep=""))
@@ -411,8 +410,6 @@ gam_auc<-mean(auc_gam)
 Running a random forest model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
 ```{r Random forest model , cache= TRUE, message= FALSE, warning=FALSE}
-
-
 
 model<-pa~  Bio_2_2006_2016_average+Bio_4_2006_2016_average+ 
   Bio_6_2006_2016_average+ Bio_11_2006_2016_average+ 
@@ -644,6 +641,24 @@ a<-area(patch)
 
 Populations$area<-extract(a, pxy)
 
+id<-pyrs$ID
+lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
+pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+sdm<-raster(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+e2<-extent(sdm)
+r<-raster(e2, resolution=res(sdm))
+rz<-rasterize(pyrxy,r,lam )
+crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+rid<-rasterize(pyrxy,r,id)
+crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+rz_spdf<-xyFromCell(rz, 1:ncell(rid))
+rzm<-as.vector(rz)
+ridm<-as.vector(rid)
+df<-data.frame(ridm,rz_spdf,rzm)
+colnames(df)<-c( "PatchID","X","Y","area")
+df<-data.frame(na.omit(df))
+
+
 ```
 
 ####Formatting the habitat suitability models
@@ -748,57 +763,57 @@ colnames(matrices)<- c("Reference_matrix")
 MatListA<-list(tempMat[[2]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatA<-unlist(MatListA)
 matricesA<-matrix(AllMatA, ncol=length(MatListA))
-colnames(matricesA)<- c("Matrix A")
+colnames(matricesA)<- c("Matrix_A")
 
 MatListB<-list(tempMat[[3]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatB<-unlist(MatListB)
 matricesB<-matrix(AllMatB, ncol=length(MatListB))
-colnames(matricesB)<- c("Matrix B")
+colnames(matricesB)<- c("Matrix_B")
 
 MatListC<-list(tempMat[[4]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatC<-unlist(MatListC)
 matricesC<-matrix(AllMatC, ncol=length(MatListC))
-colnames(matricesC)<- c("Matrix C")
+colnames(matricesC)<- c("Matrix_C")
 
 MatListD<-list(tempMat[[5]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatD<-unlist(MatListD)
 matricesD<-matrix(AllMatD, ncol=length(MatListD))
-colnames(matricesD)<- c("Matrix D")
+colnames(matricesD)<- c("Matrix_D")
 
 MatListE<-list(tempMat[[6]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatE<-unlist(MatListE)
 matricesE<-matrix(AllMatE, ncol=length(MatListE))
-colnames(matricesE)<- c("Matrix E")
+colnames(matricesE)<- c("Matrix_E")
 
 MatListF<-list(tempMat[[7]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatF<-unlist(MatListF)
 matricesF<-matrix(AllMatF, ncol=length(MatListF))
-colnames(matricesF)<- c("Matrix F")
+colnames(matricesF)<- c("Matrix_F")
 
 MatListG<-list(tempMat[[8]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatG<-unlist(MatListG)
 matricesG<-matrix(AllMatG, ncol=length(MatListG))
-colnames(matricesG)<- c("Matrix G")
+colnames(matricesG)<- c("Matrix_G")
 
 MatListH<-list(tempMat[[9]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatH<-unlist(MatListH)
 matricesH<-matrix(AllMatH, ncol=length(MatListH))
-colnames(matricesH)<- c("Matrix H")
+colnames(matricesH)<- c("Matrix_H")
 
 MatListI<-list(tempMat[[10]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatI<-unlist(MatListI)
 matricesI<-matrix(AllMatI, ncol=length(MatListI))
-colnames(matricesI)<- c("Matrix I")
+colnames(matricesI)<- c("Matrix_I")
 
 MatListJ<-list(tempMat[[11]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatJ<-unlist(MatListJ)
 matricesJ<-matrix(AllMatJ, ncol=length(MatListJ))
-colnames(matricesJ)<- c("Matrix J")
+colnames(matricesJ)<- c("Matrix_J")
 
 MatListK<-list(tempMat[[12]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatK<-unlist(MatListK)
 matricesK<-matrix(AllMatK, ncol=length(MatListK))
-colnames(matricesK)<- c("Matrix K")
+colnames(matricesK)<- c("Matrix_K")
 
 
 matrices<-cbind(matrices, matricesA, matricesB, matricesC, matricesD, matricesE, matricesF, matricesG, matricesH, matricesI, matricesJ, matricesK)
@@ -889,7 +904,8 @@ for (s in 1:nrow(var_grid)){
   link_k<-matrix(unlist(link_spin[link_id]), nrow = nrow(Populations))
   
   med_disp<-as.character(kern_seq[[kern]][1]) 
-  dir.create(paste(demoniche_folder,"/new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
+  
+  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
   
 rep_demoniche<-function(i){
   library(demoniche)

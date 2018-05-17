@@ -14,18 +14,19 @@ source("demoniche_dispersal_me.R")
 source("demoniche_population_function.R")
 
 wd<-getwd()
-genus<-"Cervus"
-species<-"elaphus"
-Europe_only<-TRUE
+genus<-"Odocoileus"
+species<-"virginianus"
+Europe_only<-FALSE
 binomial<-paste(genus, species, sep="_")
-min_lat<- 35    #one degree more/less than the iucn range extent
-max_lat<- 68
-min_lon<- -11
-max_lon<- 33
-bioclim_layers<-c(2,4,5,6,7,10,11)
+min_lat<- -19    #one degree more/less than the iucn range extent
+max_lat<- 63
+min_lon<- -132
+max_lon<- -48
+bioclim_layers<-c(2,4,6,11,19)   
 no_background_points<-1000
-bioclim_names<-c("Bio_2_2006_2016_average", "Bio_4_2006_2016_average","Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_7_2006_2016_average","Bio_10_2006_2016_average","Bio_11_2006_2016_average")
+bioclim_names<-paste("Bio_", bioclim_layers, "_2006_2016_average", sep="")
 
+########
 
 #Comadre
 transition_affected_niche<-"all"  #which parts of the matrix are affected by the c(1,2) is juveniles
@@ -39,13 +40,15 @@ LDD_seq<-c(0.1, 0.25, 0.5)
 
 SD<-c(0.1,0.25, 0.5)
 
-kern_seq<-list(c(49.7,284.2),c(13.7, 89.4), c(1000,1000))   #first values is median derived from median home range and second value is maximum dispersal distance
-
-density_mine<- c(4.75, 14.83)
-carry_k<-c(25, 33.3)
+kern_seq<-list(c(9.49,54.26), c(1000,1000))   #first values is median derived from median home range and second value is maximum dispersal distance in km2
+# 
+density_mine<- 17.3  
+carry_k<-c(15, 28) #per km2
 
 var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine, 1:length(carry_k))
 colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density", "K_scale")
+
+##########
 
 binomial<-paste(genus, species, sep="_")
 
@@ -63,11 +66,12 @@ no_yrs_mine<-1
 prob_scenario<-c(0.5,0.5)    #need to check this
 noise<-0.90
 
-env_stochas_type<-"normal"
+env_stochas_type<-"normal"   #can also be lognormal
 
-#formatting the lpi data for use in demoniche
+###############
+
 xy<-read.csv(paste(binomial, "_locs.csv", sep=""))
-patch<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+patch<-stack(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
 patch_stack<-stack(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 patch_sum<-raster::calc(patch_stack, sum)
 values(patch_sum)[(values(patch_sum)>=1)]<-1
@@ -137,23 +141,24 @@ df<-data.frame(ridm,rz_spdf,rzm)
 colnames(df)<-c( "PatchID","X","Y","area")
 df<-data.frame(na.omit(df))
 
-
+#################
 ###formatting environmental data
-patch<-raster(paste("hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+#patch<-projectRaster(patch, crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
 
 sdm_patch_df<-data.frame(ID=1:ncell(patch))
 sdm_df<-data.frame(ID=1:ncell(patch))
 
+#formatting data for demoniche
 for (i in 1:length(years)){
-  sdm<-raster(paste("hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
-  patch<-raster(paste("hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  sdm<-raster(paste(wd,"/hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
+  patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
   
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
     vec_pat<-as.data.frame(patch, xy=TRUE)
   } else{
     vec<-as.data.frame(sdm)
-    
     vec_pat<-as.data.frame(patch)
   }
   
@@ -185,6 +190,11 @@ colnames(patch_map_mine)[4:length(colnames(patch_map_mine))]<-col_years_short
 colnames(niche_spin_up)[4:length(colnames(niche_spin_up))]<-col_years
 colnames(patch_spin_up)[4:length(colnames(patch_spin_up))]<-col_years
 
+plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))]), type="l", ylab="Mean suitability index")
+
+
+plot(min(spin_years):max(years),colMeans(na.omit(niche_spin_up)[4:length(colnames(niche_spin_up))]), type="l", ylab="Mean suitability index")
+
 opt_patch_spin_up<-patch_spin_up
 opt_patch_spin_up[,4:704]<-1
 
@@ -193,8 +203,8 @@ patch_map_mine[is.na(patch_map_mine)]<-0
 niche_spin_up[is.na(niche_spin_up)]<-0
 patch_spin_up[is.na(patch_spin_up)]<-0
 
+################
 ###COMADRE
-
 load(paste(wd, "COMADRE_v.2.0.1.RData", sep="/"))
 
 tempMetadata<-subset(comadre$metadata, SpeciesAccepted==binomial)
@@ -203,22 +213,70 @@ keep<-as.numeric(rownames(tempMetadata))
 
 tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and/or C
 
-MatList<-list(tempMat[[2]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix")
 
-MatListA<-list(tempMat[[3]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+MatListA<-list(tempMat[[2]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatA<-unlist(MatListA)
 matricesA<-matrix(AllMatA, ncol=length(MatListA))
 colnames(matricesA)<- c("Matrix A")
 
-MatListB<-list(tempMat[[4]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+MatListB<-list(tempMat[[3]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatB<-unlist(MatListB)
 matricesB<-matrix(AllMatB, ncol=length(MatListB))
 colnames(matricesB)<- c("Matrix B")
 
-matrices<-cbind(matrices, matricesA, matricesB)
+MatListC<-list(tempMat[[4]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatC<-unlist(MatListC)
+matricesC<-matrix(AllMatC, ncol=length(MatListC))
+colnames(matricesC)<- c("Matrix C")
+
+MatListD<-list(tempMat[[5]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatD<-unlist(MatListD)
+matricesD<-matrix(AllMatD, ncol=length(MatListD))
+colnames(matricesD)<- c("Matrix D")
+
+MatListE<-list(tempMat[[6]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatE<-unlist(MatListE)
+matricesE<-matrix(AllMatE, ncol=length(MatListE))
+colnames(matricesE)<- c("Matrix E")
+
+MatListF<-list(tempMat[[7]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatF<-unlist(MatListF)
+matricesF<-matrix(AllMatF, ncol=length(MatListF))
+colnames(matricesF)<- c("Matrix F")
+
+MatListG<-list(tempMat[[8]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatG<-unlist(MatListG)
+matricesG<-matrix(AllMatG, ncol=length(MatListG))
+colnames(matricesG)<- c("Matrix G")
+
+MatListH<-list(tempMat[[9]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatH<-unlist(MatListH)
+matricesH<-matrix(AllMatH, ncol=length(MatListH))
+colnames(matricesH)<- c("Matrix H")
+
+MatListI<-list(tempMat[[10]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatI<-unlist(MatListI)
+matricesI<-matrix(AllMatI, ncol=length(MatListI))
+colnames(matricesI)<- c("Matrix I")
+
+MatListJ<-list(tempMat[[11]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatJ<-unlist(MatListJ)
+matricesJ<-matrix(AllMatJ, ncol=length(MatListJ))
+colnames(matricesJ)<- c("Matrix J")
+
+MatListK<-list(tempMat[[12]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatK<-unlist(MatListK)
+matricesK<-matrix(AllMatK, ncol=length(MatListK))
+colnames(matricesK)<- c("Matrix K")
+
+
+matrices<-cbind(matrices, matricesA, matricesB, matricesC, matricesD, matricesE, matricesF, matricesG, matricesH, matricesI, matricesJ, matricesK)
+
+matrices<-unique(matrices, MARGIN = 2)
 
 #not yet active in demoniche
 
@@ -231,7 +289,7 @@ sumweight<-rep(1, length(stages))#weight of stages  - should be equal for all mi
 list_names_matrices<-colnames(matrices)
 K_weight<-c(rep(1, length(stages)))  #the weight with which carrying capacity affects each stage was FALSE
 
-
+#######################
 
 ####Scaling Carrying Capacity
 
@@ -239,14 +297,15 @@ lin<-function(x, carry_k){
   x*carry_k
 }
 
+#################
+
 lf<-list.files(wd)
 
 files<-lf[grepl("^hyde_weighted_ensemble_sdm_.*.tif$", lf)]
 
-sdms<-stack(paste(files, sep="/"))
+sdms<-stack(paste(wd, files, sep="/"))
 
 hsi<-raster:::extract(sdms, Populations[,c(2,3)])
-
 
 link1<-lin(hsi, carry_k[1])
 link1<-link1*Populations$area
@@ -285,15 +344,12 @@ for (s in 1:nrow(var_grid)){
   
   start.time <- Sys.time()
   
-  med_disp<-as.character(kern_seq[[kern]][1])
-  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
-  
   link_k<-matrix(unlist(link_spin[link_id]), nrow = nrow(Populations))
   
+  med_disp<-as.character(kern_seq[[kern]][1]) 
+  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
+  
   rep_demoniche<-function(i){
-    wd<-getwd()
-    
-    .libPaths(c(wd,.libPaths()))
     library(demoniche)
     library(doParallel)
     source("demoniche_setup_me.R")
@@ -311,22 +367,24 @@ for (s in 1:nrow(var_grid)){
                        transition_affected_env=transition_affected_env,
                        env_stochas_type = env_stochas_type,
                        no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
-                       sumweight =sumweight)
-     
+                       sumweight = sumweight)
+    
     
     c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                          Dispersal = TRUE, repetitions = 1,
-                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
+                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"/",i,sep=""))
+    
     
     files<-lf[grepl("*.rda", lf)]
     file.remove(files)
+    
     
   }
   
   if (Sys.info()["nodename"] == "FIONA-PC"){
     cl <- makeCluster(4)
   } else {
-    cl <- makeCluster(128)
+    cl <- makeCluster(64)
   }
   
   registerDoParallel(cl)
@@ -337,4 +395,8 @@ for (s in 1:nrow(var_grid)){
   time.taken <- end.time - start.time
   time.taken
 }
+
+#################
+
+
 
