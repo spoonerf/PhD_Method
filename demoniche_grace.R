@@ -39,9 +39,9 @@ LDD_seq<-c(0.1, 0.25, 0.5)
 
 SD<-c(0.1,0.25, 0.5)
 
-med_disp<-seq(13.5975, 19.775, length.out = 5)
+med_disp<-seq(13.5975, 19.775, length.out = 3)
 
-kern_seq<-list(c(med_disp[1], 113),c(med_disp[2],113.000),c(med_disp[3],113.000),c(med_disp[4],113.000),c(med_disp[5],113.000))
+kern_seq<-list(c(med_disp[1], 113),c(med_disp[2],113.000),c(med_disp[3],113.000))
 var_grid<-expand.grid(SDD_seq, LDD_seq, 1:length(kern_seq), SD, carry_k, density_mine, 1:length(carry_k))
 colnames(var_grid)<-c("SDD", "LDD", "Kern", "SD", "K", "Density", "K_scale")
 
@@ -116,6 +116,23 @@ a<-area(patch)
 
 Populations$area<-extract(a, pxy)
 
+id<-pyrs$ID
+lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
+pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
+sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+e2<-extent(sdm)
+r<-raster(e2, resolution=res(sdm))
+rz<-rasterize(pyrxy,r,lam )
+crs(rz)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+rid<-rasterize(pyrxy,r,id)
+crs(rid)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+rz_spdf<-xyFromCell(rz, 1:ncell(rid))
+rzm<-as.vector(rz)
+ridm<-as.vector(rid)
+df<-data.frame(ridm,rz_spdf,rzm)
+colnames(df)<-c( "PatchID","X","Y","area")
+df<-data.frame(na.omit(df))
+
 
 ###formatting environmental data
 patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
@@ -185,6 +202,7 @@ MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need
 AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix")
+
 stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
 proportion_initial<- rep(1/length(stages), length(stages)) #Think spin up sorts this
 sumweight<-rep(1, length(stages))#weight of stages  - should be equal for all mine just
@@ -239,8 +257,7 @@ for (s in 1:nrow(var_grid)){
 
   med_disp<-as.character(kern_seq[[kern]][1])
   dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
-  dir.create(paste(wd,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
-
+  
   link_k<-matrix(unlist(link_spin[link_id]), nrow=nrow(link_spin1), ncol=ncol(link_spin1))
   colnames(link_k)<-colnames(link_spin1)
   
