@@ -83,7 +83,6 @@ var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine, 1:l
 colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density", "K_scale")
 
 
-
 ```
 
 ```{r, Same for all species}
