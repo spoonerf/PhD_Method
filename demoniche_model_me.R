@@ -169,111 +169,111 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
         simulation_results[mx, 7 + tx] <- mean(EMA[, 
                                                    mx, tx, 1])
       }
-      save(Projection, file = paste(getwd(), "/", foldername, 
-                                    "/Projection_rep", rx, "_", BEMDEM$list_names_matrices[mx], 
-                                    ".rda", sep = ""))
-      save(population_sizes, file = paste(getwd(), "/", 
-                                          foldername, "/population_sizes", ".rda", sep = ""))
-      pop <- data.frame(cbind(BEMDEM$Niche_ID[, 2:3], (colSums(Projection[yx, 
+      # save(Projection, file = paste(getwd(), "/", foldername,
+      #                               "/Projection_rep", rx, "_", BEMDEM$list_names_matrices[mx],
+      #                               ".rda", sep = ""))
+      # save(population_sizes, file = paste(getwd(), "/",
+      #                                     foldername, "/population_sizes", ".rda", sep = ""))
+      pop <- data.frame(cbind(BEMDEM$Niche_ID[, 2:3], (colSums(Projection[yx,
                                                                           , , ] * BEMDEM$sumweight))))
       write.csv(pop, paste(getwd(), "/", foldername, "/",BEMDEM$list_names_matrices[mx],"_pop_output.csv", sep=""))
       #write.csv(pop, paste(getwd(), "/", foldername, "/pop_output.csv", sep=""))
-      form <- as.formula(paste(paste(colnames(pop)[-c(1:2)], 
-                                     collapse = "+"), "X+Y", sep = "~"))
-      jpeg(filename = paste(getwd(), "/", foldername, "/map_", 
-                            BEMDEM$list_names_matrices[mx], ".jpeg", sep = ""))
-      print(levelplot(form, pop, col.regions = rev(heat.colors(100)), 
-                      allow.multiple = TRUE, main = paste("Distribution", 
-                                                          foldername, BEMDEM$list_names_matrices[mx], 
-                                                          sep = "_")))
-      dev.off()
+      # form <- as.formula(paste(paste(colnames(pop)[-c(1:2)],
+      #                                collapse = "+"), "X+Y", sep = "~"))
+      # jpeg(filename = paste(getwd(), "/", foldername, "/map_",
+      #                       BEMDEM$list_names_matrices[mx], ".jpeg", sep = ""))
+      # print(levelplot(form, pop, col.regions = rev(heat.colors(100)),
+      #                 allow.multiple = TRUE, main = paste("Distribution",
+      #                                                     foldername, BEMDEM$list_names_matrices[mx],
+      #                                                     sep = "_")))
+      # dev.off()
     }
   }
   rm(Projection)
   print("Calculating summary values", quote = FALSE)
-  for (mx in 1:length(BEMDEM$list_names_matrices)) {
-    eigen_results[[mx]] <- c(eigen.analysis(matrix(BEMDEM$matrices[, 
-                                                                   mx], ncol = length(BEMDEM$stages), byrow = FALSE)), 
-                             LTRE = list(matrix(LTRE(matrix(BEMDEM$matrices[, 
-                                                                            mx], ncol = length(BEMDEM$stages), byrow = FALSE), 
-                                                     matrix(BEMDEM$matrices[, 1], ncol = length(BEMDEM$stages), 
-                                                            byrow = FALSE)), nrow = length(BEMDEM$stages))))
-    simulation_results[mx, "lambda"] <- eigen_results[[mx]]$lambda1
-    simulation_results[mx, "stoch_lambda"] <- stoch.growth.rate(list(matrix(BEMDEM$matrices[, 
-                                                                                            1], ncol = length(BEMDEM$stages)), matrix(BEMDEM$matrices[, 
-                                                                                                                                                      mx], ncol = length(BEMDEM$stages))), prob = NULL, 
-                                                                maxt = 50000, verbose = FALSE)$sim
-    simulation_results[mx, "mean_final_pop"] <- mean(population_sizes[yrs_total, 
-                                                                      mx, ])
-    simulation_results[mx, "mean_no_patches_final"] <- mean(EMA[, 
-                                                                mx, length(BEMDEM$years_projections), 2])
-    for (yx_tx in 1:yrs_total) {
-      population_results[yx_tx, "Meanpop", mx] <- mean(population_sizes[yx_tx, 
-                                                                        mx, ])
-      population_results[yx_tx, "SD", mx] <- sd(population_sizes[yx_tx, 
-                                                                 mx, ])
-      population_results[yx_tx, "Min", mx] <- min(population_sizes[yx_tx, 
-                                                                   mx, ])
-      population_results[yx_tx, "Max", mx] <- max(population_sizes[yx_tx, 
-                                                                   mx, ])
+   for (mx in 1:length(BEMDEM$list_names_matrices)) {
+  #   eigen_results[[mx]] <- c(eigen.analysis(matrix(BEMDEM$matrices[, 
+  #                                                                  mx], ncol = length(BEMDEM$stages), byrow = FALSE)), 
+  #                            LTRE = list(matrix(LTRE(matrix(BEMDEM$matrices[, 
+  #                                                                           mx], ncol = length(BEMDEM$stages), byrow = FALSE), 
+  #                                                    matrix(BEMDEM$matrices[, 1], ncol = length(BEMDEM$stages), 
+  #                                                           byrow = FALSE)), nrow = length(BEMDEM$stages))))
+  #   simulation_results[mx, "lambda"] <- eigen_results[[mx]]$lambda1
+  #   simulation_results[mx, "stoch_lambda"] <- stoch.growth.rate(list(matrix(BEMDEM$matrices[, 
+  #                                                                                           1], ncol = length(BEMDEM$stages)), matrix(BEMDEM$matrices[, 
+  #                                                                                                                                                     mx], ncol = length(BEMDEM$stages))), prob = NULL, 
+  #                                                               maxt = 50000, verbose = FALSE)$sim
+  #   simulation_results[mx, "mean_final_pop"] <- mean(population_sizes[yrs_total, 
+  #                                                                     mx, ])
+  #   simulation_results[mx, "mean_no_patches_final"] <- mean(EMA[, 
+  #                                                               mx, length(BEMDEM$years_projections), 2])
+     for (yx_tx in 1:yrs_total) {
+  #     population_results[yx_tx, "Meanpop", mx] <- mean(population_sizes[yx_tx, 
+  #                                                                       mx, ])
+  #     population_results[yx_tx, "SD", mx] <- sd(population_sizes[yx_tx, 
+  #                                                                mx, ])
+  #     population_results[yx_tx, "Min", mx] <- min(population_sizes[yx_tx, 
+  #                                                                  mx, ])
+  #     population_results[yx_tx, "Max", mx] <- max(population_sizes[yx_tx, 
+  #                                                                  mx, ])
     }
   }
-  jpeg(filename = paste(getwd(), "/", foldername, "/EMAs.jpeg", 
-                        sep = ""), width = 580, height = 480)
-  for (mx in 1:length(BEMDEM$list_names_matrices)) {
-    par(mar = c(7, 7, 4, 2) + 0.1, cex = 1.5)
-    plot(simulation_results[mx, 8:(7 + length(BEMDEM$years_projections))], 
-         type = "b", ylim = range(simulation_results[, 8:c(7 + 
-                                                             length(BEMDEM$years_projections))]), col = mx, 
-         xlab = "", ylab = "", axes = FALSE)
-    par(new = TRUE)
+  # jpeg(filename = paste(getwd(), "/", foldername, "/EMAs.jpeg", 
+  #                       sep = ""), width = 580, height = 480)
+   for (mx in 1:length(BEMDEM$list_names_matrices)) {
+  #   par(mar = c(7, 7, 4, 2) + 0.1, cex = 1.5)
+  #   plot(simulation_results[mx, 8:(7 + length(BEMDEM$years_projections))], 
+  #        type = "b", ylim = range(simulation_results[, 8:c(7 + 
+  #                                                            length(BEMDEM$years_projections))]), col = mx, 
+  #        xlab = "", ylab = "", axes = FALSE)
+  #   par(new = TRUE)
   }
-  axis(1, at = 1:length(BEMDEM$years_projections), labels = FALSE)
-  text(1:length(BEMDEM$years_projections), y = par("usr")[3] - 
-         5, srt = 45, adj = 1, labels = (BEMDEM$years_projections), 
-       xpd = TRUE)
-  mtext(1, text = "Time", line = 6, cex = 1.7)
-  mtext(2, text = "EMA (number of individuals)", line = 6, 
-        cex = 1.7)
-  axis(2, xpd = TRUE, las = 1)
-  legend("topright", legend = BEMDEM$list_names_matrices, col = 1:mx, 
-         fill = 1:mx)
-  title("EMA for different matrices", cex = 0.9)
-  dev.off()
-  jpeg(filename = paste(getwd(), "/", foldername, "/population_results.jpeg", 
-                        sep = ""), width = 580, height = 480)
-  for (mx in 1:length(BEMDEM$list_names_matrices)) {
-    par(mar = c(7, 4, 4, 2) + 0.1)
-    plot(population_results[, "Meanpop", mx], type = "l", 
-         ylim = range(population_results[, 1, ]), col = mx, 
-         xlab = "", ylab = "EMA", axes = TRUE, lwd = 1.2)
-    par(new = TRUE)
-    plot(c(population_results[, "Meanpop", mx] + population_results[, 
-                                                                    "SD", mx]), type = "l", lty = 2, ylim = range(population_results[, 
-                                                                                                                                     1, ]), col = mx, xlab = "", ylab = "EMA", axes = FALSE)
-    par(new = TRUE)
-    plot(c(population_results[, "Meanpop", mx] - population_results[, 
-                                                                    "SD", mx]), type = "l", lty = 2, ylim = range(population_results[, 
-                                                                                                                                     1, ]), col = mx, xlab = "", ylab = "EMA", axes = FALSE)
-    par(new = TRUE)
+  # axis(1, at = 1:length(BEMDEM$years_projections), labels = FALSE)
+  # text(1:length(BEMDEM$years_projections), y = par("usr")[3] - 
+  #        5, srt = 45, adj = 1, labels = (BEMDEM$years_projections), 
+  #      xpd = TRUE)
+  # mtext(1, text = "Time", line = 6, cex = 1.7)
+  # mtext(2, text = "EMA (number of individuals)", line = 6, 
+  #       cex = 1.7)
+  # axis(2, xpd = TRUE, las = 1)
+  # legend("topright", legend = BEMDEM$list_names_matrices, col = 1:mx, 
+  #        fill = 1:mx)
+  # title("EMA for different matrices", cex = 0.9)
+  # dev.off()
+  # jpeg(filename = paste(getwd(), "/", foldername, "/population_results.jpeg", 
+  #                       sep = ""), width = 580, height = 480)
+   for (mx in 1:length(BEMDEM$list_names_matrices)) {
+  #   par(mar = c(7, 4, 4, 2) + 0.1)
+  #   plot(population_results[, "Meanpop", mx], type = "l", 
+  #        ylim = range(population_results[, 1, ]), col = mx, 
+  #        xlab = "", ylab = "EMA", axes = TRUE, lwd = 1.2)
+  #   par(new = TRUE)
+  #   plot(c(population_results[, "Meanpop", mx] + population_results[, 
+  #                                                                   "SD", mx]), type = "l", lty = 2, ylim = range(population_results[, 
+  #                                                                                                                                    1, ]), col = mx, xlab = "", ylab = "EMA", axes = FALSE)
+  #   par(new = TRUE)
+  #   plot(c(population_results[, "Meanpop", mx] - population_results[, 
+  #                                                                   "SD", mx]), type = "l", lty = 2, ylim = range(population_results[, 
+  #                                                                                                                                    1, ]), col = mx, xlab = "", ylab = "EMA", axes = FALSE)
+  #   par(new = TRUE)
   }
-  legend("topright", legend = BEMDEM$list_names_matrices, col = 1:mx, 
-         fill = 1:mx)
-  title("Population sizes (+- 1 SD) for different scenarios")
-  dev.off()
-  write.table(simulation_results, sep = ";", file = paste(getwd(), 
-                                                          "/", foldername, "/population_results.csv", sep = ""), 
-              col.names = NA)
-  save(simulation_results, file = paste(getwd(), "/", foldername, 
-                                        "/population_sizes.rda", sep = ""))
-  save(metapop_results, file = paste(getwd(), "/", foldername, 
-                                     "/metapop_results.rda", sep = ""))
-  save(eigen_results, file = paste(getwd(), "/", foldername, 
-                                   "/eigen_results.rda", sep = ""))
-  save(EMA, file = paste(getwd(), "/", foldername, "/EMA.rda", 
-                         sep = ""))
-  save(population_results, file = paste(getwd(), "/", foldername, 
-                                        "/population_results.rda", sep = ""))
+  # legend("topright", legend = BEMDEM$list_names_matrices, col = 1:mx, 
+  #        fill = 1:mx)
+  # title("Population sizes (+- 1 SD) for different scenarios")
+  # dev.off()
+  # write.table(simulation_results, sep = ";", file = paste(getwd(), 
+  #                                                         "/", foldername, "/population_results.csv", sep = ""), 
+  #             col.names = NA)
+  # save(simulation_results, file = paste(getwd(), "/", foldername, 
+  #                                       "/population_sizes.rda", sep = ""))
+  # save(metapop_results, file = paste(getwd(), "/", foldername, 
+  #                                    "/metapop_results.rda", sep = ""))
+  # save(eigen_results, file = paste(getwd(), "/", foldername, 
+  #                                  "/eigen_results.rda", sep = ""))
+  # save(EMA, file = paste(getwd(), "/", foldername, "/EMA.rda", 
+  #                        sep = ""))
+  # save(population_results, file = paste(getwd(), "/", foldername, 
+  #                                       "/population_results.rda", sep = ""))
   print("    All repetitions completed!", quote = FALSE)
   return(population_results)
 }
