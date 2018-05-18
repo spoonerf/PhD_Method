@@ -208,14 +208,14 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
   #   simulation_results[mx, "mean_no_patches_final"] <- mean(EMA[, 
   #                                                               mx, length(BEMDEM$years_projections), 2])
      for (yx_tx in 1:yrs_total) {
-  #     population_results[yx_tx, "Meanpop", mx] <- mean(population_sizes[yx_tx, 
-  #                                                                       mx, ])
-  #     population_results[yx_tx, "SD", mx] <- sd(population_sizes[yx_tx, 
-  #                                                                mx, ])
-  #     population_results[yx_tx, "Min", mx] <- min(population_sizes[yx_tx, 
-  #                                                                  mx, ])
-  #     population_results[yx_tx, "Max", mx] <- max(population_sizes[yx_tx, 
-  #                                                                  mx, ])
+      population_results[yx_tx, "Meanpop", mx] <- mean(population_sizes[yx_tx,
+                                                                        mx, ])
+      population_results[yx_tx, "SD", mx] <- sd(population_sizes[yx_tx,
+                                                                 mx, ])
+      population_results[yx_tx, "Min", mx] <- min(population_sizes[yx_tx,
+                                                                   mx, ])
+      population_results[yx_tx, "Max", mx] <- max(population_sizes[yx_tx,
+                                                                   mx, ])
     }
   }
   # jpeg(filename = paste(getwd(), "/", foldername, "/EMAs.jpeg", 
