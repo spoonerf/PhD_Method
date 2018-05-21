@@ -221,57 +221,57 @@ colnames(matrices)<- c("Reference_matrix")
 MatListA<-list(tempMat[[2]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatA<-unlist(MatListA)
 matricesA<-matrix(AllMatA, ncol=length(MatListA))
-colnames(matricesA)<- c("Matrix A")
+colnames(matricesA)<- c("Matrix_A")
 
 MatListB<-list(tempMat[[3]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatB<-unlist(MatListB)
 matricesB<-matrix(AllMatB, ncol=length(MatListB))
-colnames(matricesB)<- c("Matrix B")
+colnames(matricesB)<- c("Matrix_B")
 
 MatListC<-list(tempMat[[4]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatC<-unlist(MatListC)
 matricesC<-matrix(AllMatC, ncol=length(MatListC))
-colnames(matricesC)<- c("Matrix C")
+colnames(matricesC)<- c("Matrix_C")
 
 MatListD<-list(tempMat[[5]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatD<-unlist(MatListD)
 matricesD<-matrix(AllMatD, ncol=length(MatListD))
-colnames(matricesD)<- c("Matrix D")
+colnames(matricesD)<- c("Matrix_D")
 
 MatListE<-list(tempMat[[6]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatE<-unlist(MatListE)
 matricesE<-matrix(AllMatE, ncol=length(MatListE))
-colnames(matricesE)<- c("Matrix E")
+colnames(matricesE)<- c("Matrix_E")
 
 MatListF<-list(tempMat[[7]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatF<-unlist(MatListF)
 matricesF<-matrix(AllMatF, ncol=length(MatListF))
-colnames(matricesF)<- c("Matrix F")
+colnames(matricesF)<- c("Matrix_F")
 
 MatListG<-list(tempMat[[8]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatG<-unlist(MatListG)
 matricesG<-matrix(AllMatG, ncol=length(MatListG))
-colnames(matricesG)<- c("Matrix G")
+colnames(matricesG)<- c("Matrix_G")
 
 MatListH<-list(tempMat[[9]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatH<-unlist(MatListH)
 matricesH<-matrix(AllMatH, ncol=length(MatListH))
-colnames(matricesH)<- c("Matrix H")
+colnames(matricesH)<- c("Matrix_H")
 
 MatListI<-list(tempMat[[10]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatI<-unlist(MatListI)
 matricesI<-matrix(AllMatI, ncol=length(MatListI))
-colnames(matricesI)<- c("Matrix I")
+colnames(matricesI)<- c("Matrix_I")
 
 MatListJ<-list(tempMat[[11]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatJ<-unlist(MatListJ)
 matricesJ<-matrix(AllMatJ, ncol=length(MatListJ))
-colnames(matricesJ)<- c("Matrix J")
+colnames(matricesJ)<- c("Matrix_J")
 
 MatListK<-list(tempMat[[12]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMatK<-unlist(MatListK)
 matricesK<-matrix(AllMatK, ncol=length(MatListK))
-colnames(matricesK)<- c("Matrix K")
+colnames(matricesK)<- c("Matrix_K")
 
 
 matrices<-cbind(matrices, matricesA, matricesB, matricesC, matricesD, matricesE, matricesF, matricesG, matricesH, matricesI, matricesJ, matricesK)
@@ -335,8 +335,7 @@ for (s in 1:nrow(var_grid)){
   LDD<-var_grid[s,"LDD"]
   kern<-var_grid[s, "Kern"]
   SD<-var_grid[s, "SD"]
-  
-  K<-var_grid[s, "K"]
+ 
   dens<-var_grid[s, "Density"]
   link_id<-var_grid[s, "K_scale"]
   
@@ -347,7 +346,7 @@ for (s in 1:nrow(var_grid)){
   link_k<-matrix(unlist(link_spin[link_id]), nrow = nrow(Populations))
   
   med_disp<-as.character(kern_seq[[kern]][1]) 
-  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
+  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
   
   rep_demoniche<-function(i){
     library(demoniche)
@@ -357,7 +356,7 @@ for (s in 1:nrow(var_grid)){
     source("demoniche_dispersal_me.R")
     source("demoniche_population_function.R")
     demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
-                       matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
+                       matrices = matrices ,matrices_var = matrices_var, prob_scenario = prob_scenario,
                        stages = stages, proportion_initial = proportion_initial,
                        density_individuals = dens,
                        fraction_LDD = LDD, fraction_SDD = SDD,
@@ -371,8 +370,8 @@ for (s in 1:nrow(var_grid)){
     
     
     c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
-                                         Dispersal = TRUE, repetitions = 1,
-                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"/",i,sep=""))
+                                         Dispersal = FALSE, repetitions = 1,
+                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",i,sep=""))
     
     
     files<-lf[grepl("*.rda", lf)]

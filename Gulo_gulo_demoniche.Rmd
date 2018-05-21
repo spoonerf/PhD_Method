@@ -1,11 +1,8 @@
 ---
-title: "Assessing the predictive ability of Demoniche"
+title: "Odocoileus_virginianus"
 author: "Fiona Spooner"
-date: "September 6, 2017"
-output:
-  prettydoc::html_pretty:
-    theme: hpstr
-    highlight: github
+date: "May 15, 2018"
+output: html_document
 ---
 
 ```{r Install packages, eval=FALSE, message=FALSE}
@@ -50,61 +47,45 @@ source("demoniche_dispersal_me.R")
 ```{r Constants - change for each species, message= FALSE, warning = FALSE}
 
 wd<-getwd()
-genus<-"Capra"
-species<-"ibex"
-Europe_only<-TRUE
+genus<-"Gulo"
+species<-"gulo"
+Europe_only<-FALSE
 binomial<-paste(genus, species, sep="_")
-min_lat<- 43
-max_lat<- 47.9
-min_lon<- 0
-max_lon<- 16
-bioclim_layers<-c(1,5,6,13,15,18,19)
+min_lat<- 37   #one degree more/less than the iucn range extent
+max_lat<- 84
+min_lon<- -180
+max_lon<- 180
+
+e_iucn<-extent(min_lon, max_lon, min_lat, max_lat)
+bioclim_layers<-c(5,6,8,11,13)   
 no_background_points<-1000
 bioclim_names<-paste("Bio_", bioclim_layers, "_2006_2016_average", sep="")
 
+
 #Comadre
-
+transition_affected_niche<-"all"  #which parts of the matrix are affected by the c(1,2) is juveniles
 #niche values
-transition_affected_niche<-c(2,11,20)  #which parts of the matrix are affected by the c(2,11,20) is  juveniles
-transition_affected_env <- c(2,11,20)
-transition_affected_demogr <- c(2,11,20)
-
-transition_affected_niche<-"all"  #which parts of the matrix are affected by the c(2,11,20) is  juveniles
 transition_affected_env <- "all"
 transition_affected_demogr <- "all"
 
-env_stochas_type<-"normal"   #can also be lognormal
-#standard deviation of matrices
-#- just doing eqaul splits for now
-#proportion_initialf<- c(1/3,1/3,1/3)
-density_mine <- 4.29  #4292.32 to 16096.2 based on density being between 8 and 30 per 100 ha and the area of each cell being 53654 ha -
-carry_k<-c(5000)
 
-
-  #Things to vary
 SDD_seq<-c(0.1, 0.25, 0.5)
 LDD_seq<-c(0.1, 0.25, 0.5)
-#kern_seq<-list(c(1,1), c(19.775,113.000),c(13.5975, 77.700), c(1000.000,1000.000))
+
 SD<-c(0.1,0.25, 0.5)
 
-med_disp<-seq(13.5975, 19.775, length.out = 5)
-#max_disp<-seq(77.7, 113, length.out = 5)
+ kern_seq<-list(c(129.8,742), c(1000,1000))   #first values is median derived from median home range and second value is maximum dispersal distance in km2
+# 
+density_mine<- 0.00792  
+carry_k<-c(0.01,0.1) #per km2
 
-#how to deal with max_dispersal
-
-
-
-#kern_seq<-list(c(13.5975, 77.700),c(19.775,113.000))
-kern_seq<-list(c(med_disp[1], 113),c(med_disp[2],113.000),c(med_disp[3],113.000),c(med_disp[4],113.000),c(med_disp[5],113.000))
-var_grid<-expand.grid(SDD_seq, LDD_seq, 1:length(kern_seq), SD, carry_k, density_individuals, 1:length(carry_k))
-colnames(var_grid)<-c("SDD", "LDD", "Kern", "SD", "K", "Density", "K_scale")
+var_grid<-expand.grid(SD,SDD_seq, LDD_seq, 1:length(kern_seq), density_mine, 1:length(carry_k))
+colnames(var_grid)<-c("SD","SDD" ,"LDD", "Kern", "Density", "K_scale")
 
 
 ```
 
 ```{r, Same for all species}
-
-wd<-getwd()
 binomial<-paste(genus, species, sep="_")
 
 k<-4
@@ -118,66 +99,14 @@ dir.create(sdm_folder)
 demoniche_folder<-paste(species_directory, "Demoniche_Output", sep = "/")
 dir.create(demoniche_folder)
 
-no_yrs_mine<-1
+no_yrs_mine<-1 
 prob_scenario<-c(0.5,0.5)    #need to check this
-noise<-0.90
+noise<-0.90 
 
-
-```
-#####Bioclim Variables
-
-Creating the 19 bioclim variables for each year between 1950 & 2016 for Europe using the E-OBS dataset - downloaded from http://www.ecad.eu/download/ensembles/download.php
-
-```{r, eval=FALSE, message=FALSE, warning=FALSE}
-rr<-brick(paste(wd, "/rr_0.25deg_reg_v15.0.nc", sep="")) #precipitation
-tg<-brick(paste(wd, "/tg_0.25deg_reg_v15.0.nc", sep="")) #mean temp
-tn<-brick(paste(wd, "/tn_0.25deg_reg_v15.0.nc", sep="")) #min temp
-tx<-brick(paste(wd, "/tx_0.25deg_reg_v15.0.nc", sep="")) #max temp
-#dates<-as.Date((gsub("X", "",names(rr))), format="%Y.%m.%d")
-
-
-rr_mon<-zApply(rr, by=as.yearmon, fun = mean)
-tg_mon<-zApply(tg, by=as.yearmon, fun = mean)
-tn_mon<-zApply(tn, by=as.yearmon, fun = mean)
-tx_mon<-zApply(tx, by=as.yearmon, fun = mean)
-
-jans<-seq(1,804, by=12)
-years<-as.character(1950:2016)
-
-for (i in 1:length(years)){
-  jan_sel<-jans[i]
-  dec_sel<-jan_sel+11
-  bio_vars_all<-biovars(rr_mon[[jan_sel:dec_sel]], tn_mon[[jan_sel:dec_sel]], tx_mon[[jan_sel:dec_sel]])
-  writeRaster(bio_vars_all, paste(paste(wd, "/Bioclim/", years[i],"_bioclim_variable_stack.tif", sep=""), overwrite=T))
-  print(years[i])
-  }
+env_stochas_type<-"normal"   #can also be lognormal
 ```
 
-```{r Global Bioclim, eval=FALSE}
-path<-"D:/Fiona/Git_Method/Git_Method/CRUTEM"
-files<-list.files(path)
-prec_files<-files[grepl("pre",files )]
-tmx_files<-files[grepl("tmx",files )]
-tmn_files<-files[grepl("tmn",files )]
 
-prec<-stack(paste(path, "/", prec_files, sep=""))
-tmin<-stack(paste(path, "/", tmn_files, sep=""))
-tmax<-stack(paste(path, "/", tmx_files, sep=""))
-
-jans<-seq(1,nlayers(prec), by=12)
-years<-as.character(1954:2016)
-
-for (i in 1:length(years)){
-  jan_sel<-jans[i]
-  dec_sel<-jan_sel+11
-  bio_vars_all<-biovars(prec[[jan_sel:dec_sel]], tmin[[jan_sel:dec_sel]], tmax[[jan_sel:dec_sel]])
-  writeRaster(bio_vars_all, paste(wd, "/Bioclim/Global/", years[i],"_bioclim_variable_stack.tif", sep=""), overwrite=T)
-
-  print(years[i])
-
-}
-
-```
 ####Species distribution modelling with dismo
 
 Extracting Alpine ibex (*Capra ibex*) data from GBIF and with additional locations added from the LPI dataset. These points are then formatted to a SpatialPointsDataFrame.
@@ -189,7 +118,7 @@ capra <-gbif(genus =genus, species = species)
 capgeo <- subset(capra, !is.na(lon) & !is.na(lat) & (lon!="NA" & lat !="NA") | year!="NA")
 dups <- duplicated(capgeo[, c("lon", "lat")])
 capg <-capgeo[!dups, ]
-capg2 <- capg[capg$lon > min_lon & capg$lon< max_lon & capg$lat > min_lat & capg$lat < max_lat & capg$year>=2006, ]
+capg2 <- capg[ capg$lat > min_lat & capg$lat < max_lat & capg$year>=2006 , ]
 capg2<-data.frame(capg2$lon,capg2$lat)
 colnames(capg2)<-c("Longitude", "Latitude")
 
@@ -217,6 +146,7 @@ df<-read.csv(paste(species_directory, "/",binomial, "_gbif.csv", sep="") )
 xy<-read.csv(paste(species_directory,"/" ,binomial, "_locs.csv", sep=""))
 
 sp<-sp:::SpatialPointsDataFrame(coords=xy, data=df)
+sp<-sp[sp@coords[,2] >min_lat & sp@coords[,2] <max_lat,]
 
 e<-raster:::extent(sp)
 
@@ -227,24 +157,6 @@ maps:::map('world',  col="light grey", fill=T, xlim=c(e_big[1],e_big[2]), ylim=c
 points(sp, col="red", pch=20)
 
 ```
-
-Creating the 2006-2016 average for each bioclim variable and then selecting out the layers we want to use in the model:
-
-*	Bioclim 1 – Annual mean temperature
-
-*	Bioclim 5 – Max temperature of the warmest month
-
-*	Bioclim 6 – Min temperature of the coldest month
-
-*	Bioclim 13 – Precipitation of the wettest month
-
-*	Bioclim 15 – Precipitation seasonality (coefficient of variation)
-
-*	Bioclim 18 – Precipitation of warmest quarter
-
-*	Bioclim 19 – Precipitation of coldest quarter
-
-Snow depth seems to be an important predictor for alpine ibex but I have struggled to find historical data on this. Existing papers are based on historical data from one weather station, which means there is no spatial variation and therefore it is not appropriate for these models.
 
 ```{r Creating 2006-2016 bioclim average,cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
@@ -289,6 +201,7 @@ names(hyde)<-paste("Hyde_Year", 1950:2005, sep="_")
 
 hyde_resample<-raster:::resample(hyde, all_years)
 
+
 if (Europe_only){
 
   writeRaster(hyde_resample, "hyde_resample_europe.tif")  
@@ -297,18 +210,20 @@ if (Europe_only){
   
   writeRaster(hyde_resample, "hyde_resample_global.tif")  
 }
+
 ```
 
-```{r}
+```{r, eval= FALSE}
 
 if (Europe_only){
     hyde_resample<-stack("hyde_resample_europe.tif")
   } else {
     hyde_resample<-stack("hyde_resample_global.tif") 
   }
+
 ```
 
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 dir.create(paste(wd, "/hyde_global", sep=""))
 dir.create(paste(wd, "/hyde_europe", sep=""))
 
@@ -343,17 +258,22 @@ pred_nf<-stack(paste(wd, "/Bioclim/Global/Bio_", bioclim_layers,"_2006_2016_aver
 
 pred_nf<-stack(pred_nf, hyde_resample[[56]])
 
-pred_crop<-crop(pred_nf, e_big)
+#changing specifically for the wolverine - no records in gbif in russia but iucn map stretches the whole way across
+#pred_crop<-crop(pred_nf, e_big)
+pred_crop<-crop(pred_nf, e_iucn)
+
 plot(pred_crop)
 
 ```
+
+
 
 
 ####Creating the testing and training datasets
 
 Using K=4 so 75% of points are used for training and 25% for testing.
 
-```{r Presence Data, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Presence Data, message=FALSE, warning=FALSE}
 library(dismo)
 
 set.seed(10)
@@ -371,7 +291,7 @@ sp_test<-sp[group_pres ==1,]
 ```
 
 
-```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Background/Pseudo-absence data, cache=TRUE, message=FALSE, warning=FALSE}
 bg_sam<- randomPoints(pred_crop[[1]], no_background_points )
 
 if (!file.exists(paste(species_directory, "background_random_points2.csv", sep="/"))){
@@ -381,6 +301,7 @@ bg_pse<-read.csv(paste(species_directory, "background_random_points2.csv", sep="
 bg_pse<-bg_pse[,-1]
 
 group_back<-kfold(bg_pse, k)
+
 if (!file.exists(paste(species_directory, "k_folds_background2.csv", sep="/"))){
  write.csv(group_back, paste(species_directory, "k_folds_background2.csv", sep="/")) 
 }
@@ -389,7 +310,7 @@ group_back<-group_back[,-1]
 
 ```
 
-```{r Testing and training data, eval=FALSE}
+```{r Testing and training data}
 sp_backg_train <- bg_pse[group_back != 1, ] #background points split into training and test
 sp_backg_test <- bg_pse[group_back == 1, ]
 colnames(sp_backg_train)<-c("lon", "lat")
@@ -404,26 +325,26 @@ colnames(sp_test)<-c("lon", "lat")
 test<-rbind(sp_test, sp_backg_test)    #presence and background test points combined
 
 pb_train <- c(rep(1, nrow(sp_train)), rep(0, nrow(sp_backg_train)))
-envtrain <- extract(pred_crop, train)
+envtrain <- extract(pred_nf, train)
 envtrain <- data.frame( cbind(pa=pb_train, envtrain) ) #training points with environmental  variables
 
 envtrain<-na.omit(envtrain)
 
 pb_test<-c(rep(1, nrow(sp_test)), rep(0, nrow(sp_backg_test)))
-envtest <- extract(pred_crop, test)
+envtest <- extract(pred_nf, test)
 envtest <- data.frame( cbind(pa=pb_test, envtest) ) #test points with environmental  variables
 envtest<-na.omit(envtest)
 
 env_all<-rbind(envtrain, envtest) #all of the training and test data with environmental variables
 
-env_pres<-extract(pred_crop, sp)
+env_pres<-extract(pred_nf, sp)
 pa<-rep(1, nrow(env_pres))
 env_pres<-data.frame(pa, env_pres)  #presence points with environmental variables
 colnames(env_pres)<-c("pa", bioclim_names, "Hyde_Year_2005")
 env_pres_xy<-data.frame(sp@coords, env_pres)
 env_pres_xy<-na.omit(env_pres_xy)
 
-env_back<-extract(pred_crop, bg_pse)
+env_back<-extract(pred_nf, bg_pse)
 ap<-rep(0, nrow(env_back))
 env_back<-data.frame(ap, env_back) #background points with environmental variables
 colnames(env_back)<-c("pa",bioclim_names, "Hyde_Year_2005")
@@ -439,7 +360,7 @@ group_back<-group_back[1:nrow(env_back_xy)]
 
 Running the Bioclim envelope model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
-```{r Bioclim model, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Bioclim model, cache=TRUE, message=FALSE, warning=FALSE}
 
 evl_bc<- list()
 tss_bc<-list()
@@ -462,7 +383,7 @@ bc_auc<-mean(auc_bc)
 
 Running a GAM and evaluating it to get an AUC value using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
-```{r GAM, cache= TRUE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r GAM, cache= TRUE, message=FALSE, warning=FALSE}
 #library(mgcv)
 
 evl_gam<- list()
@@ -473,9 +394,9 @@ for (i in 1:k){
   back_test<-env_back_xy[(group_back==i),-c(1,2)]
   back_train<-env_back_xy[(group_back!=i),-c(1,2)]
   envtrain<-rbind(pres_train, back_train)
-  gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+
-           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+
-           s(Bio_19_2006_2016_average) + s(Hyde_Year_2005), family = binomial(link = "logit"),data=envtrain)
+  gm1<-gam(pa~ s(Bio_5_2006_2016_average)+s(Bio_6_2006_2016_average)+ s(Bio_8_2006_2016_average)+ 
+           s(Bio_11_2006_2016_average)+ s(Bio_13_2006_2016_average)+ + s(Hyde_Year_2005), family = binomial(link = "logit"),data=envtrain)
+
 
   evl_gam[[i]] <- dismo:::evaluate(p = pres_test, a = back_test,model= gm1,type="response")
     }
@@ -491,12 +412,12 @@ gam_auc<-mean(auc_gam)
 
 Running a random forest model and evaluating it using three different thresholds (kappa, no omission and true skill statistic) to get AUC values.
 
-```{r Random forest model , cache= TRUE, message= FALSE, warning=FALSE, eval=FALSE}
+```{r Random forest model , cache= TRUE, message= FALSE, warning=FALSE}
 
+model<-pa~  Bio_5_2006_2016_average+Bio_6_2006_2016_average+ 
+  Bio_8_2006_2016_average+ Bio_11_2006_2016_average+ 
+  Bio_13_2006_2016_average+ Hyde_Year_2005
 
-model<-pa~  Bio_1_2006_2016_average+Bio_5_2006_2016_average+
-  Bio_6_2006_2016_average+ Bio_13_2006_2016_average+ Bio_15_2006_2016_average+
-  Bio_18_2006_2016_average+ Bio_19_2006_2016_average + Hyde_Year_2005
 
 evl_rf<- list()
 for (i in 1:k){
@@ -522,47 +443,27 @@ rf_auc<-mean(auc_rf)
 Creating a weighted (based on AUC) ensemble average suitability model for 2006-2016 from the Bioclim, GAM and Random Forest models. This will be used to predict habitat suitability for Alpine ibex for each year 1950-2016.
 
 
-```{r Weighted ensemble one, cache=TRUE, warning=FALSE, message=FALSE, eval=FALSE}
+```{r Weighted ensemble one, cache=TRUE, warning=FALSE, message=FALSE}
 #total models
 library(randomForest)
-bc <- bioclim(pred_nf, sp)
-gm1<-gam(pa~ s(Bio_1_2006_2016_average)+s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+
-           s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+ s(Bio_18_2006_2016_average)+
-           s(Bio_19_2006_2016_average) +s(Hyde_Year_2005), family = binomial(link = "logit"),data=env_all)
+bc <- bioclim(pred_crop, sp)
+gm1<-gam(pa~ s(Bio_5_2006_2016_average)+s(Bio_6_2006_2016_average)+ s(Bio_8_2006_2016_average)+ 
+           s(Bio_11_2006_2016_average)+ s(Bio_13_2006_2016_average)+ + s(Hyde_Year_2005), family = binomial(link = "logit"),data=env_all)
 rf1 <- randomForest(model, data=env_all)
 
-pb <- predict(pred_nf, bc, ext=e_big, progress='') #bioclim predict
-pg <- predict(pred_nf, gm1, ext=e_big) #gam predict
+pb <- predict(pred_crop, bc, ext=e_big, progress='') #bioclim predict
+pg <- predict(pred_crop, gm1, ext=e_big) #gam predict
 pgl<-raster:::calc(pg, fun=function(x){ exp(x)/(1+exp(x))}) #backtransforming from logit space
-pr <- predict(pred_nf, rf1, ext=e_big) #random forest predict
+pr <- predict(pred_crop, rf1, ext=e_big) #random forest predict
 
 models <- stack(pb, pgl, pr)
-names(models) <- c("Bioclim", "GAM", "Random Forest")
+names(models) <- c("bioclim", "gam", "random forest")
 plot(models)
-
-#cols <-colorspace::terrain_hcl(10, c=c(65,0), l=c(45,95), power=c(1/3,1.5))
-
-
-library(RColorBrewer)
-cols <-brewer.pal(10, "YlGn")
-breakpoints<-seq(0.1,1,by=0.1)
-plot(models[[1]],axes=FALSE,legend=TRUE,main =names(models[[1]]),  col=cols, breaks=breakpoints) 
-maps:::map('world', xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]), add=T)
-
-plot(models[[2]],axes=FALSE,legend=TRUE,main =names(models[[2]]),  col=cols, breaks=breakpoints) 
-maps:::map('world', xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]), add=T)
-
-plot(models[[3]],axes=FALSE,legend=TRUE,main =names(models[[3]]),  col=cols, breaks=breakpoints) 
-maps:::map('world', xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]), add=T)
-
 
 auc<-c(bc_auc, gam_auc, rf_auc)
 w <- (auc-0.5)^2
-wm <- weighted.mean( models[[c("Bioclim", "GAM", "Random.Forest")]], w)
-
-
-plot(wm, main="Ensemble model",axes=FALSE,legend=TRUE, col=cols, breaks=breakpoints)
-maps:::map('world', xlim=c(e_big[1],e_big[2]), ylim=c(e_big[3],e_big[4]), add=T)
+wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
+plot(wm, main="Ensemble model")
 points(sp)
 
 ```
@@ -588,23 +489,26 @@ Using the ensemble model to predict suitability for each year - 1950-2016 and fo
 ```{r Historical predictions, cache=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 
 bc <- bioclim(pred_nf, sp)
-gm1<-mgcv:::gam(pa~ s(Bio_1_2006_2016_average)+ s(Bio_5_2006_2016_average)+ s(Bio_6_2006_2016_average)+ s(Bio_13_2006_2016_average)+ s(Bio_15_2006_2016_average)+s(Bio_18_2006_2016_average)+ s(Bio_19_2006_2016_average) + s(Hyde_Year_2005), data=env_all)
-rf1 <- randomForest:::randomForest(model, data=env_all)
+gm1<-mgcv:::gam(pa~ s(Bio_5_2006_2016_average)+s(Bio_6_2006_2016_average)+ s(Bio_8_2006_2016_average)+ 
+           s(Bio_11_2006_2016_average)+ s(Bio_13_2006_2016_average)+ + s(Hyde_Year_2005), family = binomial(link = "logit"),data=env_all)
 
 for (i in 1:length(years)){
 
-    if (Europe_only){
-    pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep=""))  
+  if (Europe_only){
+    pred_nf<-stack(paste(wd, "/Bioclim/", years[i], "_bioclim_variable_stack.tif", sep="" ))  
   } else{
     pred_nf<-stack(paste(wd, "/Bioclim/Global/", years[i], "_bioclim_variable_stack.tif", sep="" ))
   }
+  
   pred_nf<-pred_nf[[bioclim_layers]]
   names(pred_nf)<-bioclim_names
+  
   if (Europe_only){
     hyde_yr<-raster(paste(wd, "/hyde_europe/Hyde_Year_", years[i], ".tif",sep=""))
   } else {
     hyde_yr<-raster(paste(wd, "/hyde_global/Hyde_Year_", years[i], ".tif",sep=""))
   }
+  
   names(hyde_yr)<-"Hyde_Year_2005"
   pred_nf<-stack(pred_nf, hyde_yr)
   
@@ -622,7 +526,8 @@ for (i in 1:length(years)){
  writeRaster(wm , paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
  writeRaster(pa_sss , paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i], ".tif", sep=""), overwrite=TRUE)
 
-  plot(pa_sss, main=years[i])
+ print(i)
+  #plot(pa_sss, main=years[i])
 }
 
 ```
@@ -631,13 +536,11 @@ for (i in 1:length(years)){
 
 ```{r}
 
-#t<-stack(paste(sdm_folder, "/weighted_ensemble_sdm_", years,".tif", sep=""))
 t<-stack(paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years,".tif", sep=""))
 s<-round(seq(1,nlayers(t),len=16))
 
 plot(t[[s]])
 
-#patch<-stack(paste(sdm_folder, "/pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 patch<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 plot(patch[[s]])
 #patch<-projectRaster(patch, crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
@@ -744,7 +647,7 @@ Populations$area<-extract(a, pxy)
 id<-pyrs$ID
 lam<-rep(1,length(id))    #not sure what the value here pertains to - think it sets starting population so should use values from LPI?
 pyrxy<-SpatialPoints(pyr[,c("Longitude","Latitude")])
-sdm<-raster(paste(wd, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[1],".tif", sep=""))
+sdm<-raster(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
 e2<-extent(sdm)
 r<-raster(e2, resolution=res(sdm))
 rz<-rasterize(pyrxy,r,lam )
@@ -772,7 +675,6 @@ patch<-raster(paste(sdm_folder,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", year
 
 sdm_patch_df<-data.frame(ID=1:ncell(patch))
 sdm_df<-data.frame(ID=1:ncell(patch))
-
 
 #formatting data for demoniche
 for (i in 1:length(years)){
@@ -803,10 +705,8 @@ colnames(patch_map_mine)[1:3]<-c("gridID", "X", "Y")
 niche_spin_up<-matrix(rep(niche_map_mine[,4], length(spin_years)), nrow=nrow(niche_map_mine))
 niche_spin_up<-cbind(niche_map_mine[,1:3],niche_spin_up, niche_map_mine[,4:ncol(niche_map_mine)])
 
-
 patch_spin_up<-matrix(rep(patch_map_mine[,4], length(spin_years)), nrow=nrow(patch_map_mine))
 patch_spin_up<-cbind(patch_map_mine[,1:3],patch_spin_up, patch_map_mine[,4:ncol(patch_map_mine)]) #last patch used to be niche
-
 
 col_years_short<-paste("Year_", years, sep="")
 col_years<-paste("Year_", min(spin_years):max(years), sep="")
@@ -824,14 +724,6 @@ plot(min(spin_years):max(years),colMeans(na.omit(niche_spin_up)[4:length(colname
 
 opt_patch_spin_up<-patch_spin_up
 opt_patch_spin_up[,4:704]<-1
-
-# niche_map_mine<-na.omit(niche_map_mine)
-# patch_map_mine<-na.omit(patch_map_mine)
-# #fake_map_mine<-na.omit(fake_map_mine)
-# 
-# niche_spin_up<-na.omit(niche_spin_up)
-# patch_spin_up<-na.omit(patch_spin_up)
-#fake_spin_up<-na.omit(fake_spin_up)
 
 patch_map_mine[is.na(patch_map_mine)]<-0
 
@@ -861,9 +753,18 @@ AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix")
 
+MatListA<-list(tempMat[[2]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+AllMatA<-unlist(MatListA)
+matricesA<-matrix(AllMatA, ncol=length(MatListA))
+colnames(matricesA)<- c("Matrix_A")
+
+matrices<-cbind(matrices, matricesA)
+
+matrices<-unique(matrices, MARGIN = 2)
+
     #not yet active in demoniche
 
-stages<-comadre$matrixClass[keep][[1]]$MatrixClassAuthor
+stages<-comadre$matrixClass[keep][[2]]$MatrixClassAuthor
 #stages<-comadre$matrixClass[keep][[2]]$MatrixClassAuthor
 #stagesf<-stages[1:3]
 proportion_initial<- rep(1/length(stages), length(stages)) #Think spin up sorts this
@@ -884,16 +785,6 @@ lin<-function(x, carry_k){
   x*carry_k
   }
 
-sig<-function(x){
-  carry_k*(1/(1+exp(-10*x+5)))
-  }   #could also try with 18x + 9 - closer to SM in Damaris paper
-
-lt<-function(x) {
-  val = (4/3) * x - (1/3)
-  val[x < 0.25] = 0
-  val<-val*carry_k
-  return(val)
-}
 ```
 
 
@@ -910,11 +801,18 @@ hsi<-raster:::extract(sdms, Populations[,c(2,3)])
 link1<-lin(hsi, carry_k[1])
 link1<-link1*Populations$area
 
+link2<-lin(hsi, carry_k[2])
+link2<-link2*Populations$area
+
 spin1<-replicate(length(spin_years),link1[,1])
 link_spin1<-cbind(spin1, link1)
 colnames(link_spin1)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_", spin_years, sep="")
 
-link_spin<-list(link_spin1)
+spin2<-replicate(length(spin_years),link2[,1])
+link_spin2<-cbind(spin2, link2)
+colnames(link_spin2)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_", spin_years, sep="")
+
+link_spin<-list(link_spin1, link_spin2)
 
 
 ```
@@ -925,20 +823,18 @@ link_spin<-list(link_spin1)
 Changed the demoniche_setup function (now demoniche_setup_me.R) to change the dispersal function to a decay curve where the half-life is the median estimated dispersal distance.This was based on Bowman et al 2012 where it suggests that the maximum dispersal is 40x the square root of a species home range and median dispersal is 7x the square root of HR.
 
 
+
 ```{r, message=FALSE, warning=FALSE, cache=TRUE, echo=FALSE}
-
 reps<-12
-
 for (s in 1:nrow(var_grid)){
-  
+
  print(paste (s, " out of ", nrow(var_grid) ), sep="")
 
   SDD<-var_grid[s,"SDD"]
   LDD<-var_grid[s,"LDD"]
   kern<-var_grid[s, "Kern"]
   SD<-var_grid[s, "SD"]
-
-  K<-var_grid[s, "K"]
+  
   dens<-var_grid[s, "Density"]
   link_id<-var_grid[s, "K_scale"]
   
@@ -949,7 +845,8 @@ for (s in 1:nrow(var_grid)){
   link_k<-matrix(unlist(link_spin[link_id]), nrow = nrow(Populations))
   
   med_disp<-as.character(kern_seq[[kern]][1]) 
-  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
+  
+  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
   
 rep_demoniche<-function(i){
   library(demoniche)
@@ -972,11 +869,14 @@ rep_demoniche<-function(i){
                   sumweight = sumweight)
 
 
-
 c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                      Dispersal = TRUE, repetitions = 1,
-                                     foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
- }
+                                     foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",dens,"_",link_id,"/",i,sep=""))
+
+
+
+  }
+
 
 if (Sys.info()["nodename"] == "FIONA-PC"){
  cl <- makeCluster(4)
@@ -1010,7 +910,6 @@ time.taken
   p<-Projection
   trend<-colSums(p[1,1,1:length(p[1,1,,1]),])
   tid<-cbind(md_id, rep_id, trend)
-  #print(proj_path)
   return(tid)
   }
 
@@ -1248,20 +1147,6 @@ colnames(all_year_ab)[1:3]<-c("sp_lpi.ID", "year", "value")
 
 ```
 
-
-```{r}
-library(ggplot2)
-
-ggplot(all_year_ab, aes(x = year, y = value, group= sp_lpi.ID, col=sp_lpi.ID))+
-  geom_line(size =2)+
-  xlab("Year")+
-  ylab("Ibex abundance")+
-   theme(text = element_text(size=20))
-
-
-```
-
-
 ```{r}
 mldab<-melt_short[,-4]
 all_year_ab$sp_lpi.ID<-as.factor(all_year_ab$sp_lpi.ID)
@@ -1348,8 +1233,6 @@ ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, max_disp, sp_lpi.I
   geom_line(colour="grey")+
   geom_line(data=both_df_ab[both_df_ab$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
   geom_line(data =  gam_r, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  xlab("Year")+
-  ylab("Ibex Abundance")+
   facet_grid(.~ sp_lpi.ID)
 
 
@@ -1453,7 +1336,7 @@ need to add in x axis. do plots separately for each of the dispersal options?
 ```{r}
 library(ggplot2)
 
-both_df<-both_df[both_df$max_disp != "1000" & both_df$sp_lpi.ID != 10710,]
+both_df<-both_df[both_df$max_disp != "1000",]
 
 
 
@@ -1462,8 +1345,6 @@ ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, max_disp,sp_lpi.
   geom_line(colour="grey")+
   geom_line(data=both_df[both_df$max_disp=="Observed",], aes(x=year, y=value), colour="red")+
   geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  xlab("Year")+
-  ylab("Ibex Growth Rate")+
   facet_grid(.~ sp_lpi.ID)
 
 
@@ -1525,7 +1406,7 @@ Basing the models on environmental data where the trend is known and constant - 
 
 ```{r, message=FALSE, warning=FALSE, cache=TRUE, eval=FALSE}
 
-#plot(years_short,colMeans(na.omit(fake_map_mine)[4:length(colnames(fake_map_mine))]), type="l", ylab="Mean fake suitability index")
+plot(years_short,colMeans(na.omit(fake_map_mine)[4:length(colnames(fake_map_mine))]), type="l", ylab="Mean fake suitability index")
 
 #setwd("C:Users/Fiona/Documents/Demoniche")
 
@@ -1599,23 +1480,3 @@ time.taken
 }
 
 ```
-
-
-* Scaling population matrices to habitat suitability – only have one stage matrix from a particular point in time
-*	Other matrices are just transition matrices but available in good and bad conditions, use these to great upper and lower bounds of survival? – need to check location, date and existence of these matrices
-
-*	Noise is currently not supported but a value of 1 imputes white noise, and values higher or lower than this give positive or negative temporal autocorrelation – more important when you have multiple matrices?
-
-*	Transition_affected_niche has more impact when specified values are inputted – if(is.numeric(transition_affected_niche){}
-
-*	Transition affected niche pulls out parts of the matrix that are multiplied by the niche value – so if just presence/absence then it is either no change or 0
-
-*	Potential problem with the way I have seeded the model – only ibex in the original populations whereas it might be more accurate to seed ibex more widely and then just sample from the original population sites.
-
-* Calculate dispersal kernel from gps data?
-
-* Density_individuals  = is the starting populations for each locations that is "seeded" in Populations
-
-* Proportion_initial is how density individual is divided between stages, e.g all juveniles or  evenly spread etc
-
-* Need to check if you can run multiple matrices_var in one run

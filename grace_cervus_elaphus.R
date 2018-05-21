@@ -24,8 +24,7 @@ min_lon<- -11
 max_lon<- 33
 bioclim_layers<-c(2,4,5,6,7,10,11)
 no_background_points<-1000
-bioclim_names<-c("Bio_2_2006_2016_average", "Bio_4_2006_2016_average","Bio_5_2006_2016_average","Bio_6_2006_2016_average","Bio_7_2006_2016_average","Bio_10_2006_2016_average","Bio_11_2006_2016_average")
-
+bioclim_names<-paste("Bio_", bioclim_layers, "_2006_2016_average", sep="")
 
 #Comadre
 transition_affected_niche<-"all"  #which parts of the matrix are affected by the c(1,2) is juveniles
@@ -268,7 +267,8 @@ link_spin<-list(link_spin1, link_spin2)
 
 reps<-12
 
-for (s in 1:nrow(var_grid)){
+#for (s in 1:nrow(var_grid)){
+for (s in 1:10){
   
   print(paste (s, " out of ", nrow(var_grid) ), sep="")
   
@@ -277,7 +277,6 @@ for (s in 1:nrow(var_grid)){
   kern<-var_grid[s, "Kern"]
   SD<-var_grid[s, "SD"]
   
-  K<-var_grid[s, "K"]
   dens<-var_grid[s, "Density"]
   link_id<-var_grid[s, "K_scale"]
   
@@ -286,7 +285,7 @@ for (s in 1:nrow(var_grid)){
   start.time <- Sys.time()
   
   med_disp<-as.character(kern_seq[[kern]][1])
-  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
+  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
   
   link_k<-matrix(unlist(link_spin[link_id]), nrow = nrow(Populations))
   
@@ -316,7 +315,7 @@ for (s in 1:nrow(var_grid)){
     
     c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
                                          Dispersal = TRUE, repetitions = 1,
-                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
+                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",dens,"_",link_id,"/",i, sep = ""))
     
     files<-lf[grepl("*.rda", lf)]
     file.remove(files)
