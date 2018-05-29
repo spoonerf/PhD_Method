@@ -12,7 +12,7 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
                              noise, 1 - (prob_scenario[prev_mx[yx_tx]] * noise))   #this all seems strange and samples from a first or second matrix
   rand_mxs <- sample(1:2, 1, prob = prob_scenario_noise, replace = TRUE)
 
-    one_mxs <- Matrix_projection[, rand_mxs]
+  one_mxs <- Matrix_projection[, rand_mxs]
   prev_mx[yx_tx + 1] <- rand_mxs
   if (Matrix_projection_var[1] != FALSE) {
     one_mxs_var <- one_mxs * (Matrix_projection_var[, rand_mxs])
@@ -40,9 +40,16 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
     }
     A[-1, ] <- Atest[-1, ] #changing survival values
   }
+  
+  if(tx >= 890 & tx <= 900){
+    Am<-matrix(A, ncol=1)
+    write.csv(Am, paste("matrix_spin_up_", tx, ".csv"))
+  }
   ##me
   n[is.na(n)]<-0
   ##
+  
+  
   n <- as.vector(A %*% n)    #n is the number of ibex in each stage of the matrix - a row from n0s which is all of the populations - here it is multipled by the matrix
   n <- floor(n)
 
