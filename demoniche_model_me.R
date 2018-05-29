@@ -117,7 +117,7 @@ demoniche_model_me<-function (modelname, Niche, Dispersal, repetitions, folderna
                                                                        transition_affected_niche = BEMDEM$transition_affected_niche, 
                                                                        transition_affected_env = BEMDEM$transition_affected_env, 
                                                                        env_stochas_type = BEMDEM$env_stochas_type, 
-                                                                       yx_tx = yx_tx, tx = tx)
+                                                                       yx_tx = yx_tx, tx = tx, yrs_total = yrs_total)
               #print(px)
               #print(tx)
             }

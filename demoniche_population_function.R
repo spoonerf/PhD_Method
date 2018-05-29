@@ -6,7 +6,7 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
           K = NULL, Kweight = BEMDEM$Kweight, onepopulation_Niche, 
           sumweight, noise, prob_scenario, prev_mx, transition_affected_demogr, 
           transition_affected_niche, transition_affected_env, env_stochas_type, 
-          yx_tx) 
+          yx_tx, tx, yrs_total) 
 {
   prob_scenario_noise <- c(prob_scenario[prev_mx[yx_tx]] * 
                              noise, 1 - (prob_scenario[prev_mx[yx_tx]] * noise))   #this all seems strange and samples from a first or second matrix
@@ -29,6 +29,7 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
                                                                     sdlog = one_mxs_var[transition_affected_env]))
     }
   }
+  
   one_mxs[one_mxs < 0] <- 0   #changing any negative values to zero
   A <- matrix(one_mxs, ncol = length(n), nrow = length(n), 
               byrow = FALSE)
@@ -41,9 +42,11 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
     A[-1, ] <- Atest[-1, ] #changing survival values
   }
   
-  if(tx >= 890 & tx <= 900){
+  #yrs_total added to get matrices for last 10 years of spin up
+  
+  if(tx >= yrs_total - 66 & tx <= yrs_total - 56){
     Am<-matrix(A, ncol=1)
-    write.csv(Am, paste("matrix_spin_up_", tx, ".csv"))
+    write.csv(Am, paste("matrix_spin_up_", tx, ".csv", sep=""), row.names=FALSE)
   }
   ##me
   n[is.na(n)]<-0
