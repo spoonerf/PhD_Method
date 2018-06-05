@@ -48,7 +48,7 @@ colnames(var_grid)<-c("SDD", "LDD", "Kern", "SD", "K", "Density", "K_scale")
 binomial<-paste(genus, species, sep="_")
 
 years<-1950:2005 #can only go up to 2005 with hyde
-spin_years<-1850:1949
+spin_years<-1940:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -234,111 +234,28 @@ colnames(link_spin1)[1:length(spin_years)]<-paste("hyde_weighted_ensemble_sdm_",
 
 link_spin<-list(link_spin1)
 
-###Running Demoniche Model
+s=1
 
-reps<-12
+SDD<-var_grid[s,"SDD"]
+LDD<-var_grid[s,"LDD"]
+kern<-var_grid[s, "Kern"]
+SD<-var_grid[s, "SD"]
 
-for (s in 1:nrow(var_grid)){
-  
-  print(paste (s, " out of ", nrow(var_grid) ), sep="")
-  
-  SDD<-var_grid[s,"SDD"]
-  LDD<-var_grid[s,"LDD"]
-  kern<-var_grid[s, "Kern"]
-  SD<-var_grid[s, "SD"]
-  
-  K<-var_grid[s, "K"]
-  dens<-var_grid[s, "Density"]
-  link_id<-var_grid[s, "K_scale"]
-  
-  matrices_var<-matrix(SD, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd"))
-  
-  start.time <- Sys.time()
-  
-  med_disp<-as.character(kern_seq[[kern]][1])
-  dir.create(paste(demoniche_folder,"/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id, "/",sep=""),showWarnings = TRUE)
-  
-  link_k<-matrix(unlist(link_spin[link_id]), nrow=nrow(link_spin1), ncol=ncol(link_spin1))
-  colnames(link_k)<-colnames(link_spin1)
-  
-  rep_demoniche<-function(i){
-    wd<-getwd()
-    
-    .libPaths(c(wd,.libPaths()))
-    library(demoniche)
-    library(doParallel)
-    source("demoniche_setup_me.R")
-    source("demoniche_model_me.R")
-    source("demoniche_dispersal_me.R")
-    source("demoniche_population_function_optim.R")
-    demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = opt_patch_spin_up,
-                       matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
-                       stages = stages, proportion_initial = proportion_initial,
-                       density_individuals = dens,
-                       fraction_LDD = LDD, fraction_SDD = SDD,
-                       dispersal_constants = kern_seq[[kern]],
-                       transition_affected_niche = transition_affected_niche,
-                       transition_affected_demogr = transition_affected_demogr,
-                       transition_affected_env=transition_affected_env,
-                       env_stochas_type = env_stochas_type,
-                       no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
-                       sumweight =sumweight)
-    
-    
-    # c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
-    #                                      Dispersal = TRUE, repetitions = 1,
-    #                                      foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
-    c_ibex_k_16000 <- demoniche_model_me(modelname = binomial, Niche = TRUE,
-                                         Dispersal = TRUE, repetitions = 1,
-                                         foldername = paste(binomial,"/Demoniche_Output/hyde_new_patch_disp_test_",med_disp,"_",SDD,"_",LDD,"_",kern,"_",SD,"_",K,"_",dens,"_",link_id,"/",i, sep = ""))
-     files<-lf[grepl("*.rda", lf)]
-    file.remove(files)
-    
-    
-  }
-  
-  if (Sys.info()["nodename"] == "FIONA-PC"){
-    cl <- makeCluster(4)
-  } else {
-    cl <- makeCluster(64)
-  }
-  
-  registerDoParallel(cl)
-  foreach(i=(1:reps)) %dopar% rep_demoniche(i)
-  stopCluster(cl)
-  
-  end.time <- Sys.time()
-  time.taken <- end.time - start.time
-  time.taken
-}
+K<-var_grid[s, "K"]
+dens<-var_grid[s, "Density"]
+link_id<-var_grid[s, "K_scale"]
+
+matrices_var<-matrix(SD, ncol = 1, nrow = nrow(matrices), dimnames = list(NULL, "sd"))
+
+start.time <- Sys.time()
+
+med_disp<-as.character(kern_seq[[kern]][1])
+
+link_k<-matrix(unlist(link_spin[link_id]), nrow=nrow(link_spin1), ncol=ncol(link_spin1))
+colnames(link_k)<-colnames(link_spin1)
 
 
-
-
-
-
-cal_demoniche=function(x) {
-  trans_mat[2:4]=x
-  print(x)
-  
-  demoniche_setup_VE(modelname=abbrev,Populations=pop,Nichemap=HSmap,matrices=trans_mat,matrices_var=sd_mat,noise=1,
-                     stages=names_stages,proportion_initial=prop_init,density_individuals=dens_init,fraction_LDD=fraction_longDD,fraction_SDD=fraction_shortDD,
-                     dispersal_constants=DD_kernel,transition_affected_niche= niche_affected_stages,no_yrs=1,K=100,sumweight=c(1,1),Kweight=c(1,1),
-                     transition_affected_env=F,transition_affected_demogr=F)
-  
-  demoVE_model=demoniche_model_VE(abbrev,Niche=T,Dispersal=T,repetitions=1,foldername=abbrev,debug=F)	
-  
-  load(paste(abbrev,'/Demorates1_mat_0.rda',sep=''))
-  demo_rates[is.na(demo_rates)]=0
-  
-  print(sampled_demo)
-  print(colMeans(demo_rates[888:898,]))
-  sum(abs(colMeans(demo_rates[888:898,])-sampled_demo))
-}
-
-cal_mat=optim(c(.9,1,.9),cal_demoniche,lower=sampled_demo,upper=c(1,u_juv,1),method='L-BFGS-B') # box constraint
-
-
+lower_est = c(0.5,0.5,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5)
 
 
 cal_demoniche=function(x) {
@@ -352,38 +269,23 @@ cal_demoniche=function(x) {
                      fraction_LDD = LDD, fraction_SDD = SDD,
                      dispersal_constants = kern_seq[[kern]],
                      transition_affected_niche = transition_affected_niche,
-                     transition_affected_demogr = transition_affected_demogr,
-                     transition_affected_env=transition_affected_env,
+                     transition_affected_demogr = F,
+                     transition_affected_env=F,
                      env_stochas_type = env_stochas_type,
                      no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
                      sumweight =sumweight)
   
-  demoVE_model=demoniche_model_me(abbrev,Niche=T,Dispersal=T,repetitions=1,foldername=abbrev,debug=F)	
+  demoVE_model=demoniche_model_me(binomial,Niche=T,Dispersal=T,repetitions=1,foldername=binomial)	
   
-  list.files(pattern = "*matrix_spin_up_")
+  spin_mat<-read.csv("matrix_spin_up.csv")
+  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)])-lower_est)
+  file.copy("matrix_spin_up.csv", "matrix_spin_up_copy.csv")
+  file.remove("matrix_spin_up.csv")
   
-  read.csv(paste(matrix_spin_up_",")
-  demo_rates[is.na(demo_rates)]=0
-  
-  print(sampled_demo)
-  print(colMeans(demo_rates[888:898,]))
-  sum(abs(colMeans(demo_rates[888:898,])-sampled_demo))
-}
+  }
 
-cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=(0.03,0.03,0.03,0.08,0.03,0.08,0.03,0.08,0.03,0.08,0.03,0.08,0.03),upper=c(1,1,1,1,1,1,1,1,1,1,1,1,1),method='L-BFGS-B') # box constraint
+cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=c(1,1,1,1,1,1,1,1,1,1,1,1,1),method='L-BFGS-B') # box constraint
 
 
-
-
-
-
-cal_demoniche=function(x) {
-  matrices[c(2,11,20,25,29,33,38,41,47,49,56,57,64)]=x
-  print(x)
-  
-
-}
-
-cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=c(0.03,0.03,0.03,0.08,0.03,0.08,0.03,0.08,0.03,0.08,0.03,0.08,0.03),upper=c(1,1,1,1,1,1,1,1,1,1,1,1,1),method='L-BFGS-B') # box constraint
 
 
