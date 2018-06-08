@@ -276,7 +276,7 @@ colnames(link_k)<-colnames(link_spin1)
 
 
 lower_est = c(0.5,0.5,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5)
-
+upper_est = c(1,1,1,1,1,1,1,1,1,1,1,1,1)
 
 cal_demoniche=function(x) {
   matrices[c(2,11,20,25,29,33,38,41,47,49,56,57,64)]=x
@@ -298,43 +298,24 @@ cal_demoniche=function(x) {
   demoVE_model=demoniche_model_me(binomial,Niche=T,Dispersal=T,repetitions=1,foldername=binomial)	
   
   spin_mat<-read.csv("matrix_spin_up.csv")
-  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)])-lower_est)
-  file.copy("matrix_spin_up.csv", "matrix_spin_up_copy.csv")
-  file.remove("matrix_spin_up.csv")
+  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-lower_est))
+  
+  print(upper_est)
+  print(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)])
+  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-upper_est))
+  #file.copy("matrix_spin_up.csv", "matrix_spin_up_copy.csv")
+  #file.remove("matrix_spin_up.csv")
   
 }
 
-cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=c(1,1,1,1,1,1,1,1,1,1,1,1,1),method='L-BFGS-B') # box constraint
+cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B') # box constraint
 
 
+optim_mat<-read.csv("matrix_spin_up_copy.csv")
+
+mean_opt<-rowMeans(optim_mat)
 
 
+cbind(matrices, mean_opt)
 
-comadre<-c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93)
-lower_est = c(0.5,0.5,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5)
-upper_est = c(1,1,1,1,1,1,1,1,1,1,1,1,1)
-
-
-cal_demoniche=function(x) {
-  matrices[c(2,11,20,25,29,33,38,41,47,49,56,57,64)]=x
-  print(x)
-  
-  transition_affected_env = which(matrices > 0)
-  
-  matrices[transition_affected_env]<-rnorm(length(matrices[transition_affected_env]),mean = matrices[transition_affected_env], sd = matrices_var[transition_affected_env])
-  
-  matrices<-matrices * opt_patch_spin_up
-  
-  #sum(abs(matrices[transition_affected_env] - lower_est))
-  sum(abs(matrices[transition_affected_env] - upper_est))
-  
-}
-
-cal_mat=optim(comadre,cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B') # box constraint
-
-
-lower<-cal_mat$par
-upper<-cal_mat$par
-
-cbind(lower,upper,comadre)
 
