@@ -193,66 +193,16 @@ both_df_ab<-rbind(mldab, all_year_ab)
 
 both_df_ab[both_df_ab$sp_lpi.ID == "  539",]$sp_lpi.ID<-539
 
-
-library(mgcv)
-
-gam_demon<-function(id){
-  #for (i in 1:length(unique(melt_short$sp_lpi.ID))){
-  
-  #id<-unique(melt_short$sp_lpi.ID)[i]
-  
-  df<-melt_short[melt_short$sp_lpi.ID ==id,]
-  PopN = df$value
-  Year = df$year
-  max_disp = df$med_disp
-  rep_id = df$rep_id
-  SmoothParm = round(length(na.omit(PopN))/2)
-  
-  mg2<-mgcv:::gam(PopN ~ s(Year, k=15), fx=TRUE)
-  pv2<-unique(fitted.values(mg2))
-  
-  ial<-data.frame(id, unique(Year),pv2)
-  
-  colnames(ial)<-c("sp_lpi.ID", "Year", "Abundance")
-  #print(id)
-  return(ial)
-}
-
-
-gam_demon_r<-lapply(unique(melt_short$sp_lpi.ID), gam_demon)
-gam_r<-do.call( "rbind", gam_demon_r)
-
 library(ggplot2)
 library(dplyr)
-
-#remove time series of all zeros - identify which these are
-
-ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey")+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_r, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)
-
-mldab_no_z<-group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
-  mutate(value_sum = sum(value)) %>% 
-  filter(value_sum >= 56)
-  
-group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
-  mutate(value_sum = sum(value)) %>% 
-  filter(value_sum <= 56)%>%
-  distinct(sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)
-
-
-#gam without zero
-
-
+library(mgcv)
 library(purrr)
 
 model_gam<-function(df) {
   gam(value~s(year), data=df)
 }
 
-gammy<-function(df){
+gammy<-function(df, start_year = 1950, end_year = 2005){
   
   gam_out<-df %>%
     split(.$sp_lpi.ID) %>%
@@ -261,19 +211,36 @@ gammy<-function(df){
     map_dfr(unique)
   
   gam_out<-melt(gam_out)
-  gam_out<-data.frame(gam_out, 1950:2005)
+  gam_out<-data.frame(gam_out, start_year:end_year)
   colnames(gam_out)<-c("sp_lpi.ID", "Abundance", "Year")
   
   return(gam_out)
 }
 
+gam_r<-gammy(melt_short)
+
+#remove time series of all zeros - identify which these are
+
+ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_r, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+mldab_no_z<-group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
+  mutate(value_sum = sum(value)) %>% 
+  filter(value_sum >= 0)
+  
+group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
+  mutate(value_sum = sum(value)) %>% 
+  filter(value_sum <= 0)%>%
+  distinct(sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)
+
+
+#plots without low populations
+
 gam_no_z<-gammy(mldab_no_z)
-
-
-# 
-# gam_demon_r_no_z<-lapply(unique(mldab_no_z$sp_lpi.ID), gam_demon_noz)
-# gam_r_no_z<-do.call( "rbind", gam_demon_r_no_z)
-
 
 ggplot(mldab_no_z, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
   geom_line(colour="grey", alpha = 0.4)+
@@ -282,14 +249,86 @@ ggplot(mldab_no_z, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_
   facet_grid(.~ sp_lpi.ID)+
   theme_bw()
 
-#sdd = 0.1
+#dispersal = 0.1 & sd = 0.1
 
-mldab_no_z_sdd_0_1<-filter(mldab_no_z, sdd == 0.1 & ldd ==0.1)
+mldab_no_z_sdd_0_1_sd_0_1<-filter(mldab_no_z, sdd == 0.1 & ldd ==0.1 & SD == 0.1)
 
-ggplot(mldab_no_z_sdd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+gam_no_z_sdd_0_1_sd_0_1<-gammy(mldab_no_z_sdd_0_1_sd_0_1)
+
+ggplot(mldab_no_z_sdd_0_1_sd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
   geom_line(colour="grey", alpha = 0.4)+
   geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_r_no_z, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  geom_line(data =  gam_no_z_sdd_0_1_sd_0_1, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+
+#dispersal = 0.1 & sd = 0.25
+
+mldab_no_z_sdd_0_1_sd_0_25<-filter(mldab_no_z, sdd == 0.1 & ldd ==0.1 & SD == 0.25)
+
+gam_no_z_sdd_0_1_sd_0_25<-gammy(mldab_no_z_sdd_0_1_sd_0_25)
+
+ggplot(mldab_no_z_sdd_0_1_sd_0_25, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_no_z_sdd_0_1_sd_0_25, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+
+#dispersal = 0.25 & sd = 0.1
+
+
+mldab_no_z_sdd_0_25_sd_0_1<-filter(mldab_no_z, sdd == 0.25 & ldd ==0.25 & SD == 0.1)
+
+gam_no_z_sdd_0_25_sd_0_1<-gammy(mldab_no_z_sdd_0_25_sd_0_1)
+
+ggplot(mldab_no_z_sdd_0_25_sd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_no_z_sdd_0_25_sd_0_1, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+#dispersal = 0.25 & sd = 0.25
+
+
+mldab_no_z_sdd_0_25_sd_0_25<-filter(mldab_no_z, sdd == 0.25 & ldd ==0.25 & SD == 0.25)
+
+gam_no_z_sdd_0_25_sd_0_25<-gammy(mldab_no_z_sdd_0_25_sd_0_25)
+
+ggplot(mldab_no_z_sdd_0_25_sd_0_25, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_no_z_sdd_0_25_sd_0_25, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+#dispersal = 0.5 & SD = 0.1
+
+mldab_no_z_sdd_0_5_sd_0_1<-filter(mldab_no_z, sdd == 0.5 & ldd ==0.5 & SD == 0.1)
+
+gam_no_z_sdd_0_5_sd_0_1<-gammy(mldab_no_z_sdd_0_5_sd_0_1)
+
+ggplot(mldab_no_z_sdd_0_5_sd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_no_z_sdd_0_5_sd_0_1, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+#dispersal = 0.5 & SD = 0.25
+#this one not working cos some pops have no pops that didn't crash out
+
+mldab_no_z_sdd_0_5_sd_0_25<-filter(mldab_no_z, sdd == 0.5 & ldd ==0.5 & SD == 0.25)
+
+gam_no_z_sdd_0_5_sd_0_25<-gammy(mldab_no_z_sdd_0_5_sd_0_25)
+
+ggplot(mldab_no_z_sdd_0_5_sd_0_25, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_no_z_sdd_0_5_sd_0_25, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ sp_lpi.ID)+
   theme_bw()
 
@@ -299,13 +338,10 @@ ggplot(mldab_no_z_sdd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_d
 
 #melt_lambda_short[melt_lambda_short$sp_lpi.ID == "  539",]$sp_lpi.ID<-539
 
-gam_demon_r_lambda<-lapply(unique(melt_lambda_short$sp_lpi.ID), gam_demon)
-gam_r_lambda<-do.call( "rbind", gam_demon_r_lambda)
+
 
 
 ####plotting in lambda
-
-
 
 
 pops<-sp_lpi[,c(1,65:120)]
@@ -321,9 +357,10 @@ pops$dens<-"Observed"
 pops$link<-"Observed"
 
 
-
 library(taRifx)
 popsm<-as.matrix(pops)
+
+#change this to purrr?
 
 gam_lpi<-function(x){
   #subsetting the population data by each population
@@ -401,7 +438,10 @@ both_df<-rbind(mld, all_year_r)
 
 
 
-#should consider splitting into several plots based on each of the variables e.g one facet plot for LDD = 0.5
+#should consider splitting both_df anf gam_r_lambda into several plots based on each of the variables e.g one facet plot for LDD = 0.5 - yes do this - copy as above
+
+
+gam_r_lambda<-gammy(melt_lambda_short, 1951, 2005)
 
 
 ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, med_disp,sp_lpi.ID), colour= sp_lpi.ID))+
