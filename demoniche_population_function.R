@@ -42,12 +42,6 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
     A[-1, ] <- Atest[-1, ] #changing survival values
   }
   
-  #yrs_total added to get matrices for last 10 years of spin up
-  
-  if(tx >= yrs_total - 66 & tx <= yrs_total - 56){
-    Am<-matrix(A, ncol=1)
-    write.csv(Am, paste("matrix_spin_up_", tx, ".csv", sep=""), row.names=FALSE)
-  }
   ##me
   n[is.na(n)]<-0
   ##

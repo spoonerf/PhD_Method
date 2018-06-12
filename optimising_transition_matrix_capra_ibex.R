@@ -11,6 +11,7 @@ library(popbio)
 source("demoniche_setup_me.R")
 source("demoniche_model_me.R")
 source("demoniche_dispersal_me.R")
+source("C:/Users/Fiona/Documents/PhD/PhD_Method/demoniche_population_function_optim.R")
 
 genus<-"Capra"
 species<-"ibex"
@@ -111,7 +112,9 @@ gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
 Populations<-gbif_xy[,c("ID", "x", "y")]
 colnames(Populations)<-c("PatchID", "X", "Y")
 
+
 pxy<-cbind(Populations$X, Populations$Y)
+
 a<-area(patch)
 
 Populations$area<-extract(a, pxy)
@@ -133,9 +136,23 @@ df<-data.frame(ridm,rz_spdf,rzm)
 colnames(df)<-c( "PatchID","X","Y","area")
 df<-data.frame(na.omit(df))
 
+df<-rbind(df, Populations)
+
+dfxy<-cbind(df$X, df$Y)
+df$area<-extract(a, dfxy)
+
+df_test<-df[df$PatchID ==1069500,]
+
+buff<-0.75
+
+e<-extent(df_test$X - buff, df_test$X + buff, df_test$Y - buff, df_test$Y + buff)
+
+df<-df[df$X > e@xmin & df$X < e@xmax & df$Y < e@ymax & df$Y > e@ymin,]
+ 
 
 ###formatting environmental data
 patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
+patch<-crop(patch, e)
 
 sdm_patch_df<-data.frame(ID=1:ncell(patch))
 sdm_df<-data.frame(ID=1:ncell(patch))
@@ -143,13 +160,14 @@ sdm_df<-data.frame(ID=1:ncell(patch))
 for (i in 1:length(years)){
   sdm<-raster(paste(wd,"/hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
   patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
+  sdm<-crop(sdm, e)
+  patch<-crop(sdm, e)
   
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
     vec_pat<-as.data.frame(patch, xy=TRUE)
   } else{
     vec<-as.data.frame(sdm)
-    
     vec_pat<-as.data.frame(patch)
   }
   
@@ -188,6 +206,8 @@ patch_map_mine[is.na(patch_map_mine)]<-0
 
 niche_spin_up[is.na(niche_spin_up)]<-0
 patch_spin_up[is.na(patch_spin_up)]<-0
+
+opt_patch_spin_up
 
 ###COMADRE
 load(paste(wd, "COMADRE_v.2.0.1.RData", sep="/"))
@@ -254,15 +274,14 @@ med_disp<-as.character(kern_seq[[kern]][1])
 link_k<-matrix(unlist(link_spin[link_id]), nrow=nrow(link_spin1), ncol=ncol(link_spin1))
 colnames(link_k)<-colnames(link_spin1)
 
-
 lower_est = c(0.5,0.5,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5)
-
+upper_est = c(1,1,1,1,1,1,1,1,1,1,1,1,1)
 
 cal_demoniche=function(x) {
   matrices[c(2,11,20,25,29,33,38,41,47,49,56,57,64)]=x
   print(x)
   
-  demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = opt_patch_spin_up,
+  demoniche_setup_me(modelname = binomial ,Populations = df, Nichemap = opt_patch_spin_up,
                      matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                      stages = stages, proportion_initial = proportion_initial,
                      density_individuals = dens,
@@ -272,20 +291,31 @@ cal_demoniche=function(x) {
                      transition_affected_demogr = F,
                      transition_affected_env=F,
                      env_stochas_type = env_stochas_type,
-                     no_yrs = no_yrs_mine, K=link_k, Kweight = K_weight, Ktype="ceiling",
+                     no_yrs = no_yrs_mine, K=5000, Kweight = K_weight, Ktype="ceiling",
                      sumweight =sumweight)
   
   demoVE_model=demoniche_model_me(binomial,Niche=T,Dispersal=T,repetitions=1,foldername=binomial)	
-  
+
   spin_mat<-read.csv("matrix_spin_up.csv")
-  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)])-lower_est)
-  file.copy("matrix_spin_up.csv", "matrix_spin_up_copy.csv")
-  file.remove("matrix_spin_up.csv")
+  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-lower_est))
   
-  }
+  print(upper_est)
+  print(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)])
+  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-upper_est))
+  #file.copy("matrix_spin_up.csv", "matrix_spin_up_copy.csv")
+  #file.remove("matrix_spin_up.csv")
+  
+}
 
-cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=c(1,1,1,1,1,1,1,1,1,1,1,1,1),method='L-BFGS-B') # box constraint
+cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B') # box constraint
 
+
+optim_mat<-read.csv("matrix_spin_up_copy.csv")
+
+mean_opt<-rowMeans(optim_mat)
+
+
+cbind(matrices, mean_opt)
 
 
 
