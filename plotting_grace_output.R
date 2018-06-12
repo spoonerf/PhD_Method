@@ -1,3 +1,9 @@
+
+
+#There are some NAs in rep_id - not sure why..... find out!
+#need to take out the population trends which crashed out and make a note of which ones these were
+#need to talk to damaris about optimising the matrix
+
 library(reshape2)
 
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
@@ -38,8 +44,8 @@ convert_pop_out<-function(foldername){
   kern<-strsplit(foldername, "[/_]")[[1]][9]
   SD<-strsplit(foldername, "[/_]")[[1]][10]
   dens<-strsplit(foldername, "[/_]")[[1]][11]
-  link<-strsplit(foldername, "[/_]")[[1]][13]
-  rep_id<-strsplit(foldername, "[/_]")[[1]][14]
+  link<-strsplit(foldername, "[/_]")[[1]][length(strsplit(foldername, "[/_]")[[1]])-1]
+  rep_id<-strsplit(foldername, "[/_]")[[1]][length(strsplit(foldername, "[/_]")[[1]])]
   trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,kern,SD,dens,link,rep_id,trends)
 }
 
@@ -49,7 +55,7 @@ dfm<-as.matrix(df)
 
 lambda<-function(x){
   
-  l10<-10^diff(log10(as.numeric(x[10:length(x)])))
+  l10<-10^diff(log1p(as.numeric(x[10:length(x)])))
   
 }
 
@@ -92,8 +98,8 @@ library(taRifx)
 library(plyr)
 library(mgcv)
 
-pops<-sp_lpi[,c(1,65:130)]
-colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2015, sep="_")
+pops<-sp_lpi[,c(1,65:120)]
+colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2005, sep="_")
 pops[pops=="NULL"]<-NA
 pops$rep_id<-"Observed"
 pops$md_id<-"Observed"
@@ -103,12 +109,12 @@ popsm<-as.matrix(pops)
 gam_lpi<-function(x){
   #subsetting the population data by each population
   spid = x[2:(length(x)-2)]                     #subsetting only the dates
-  names(spid)<-1950:2015              #renaming the date column names as R doesn't like numbered column names
+  names(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
   spid<-as.numeric(spid)
   pop_datab <- (!is.na(spid) )
   points = sum(pop_datab)
   id<-x[1]
-  Date<-1950:2015
+  Date<-1950:2005
   spidt<-destring(t(spid))
   time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
   missing<-time-points
@@ -183,6 +189,8 @@ all_year_ab$year<-as.numeric(all_year_ab$year)
 
 both_df_ab<-rbind(mldab, all_year_ab)
 
+both_df_ab<-rbind(mldab, all_year_ab)
+
 both_df_ab[both_df_ab$sp_lpi.ID == "  539",]$sp_lpi.ID<-539
 
 
@@ -196,7 +204,7 @@ gam_demon<-function(id){
   df<-melt_short[melt_short$sp_lpi.ID ==id,]
   PopN = df$value
   Year = df$year
-  max_disp = df$max_disp
+  max_disp = df$med_disp
   rep_id = df$rep_id
   SmoothParm = round(length(na.omit(PopN))/2)
   
@@ -214,35 +222,10 @@ gam_demon<-function(id){
 gam_demon_r<-lapply(unique(melt_short$sp_lpi.ID), gam_demon)
 gam_r<-do.call( "rbind", gam_demon_r)
 
-
-library(mgcv)
-
-gam_demon<-function(id){
-  df<-melt_lambda_short[melt_lambda_short$sp_lpi.ID ==id,]
-  PopN = df$value
-  Year = df$year
-  max_disp = df$max_disp
-  rep_id = df$rep_id
-  SmoothParm = round(length(na.omit(PopN))/2)
-  
-  mg2<-mgcv:::gam(PopN ~ s(Year, k=10), fx=TRUE)
-  pv2<-unique(fitted.values(mg2))
-  
-  ial<-data.frame(id, unique(Year),pv2)
-  
-  colnames(ial)<-c("sp_lpi.ID", "Year", "Abundance")
-  return(ial)
-}
-
-gam_demon_r_lambda<-lapply(unique(melt_lambda_short$sp_lpi.ID), gam_demon)
-gam_r_lambda<-do.call( "rbind", gam_demon_r_lambda)
-
-
-
-#There are some NAs in rep_id - not sure why..... find out!
-
 library(ggplot2)
+library(dplyr)
 
+#remove time series of all zeros - identify which these are
 
 ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
   geom_line(colour="grey")+
@@ -250,6 +233,190 @@ ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.I
   geom_line(data =  gam_r, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ sp_lpi.ID)
 
+mldab_no_z<-group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
+  mutate(value_sum = sum(value)) %>% 
+  filter(value_sum >= 56)
+  
+group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
+  mutate(value_sum = sum(value)) %>% 
+  filter(value_sum <= 56)%>%
+  distinct(sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)
+
+
+#gam without zero
+
+
+library(purrr)
+
+model_gam<-function(df) {
+  gam(value~s(year), data=df)
+}
+
+gammy<-function(df){
+  
+  gam_out<-df %>%
+    split(.$sp_lpi.ID) %>%
+    map(.,model_gam)%>%
+    map(fitted.values)%>%
+    map_dfr(unique)
+  
+  gam_out<-melt(gam_out)
+  gam_out<-data.frame(gam_out, 1950:2005)
+  colnames(gam_out)<-c("sp_lpi.ID", "Abundance", "Year")
+  
+  return(gam_out)
+}
+
+gam_no_z<-gammy(mldab_no_z)
+
+
+# 
+# gam_demon_r_no_z<-lapply(unique(mldab_no_z$sp_lpi.ID), gam_demon_noz)
+# gam_r_no_z<-do.call( "rbind", gam_demon_r_no_z)
+
+
+ggplot(mldab_no_z, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_no_z, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+#sdd = 0.1
+
+mldab_no_z_sdd_0_1<-filter(mldab_no_z, sdd == 0.1 & ldd ==0.1)
+
+ggplot(mldab_no_z_sdd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_r_no_z, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
 
 
 
+######too many NAs
+
+#melt_lambda_short[melt_lambda_short$sp_lpi.ID == "  539",]$sp_lpi.ID<-539
+
+gam_demon_r_lambda<-lapply(unique(melt_lambda_short$sp_lpi.ID), gam_demon)
+gam_r_lambda<-do.call( "rbind", gam_demon_r_lambda)
+
+
+####plotting in lambda
+
+
+
+
+pops<-sp_lpi[,c(1,65:120)]
+colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2005, sep="_")
+pops[pops=="NULL"]<-NA
+pops$rep_id<-"Observed"
+pops$med_disp<-"Observed"
+pops$sdd<-"Observed"
+pops$ldd<-"Observed"
+pops$kern<-"Observed"
+pops$SD<-"Observed"
+pops$dens<-"Observed"
+pops$link<-"Observed"
+
+
+
+library(taRifx)
+popsm<-as.matrix(pops)
+
+gam_lpi<-function(x){
+  #subsetting the population data by each population
+  spid = x[2:(length(x)-8)]                     #subsetting only the dates
+  names(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
+  spid<-as.numeric(spid)
+  pop_datab <- (!is.na(spid) )
+  points = sum(pop_datab)
+  id<-x[1]
+  id<-as.numeric(id)
+  Date<-1950:2005
+  spidt<-destring(t(spid))
+  time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
+  missing<-time-points
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 #if a population is zero one year thhis is replaced with 1% of the average population estimate - because you can log zeros
+  
+  df<-data.frame(Year,Population)
+  
+
+  if (points >=6) {
+    PopN = log1p(df$Population)
+    if (length(na.omit(PopN)) >=6) {
+      SmoothParm = round(length(na.omit(PopN))/2)
+    } else {
+      SmoothParm=3
+    }
+    
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv2 <- predict(mg2,df,type="response",se=TRUE)
+    R_sq2<-summary(mg2)$r.sq
+    model<-1
+    pv2$fit[pv2$fit <= 0] <- NA
+    
+    lambda2<-diff(pv2$fit)
+    
+    ial<-data.frame(id, Year[-length(Year)], exp(lambda2))
+    
+    colnames(ial)<-c("ID", "Year", "R")
+  }
+  
+  return(ial)
+}
+
+gam_lpi_r<-apply(popsm,  1, gam_lpi)
+gam_r<-do.call( "rbind", gam_lpi_r)
+
+fill<-data.frame(rep(pops$ID, each=length(1950:2005)), 1950:2005)
+colnames(fill)<-c("ID", "Year")
+
+all_year_r<-join(fill, gam_r, type="right")
+
+all_year_r$med_disp<-"Observed"
+all_year_r$sdd<-"Observed"
+all_year_r$ldd<-"Observed"
+all_year_r$kern<-"Observed"
+all_year_r$SD<-"Observed"
+all_year_r$dens<-"Observed"
+all_year_r$link<-"Observed"
+all_year_r$rep_id<-"Observed"
+
+colnames(all_year_r)[1:3]<-c("sp_lpi.ID", "year", "value")
+
+mld<-melt_lambda_short[,-10]
+all_year_r$sp_lpi.ID<-as.factor(all_year_r$sp_lpi.ID)
+all_year_r$med_disp<-as.factor(all_year_r$med_disp)
+all_year_r$rep_id<-as.factor(all_year_r$rep_id)
+all_year_r$value<-as.numeric(all_year_r$value)
+all_year_r$year<-as.numeric(all_year_r$year)
+
+both_df<-rbind(mld, all_year_r)
+
+
+
+
+#should consider splitting into several plots based on each of the variables e.g one facet plot for LDD = 0.5
+
+
+ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, med_disp,sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.2)+
+  geom_line(data=both_df[both_df$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)
+
+# 
+# for (i in 1:length(unique(both_df$sp_lpi.ID))){
+#   pp<-ggplot(both_df[both_df$sp_lpi.ID == unique(both_df$sp_lpi.ID)[i],], aes(x= year, y=value, group=interaction(rep_id, max_disp)))+
+#     geom_line(colour="grey")+
+#     geom_line(data=both_df[both_df$max_disp=="Observed" & both_df$sp_lpi.ID == both_df$sp_lpi.ID[i],], aes(x=year, y=value), colour="red")+
+#     geom_line(data =  gam_r_lambda[gam_r_lambda$sp_lpi.ID ==gam_r_lambda$sp_lpi.ID[i], ], aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )
+#   plot(pp)
+# }
+# 
+# 
