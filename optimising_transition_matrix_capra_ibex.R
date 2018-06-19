@@ -274,7 +274,6 @@ med_disp<-as.character(kern_seq[[kern]][1])
 link_k<-matrix(unlist(link_spin[link_id]), nrow=nrow(link_spin1), ncol=ncol(link_spin1))
 colnames(link_k)<-colnames(link_spin1)
 
-
 lower_est = c(0.5,0.5,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5)
 upper_est = c(1,1,1,1,1,1,1,1,1,1,1,1,1)
 
@@ -289,14 +288,14 @@ cal_demoniche=function(x) {
                      fraction_LDD = LDD, fraction_SDD = SDD,
                      dispersal_constants = kern_seq[[kern]],
                      transition_affected_niche = transition_affected_niche,
-                     transition_affected_demogr = transition_affected_demogr,
-                     transition_affected_env=transition_affected_env,
+                     transition_affected_demogr = F,
+                     transition_affected_env=F,
                      env_stochas_type = env_stochas_type,
                      no_yrs = no_yrs_mine, K=5000, Kweight = K_weight, Ktype="ceiling",
                      sumweight =sumweight)
   
   demoVE_model=demoniche_model_me(binomial,Niche=T,Dispersal=T,repetitions=1,foldername=binomial)	
-  
+
   spin_mat<-read.csv("matrix_spin_up.csv")
   sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-lower_est))
   
@@ -317,5 +316,6 @@ mean_opt<-rowMeans(optim_mat)
 
 
 cbind(matrices, mean_opt)
+
 
 
