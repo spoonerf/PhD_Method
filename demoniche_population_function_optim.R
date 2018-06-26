@@ -3,15 +3,15 @@
 # transition_affected_env <- c(2,29)
 
 demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, populationmax, 
-          K = NULL, Kweight = BEMDEM$Kweight, onepopulation_Niche, 
-          sumweight, noise, prob_scenario, prev_mx, transition_affected_demogr, 
-          transition_affected_niche, transition_affected_env, env_stochas_type, 
-          yx_tx, tx, yrs_total) 
+                                   K = NULL, Kweight = BEMDEM$Kweight, onepopulation_Niche, 
+                                   sumweight, noise, prob_scenario, prev_mx, transition_affected_demogr, 
+                                   transition_affected_niche, transition_affected_env, env_stochas_type, 
+                                   yx_tx, tx, yrs_total) 
 {
   prob_scenario_noise <- c(prob_scenario[prev_mx[yx_tx]] * 
                              noise, 1 - (prob_scenario[prev_mx[yx_tx]] * noise))   #this all seems strange and samples from a first or second matrix
   rand_mxs <- sample(1:2, 1, prob = prob_scenario_noise, replace = TRUE)
-
+  
   one_mxs <- Matrix_projection[, rand_mxs]
   prev_mx[yx_tx + 1] <- rand_mxs
   if (Matrix_projection_var[1] != FALSE) {
@@ -47,12 +47,12 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
   #file.remove("matrix_spin_up.csv")
   if(tx >= yrs_total - 66 & tx <= yrs_total - 56){
     Am<-matrix(A, ncol=1)
-    if (file.exists("matrix_spin_up.csv")){
-      tmp<-read.csv("matrix_spin_up.csv")
+    if (file.exists(paste("matrix_spin_up_",tx,".csv", sep=""))){
+      tmp<-read.csv(paste("matrix_spin_up_",tx,".csv", sep=""))
       new<-cbind(tmp, Am)
-      write.csv(new, "matrix_spin_up.csv", row.names = FALSE)
+      write.csv(new, paste("matrix_spin_up_",tx,".csv", sep=""), row.names = FALSE)
     } else{
-      write.csv(Am, "matrix_spin_up.csv", row.names=FALSE)      
+      write.csv(Am, paste("matrix_spin_up_",tx,".csv", sep=""), row.names=FALSE)      
     }
   }
   ##me
@@ -62,7 +62,7 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
   
   n <- as.vector(A %*% n)    #n is the number of ibex in each stage of the matrix - a row from n0s which is all of the populations - here it is multipled by the matrix
   n <- floor(n)
-
+  
   if (sum(n) > 0) {
     if (is.numeric(populationmax)) {
       if (sum(n * Kweight) > populationmax) {
