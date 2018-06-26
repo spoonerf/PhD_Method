@@ -45,8 +45,8 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
   #yrs_total added to get matrices for last 10 years of spin up - writes for each cell which has a pop?
   
   #file.remove("matrix_spin_up.csv")
-  if(tx >= yrs_total - 66 & tx <= yrs_total - 56){
     Am<-matrix(A, ncol=1)
+    if (tx >= 89 & tx <=99 ){
     if (file.exists(paste("matrix_spin_up_",tx,".csv", sep=""))){
       tmp<-read.csv(paste("matrix_spin_up_",tx,".csv", sep=""))
       new<-cbind(tmp, Am)
@@ -54,7 +54,7 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
     } else{
       write.csv(Am, paste("matrix_spin_up_",tx,".csv", sep=""), row.names=FALSE)      
     }
-  }
+    }
   ##me
   n[is.na(n)]<-0
   ##
