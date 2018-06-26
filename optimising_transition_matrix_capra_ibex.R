@@ -11,7 +11,7 @@ library(popbio)
 source("demoniche_setup_me.R")
 source("demoniche_model_me.R")
 source("demoniche_dispersal_me.R")
-source("C:/Users/Fiona/Documents/PhD/PhD_Method/demoniche_population_function_optim.R")
+source("demoniche_population_function_optim.R")
 
 genus<-"Capra"
 species<-"ibex"
@@ -49,7 +49,7 @@ colnames(var_grid)<-c("SDD", "LDD", "Kern", "SD", "K", "Density", "K_scale")
 binomial<-paste(genus, species, sep="_")
 
 years<-1950:2005 #can only go up to 2005 with hyde
-spin_years<-1940:1949
+spin_years<-1920:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -275,7 +275,7 @@ link_k<-matrix(unlist(link_spin[link_id]), nrow=nrow(link_spin1), ncol=ncol(link
 colnames(link_k)<-colnames(link_spin1)
 
 lower_est = c(0.5,0.5,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5)
-upper_est = c(1,1,1,1,1,1,1,1,1,1,1,1,1)
+upper_est = c(1,1,1,1.5,1,1.5,1,1.5,1,1.5,1,1.5,1)
 
 cal_demoniche=function(x) {
   matrices[c(2,11,20,25,29,33,38,41,47,49,56,57,64)]=x
@@ -291,7 +291,7 @@ cal_demoniche=function(x) {
                      transition_affected_demogr = F,
                      transition_affected_env=F,
                      env_stochas_type = env_stochas_type,
-                     no_yrs = no_yrs_mine, K=5000, Kweight = K_weight, Ktype="ceiling",
+                     no_yrs = no_yrs_mine, K=100, Kweight = K_weight, Ktype="ceiling",
                      sumweight =sumweight)
   
   demoVE_model=demoniche_model_me(binomial,Niche=T,Dispersal=T,repetitions=1,foldername=binomial)	
@@ -301,13 +301,13 @@ cal_demoniche=function(x) {
   
   print(upper_est)
   print(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)])
-  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-upper_est))
+  #sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-upper_est))
   #file.copy("matrix_spin_up.csv", "matrix_spin_up_copy.csv")
   #file.remove("matrix_spin_up.csv")
   
 }
 
-cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B') # box constraint
+cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B', control = list(fnscale = -1)) # box constraint
 
 
 optim_mat<-read.csv("matrix_spin_up_copy.csv")
