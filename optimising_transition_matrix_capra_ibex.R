@@ -49,7 +49,7 @@ colnames(var_grid)<-c("SDD", "LDD", "Kern", "SD", "K", "Density", "K_scale")
 binomial<-paste(genus, species, sep="_")
 
 years<-1950:2005 #can only go up to 2005 with hyde
-spin_years<-1920:1949
+spin_years<-1850:1949
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 species_directory<-paste(wd, binomial, sep="/")
 dir.create(species_directory)
@@ -112,7 +112,6 @@ gbif_xy$ID<-(1:nrow(gbif_xy))+ncell(patch)*2
 Populations<-gbif_xy[,c("ID", "x", "y")]
 colnames(Populations)<-c("PatchID", "X", "Y")
 
-
 pxy<-cbind(Populations$X, Populations$Y)
 
 a<-area(patch)
@@ -141,18 +140,18 @@ df<-rbind(df, Populations)
 dfxy<-cbind(df$X, df$Y)
 df$area<-extract(a, dfxy)
 
-df_test<-df[df$PatchID ==1069500,]
 
-buff<-0.75
 
-e<-extent(df_test$X - buff, df_test$X + buff, df_test$Y - buff, df_test$Y + buff)
-
-df<-df[df$X > e@xmin & df$X < e@xmax & df$Y < e@ymax & df$Y > e@ymin,]
- 
+# buff<-0.75
+# 
+# e<-extent(df_test$X - buff, df_test$X + buff, df_test$Y - buff, df_test$Y + buff)
+# 
+# df<-df[df$X > e@xmin & df$X < e@xmax & df$Y < e@ymax & df$Y > e@ymin,]
+#  
 
 ###formatting environmental data
 patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_1950.tif", sep=""))
-patch<-crop(patch, e)
+#patch<-crop(patch, e)
 
 sdm_patch_df<-data.frame(ID=1:ncell(patch))
 sdm_df<-data.frame(ID=1:ncell(patch))
@@ -160,8 +159,8 @@ sdm_df<-data.frame(ID=1:ncell(patch))
 for (i in 1:length(years)){
   sdm<-raster(paste(wd,"/hyde_weighted_ensemble_sdm_", years[i],".tif", sep=""))   #14.6
   patch<-raster(paste(wd,"/hyde_pres_abs_sss_weighted_ensemble_sdm_", years[i],".tif", sep=""))
-  sdm<-crop(sdm, e)
-  patch<-crop(sdm, e)
+  #sdm<-crop(sdm, e)
+  #patch<-crop(sdm, e)
   
   if (i ==1){
     vec<-as.data.frame(sdm, xy = TRUE)
@@ -200,7 +199,7 @@ colnames(niche_spin_up)[4:length(colnames(niche_spin_up))]<-col_years
 colnames(patch_spin_up)[4:length(colnames(patch_spin_up))]<-col_years
 
 opt_patch_spin_up<-patch_spin_up
-opt_patch_spin_up[,4:ncol(patch_spin_up)]<-1
+opt_patch_spin_up[,4:length(spin_years)+4]<-1
 
 patch_map_mine[is.na(patch_map_mine)]<-0
 
@@ -277,6 +276,13 @@ colnames(link_k)<-colnames(link_spin1)
 lower_est = c(0.5,0.5,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5,0.08,0.5)
 upper_est = c(1,1,1,1.5,1,1.5,1,1.5,1,1.5,1,1.5,1)
 
+csv_read<-function(file){
+  matf<-read.csv(file)
+  return(matf)
+}
+
+file.remove(list.files(pattern = "*matrix_spin_up"))
+
 cal_demoniche=function(x) {
   matrices[c(2,11,20,25,29,33,38,41,47,49,56,57,64)]=x
   print(x)
@@ -296,11 +302,14 @@ cal_demoniche=function(x) {
   
   demoVE_model=demoniche_model_me(binomial,Niche=T,Dispersal=T,repetitions=1,foldername=binomial)	
 
-  spin_mat<-read.csv("matrix_spin_up.csv")
-  sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-lower_est))
   
-  print(upper_est)
-  print(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)])
+
+  files<-paste("matrix_spin_up_",89:99, ".csv", sep="")
+  file_out<-lapply(files, csv_read)
+  mats<do.call("cbind", files_out)
+  
+  sum(abs(rowMeans(mats)[which(rowMeans(mats)>0)]-lower_est))
+  
   #sum(abs(rowMeans(spin_mat)[which(rowMeans(spin_mat)>0)]-upper_est))
   #file.copy("matrix_spin_up.csv", "matrix_spin_up_copy.csv")
   #file.remove("matrix_spin_up.csv")
@@ -308,14 +317,12 @@ cal_demoniche=function(x) {
 }
 
 cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B', control = list(fnscale = -1)) # box constraint
+save(cal_mat, "matrix_optim.Rda")
 
 
-optim_mat<-read.csv("matrix_spin_up_copy.csv")
-
-mean_opt<-rowMeans(optim_mat)
 
 
-cbind(matrices, mean_opt)
+
 
 
 
