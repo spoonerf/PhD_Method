@@ -726,12 +726,12 @@ plot(years,colMeans(na.omit(niche_map_mine)[4:length(colnames(niche_map_mine))])
 plot(min(spin_years):max(years),colMeans(na.omit(niche_spin_up)[4:length(colnames(niche_spin_up))]), type="l", ylab="Mean suitability index")
 
 opt_patch_spin_up<-patch_spin_up
-opt_patch_spin_up[,4:704]<-1
+opt_patch_spin_up[,4:length(spin_years)]<-1
 
 patch_map_mine[is.na(patch_map_mine)]<-0
 
 niche_spin_up[is.na(niche_spin_up)]<-0
-patch_spin_up[is.na(patch_spin_up)]<-0
+opt_patch_spin_up[is.na(opt_patch_spin_up)]<-0
 ```
 
 ####COMADRE
@@ -751,39 +751,18 @@ keep<-as.numeric(rownames(tempMetadata))
 
 tempMat<-comadre$mat[keep]   #MatA is matrix pop model, can be split into U, F and/or C
 
-MatList<-list(tempMat[[1]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
+MatList<-list(tempMat[[6]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
 AllMat<-unlist(MatList)
 matrices<-matrix(AllMat, ncol=length(MatList))
 colnames(matrices)<- c("Reference_matrix")
 
-MatListA<-list(tempMat[[2]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
-AllMatA<-unlist(MatListA)
-matricesA<-matrix(AllMatA, ncol=length(MatListA))
-colnames(matricesA)<- c("Matrix_A")
-
-MatListB<-list(tempMat[[3]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
-AllMatB<-unlist(MatListB)
-matricesB<-matrix(AllMatB, ncol=length(MatListB))
-colnames(matricesB)<- c("Matrix_B")
-
-MatListC<-list(tempMat[[4]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
-AllMatC<-unlist(MatListC)
-matricesC<-matrix(AllMatC, ncol=length(MatListC))
-colnames(matricesC)<- c("Matrix_C")
-
-MatListD<-list(tempMat[[5]][[1]])  #varies depending on number of matrices - need to find a way to code this better - now have five matrices available so need to sort this
-AllMatD<-unlist(MatListD)
-matricesD<-matrix(AllMatD, ncol=length(MatListD))
-colnames(matricesD)<- c("Matrix_D")
-
-
-matrices<-cbind(matrices, matricesA, matricesB, matricesC, matricesD)
+matrices<-cbind(matrices)
 
 matrices<-unique(matrices, MARGIN = 2)
 
     #not yet active in demoniche
 
-stages<-comadre$matrixClass[keep][[2]]$MatrixClassAuthor
+stages<-comadre$matrixClass[keep][[6]]$MatrixClassAuthor
 #stages<-comadre$matrixClass[keep][[2]]$MatrixClassAuthor
 #stagesf<-stages[1:3]
 proportion_initial<- rep(1/length(stages), length(stages)) #Think spin up sorts this
@@ -874,7 +853,7 @@ rep_demoniche<-function(i){
   source("demoniche_model_me.R")
   source("demoniche_dispersal_me.R")
   source("demoniche_population_function.R")
- demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = patch_spin_up,
+ demoniche_setup_me(modelname = binomial ,Populations = Populations, Nichemap = opt_patch_spin_up,
                 matrices = matrices,matrices_var = matrices_var, prob_scenario = prob_scenario,
                   stages = stages, proportion_initial = proportion_initial,
                   density_individuals = dens,
