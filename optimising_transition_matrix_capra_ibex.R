@@ -11,7 +11,7 @@ library(popbio)
 source("demoniche_setup_me.R")
 source("demoniche_model_me.R")
 source("demoniche_dispersal_me.R")
-source("C:/Users/Fiona/Documents/PhD/PhD_Method/demoniche_population_function_optim.R")
+source("demoniche_population_function_optim.R")
 
 genus<-"Capra"
 species<-"ibex"
@@ -281,7 +281,6 @@ csv_read<-function(file){
   return(matf)
 }
 
-
 file.remove(list.files(pattern = "*matrix_spin_up"))
 
 cal_demoniche=function(x) {
@@ -298,12 +297,13 @@ cal_demoniche=function(x) {
                      transition_affected_demogr = F,
                      transition_affected_env=F,
                      env_stochas_type = env_stochas_type,
-                     no_yrs = no_yrs_mine, K=5000, Kweight = K_weight, Ktype="ceiling",
+                     no_yrs = no_yrs_mine, K=100, Kweight = K_weight, Ktype="ceiling",
                      sumweight =sumweight)
   
   demoVE_model=demoniche_model_me(binomial,Niche=T,Dispersal=T,repetitions=1,foldername=binomial)	
 
   
+
   files<-paste("matrix_spin_up_",89:99, ".csv", sep="")
   file_out<-lapply(files, csv_read)
   mats<do.call("cbind", files_out)
@@ -316,9 +316,7 @@ cal_demoniche=function(x) {
   
 }
 
-cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B', control = list(fnscale = -2)) # box constraint
-
-
+cal_mat=optim(c(0.93,0.93,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93,0.28,0.93),cal_demoniche,lower=lower_est,upper=upper_est,method='L-BFGS-B', control = list(fnscale = -1)) # box constraint
 save(cal_mat, "matrix_optim.Rda")
 
 
