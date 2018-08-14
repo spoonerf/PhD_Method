@@ -6,7 +6,7 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
           K = NULL, Kweight = BEMDEM$Kweight, onepopulation_Niche, 
           sumweight, noise, prob_scenario, prev_mx, transition_affected_demogr, 
           transition_affected_niche, transition_affected_env, env_stochas_type, 
-          yx_tx, tx, yrs_total) 
+          yx_tx) 
 {
   prob_scenario_noise <- c(prob_scenario[prev_mx[yx_tx]] * 
                              noise, 1 - (prob_scenario[prev_mx[yx_tx]] * noise))   #this all seems strange and samples from a first or second matrix
@@ -29,7 +29,6 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
                                                                     sdlog = one_mxs_var[transition_affected_env]))
     }
   }
-  
   one_mxs[one_mxs < 0] <- 0   #changing any negative values to zero
   A <- matrix(one_mxs, ncol = length(n), nrow = length(n), 
               byrow = FALSE)
@@ -41,12 +40,9 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
     }
     A[-1, ] <- Atest[-1, ] #changing survival values
   }
-  
   ##me
   n[is.na(n)]<-0
   ##
-  
-  
   n <- as.vector(A %*% n)    #n is the number of ibex in each stage of the matrix - a row from n0s which is all of the populations - here it is multipled by the matrix
   n <- floor(n)
 
@@ -57,7 +53,7 @@ demoniche_population_me<-function (Matrix_projection, Matrix_projection_var, n, 
       }
     }
   }
-  print(n[1])
+  print(sum(n))
   return(n)
 }
 

@@ -1,3 +1,4 @@
+
 #seeds_per_population is Projection[yx, 1, , tx], which is from the population function - need to find out if it is multiplied by niche values at any point
 
 # demoniche_dispersal_me<-function (seeds_per_population, fraction_LDD, fraction_SDD, dispersal_probabilities, 
@@ -47,70 +48,58 @@ demoniche_dispersal_csv<-function (seeds_per_population, fraction_LDD, fraction_
   
   
   if (fraction_LDD > 0) {
-    
-    # for (i in 1:nrow(seeds_per_population_migrate_LDD)){
-    #   
-    #  seeds_per_population_new_LDD[i,] <- round(dispersal_probabilities %*%  seeds_per_population_migrate_LDD[i,])
-    #   #seeds_per_population_new_LDD[i,] <- disp_prob %*%  seeds_per_population_migrate_LDD[i,]
-    #  
-    # }
-    
-    #  source_patches_ldd<-which(colSums(seeds_per_population_migrate_LDD)>0)
-    #  dp<-dispersal_probabilities$var[[1]]
-    #  varsize <- dp$varsize
-    #  ndims   <- dp$ndims  
-    #  nt      <- varsize[1] #to go row by row?
-    #install.packages("RNetCDF")
-    # library(RNetCDF)
-    # 
-    # source_patches_ldd<-which(colSums(seeds_per_population_migrate_LDD)>0)
-    # dp<-file.inq.nc(dispersal_probabilities)
-    # varsize <- c(length(var.get.nc(dispersal_probabilities, 0)), length(var.get.nc(dispersal_probabilities, 0)))
-    # ndims   <- dp$ndims
-    # nt      <- varsize[1] #to go row by row?
-    
-    
-    #library(RNetCDF)
+
     source_patches_ldd<-which(colSums(seeds_per_population_migrate_LDD)>0)
     
+    #disp_prob<-read.table(dispersal_probabilities, sep=" ")
+    disp_prob<-dispersal_probabilities
+    #disp_prob[is.na(disp_prob)]<-0    
     
-    for(i in 1:nrow(seeds_per_population_migrate_LDD)){ 
+    sample_ages<-function(x){
+      new_patches<-sample(1:length(dp),x,prob=dp, replace =TRUE)
+      return(new_patches)
+    }
+    
+    for (j in source_patches_ldd){
       
-      for (j in source_patches_ldd){
+      dp<-disp_prob[j,]
+      
+      if (dp[1] >= 1){
+        dp<-dp[-1]
+      }
+      
+      if (sum(dp)> 0){
         
-        if (seeds_per_population_migrate_LDD[i,j] >0 ){
+        ages<-matrix(seeds_per_population_migrate_LDD[,j], ncol = 1)
         
-        disp_prob<-read.table("disp_probs.csv", nrow = 1, skip = j - 1, sep=" ")
-        disp_prob[is.na(disp_prob)]<-0
+        stage_out<-apply(ages,1,sample_ages)
         
-        if (disp_prob[1] >= 1){
-          disp_prob<-disp_prob[-1]
+        # disp_stages<-function(x){
+        #   a<-as.data.frame(table(stage_out))
+        # }
+        # 
+        for(k in 1:length(stage_out)){
+          a<-data.frame(table(stage_out[[k]]))
+          a$Var1<-as.numeric(as.character(a$Var1))
+          a$Freq<-as.numeric(as.character(a$Freq))
+          
+          if (nrow(a)>0){
+            seeds_per_population_new_LDD[k,a$Var1]<-seeds_per_population_new_LDD[k,a$Var1] +a$Freq
+            #print(seeds_per_population_new_LDD[k,a$Var1])
+          } else{
+            seeds_per_population_new_LDD[k,]<-seeds_per_population_new_LDD[k,]
+          }
         }
-        
-        if (sum(disp_prob)> 0){
-          new_patches <-sample(1:length(disp_prob),seeds_per_population_migrate_LDD[i,j],prob=disp_prob, replace =TRUE)
-          seeds_per_population_new_LDD[i,new_patches]<-seeds_per_population_new_LDD[i,new_patches] +1
-          np_df<-as.data.frame(table(new_patches))
-          np_df$new_patches<-as.numeric(as.character(np_df$new_patches))
-          np_df$Freq<-as.numeric(as.character(np_df$Freq))
-        } else {
-          np_df<-data.frame(new_patches = 1, Freq = 0)
-        }
-        print(j)
-        
-        for(k in 1:nrow(np_df)){
-          seeds_per_population_new_LDD[i,np_df$new_patches[k]]<-seeds_per_population_new_LDD[i,np_df$new_patches[k]] +np_df$Freq[k]
-       print(seeds_per_population_new_LDD[i,np_df$new_patches[k]])
-           }
       }
       #seeds_per_population_new_LDD <- as.vector(dispersal_probabilities %*% seeds_per_population_migrate_LDD[1,])
-    }
-    }
-    
-  } 
+    #print(paste("cell",j,sep=" "))
+      }
+  }
+  
+  
   seeds_stay <- (seeds_per_population - seeds_per_population_migrate_SDD -   #seeds that migrate must go out of the cell and are taken off the total
                    seeds_per_population_migrate_LDD)
-  
+  print(sum(seeds_stay))
   #seeds_stay<-niche_values*seeds_stay
   #seeds_total<-niche_values*(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
   return(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)

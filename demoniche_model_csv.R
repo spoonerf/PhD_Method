@@ -139,8 +139,7 @@ demoniche_model_csv<-function (modelname, Niche, Dispersal, repetitions, foldern
               }
               #source("demoniche_dispersal_me.R")
               print(paste("Year ", tx+1849, sep=""))
-              disp <- demoniche_dispersal_csv(seeds_per_population = Projection[yx,
-                                                                               , , tx], fraction_LDD = BEMDEM$fraction_LDD,
+              disp <- demoniche_dispersal_csv(seeds_per_population = Projection[yx,, , tx], fraction_LDD = BEMDEM$fraction_LDD,
                                              dispersal_probabilities = BEMDEM$dispersal_probabilities,
                                              dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
                                              fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche)
