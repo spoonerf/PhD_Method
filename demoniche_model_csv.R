@@ -142,7 +142,7 @@ demoniche_model_csv<-function (modelname, Niche, Dispersal, repetitions, foldern
               disp <- demoniche_dispersal_csv(seeds_per_population = Projection[yx,, , tx], fraction_LDD = BEMDEM$fraction_LDD,
                                              dispersal_probabilities = BEMDEM$dispersal_probabilities,
                                              dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
-                                             fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche)
+                                             fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche, stages = BEMDEM$stages)
               # disp <- demoniche_dispersal_me(seeds_per_population = Projection[yx,
               #                                                               1, , tx], fraction_LDD = BEMDEM$fraction_LDD,
               #                             dispersal_probabilities = BEMDEM$dispersal_probabilities,

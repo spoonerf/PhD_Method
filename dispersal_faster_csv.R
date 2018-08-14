@@ -4,7 +4,7 @@
 # demoniche_dispersal_me<-function (seeds_per_population, fraction_LDD, fraction_SDD, dispersal_probabilities, 
 #           dist_latlong, neigh_index) 
 demoniche_dispersal_csv<-function (seeds_per_population, fraction_LDD, fraction_SDD, dispersal_probabilities, 
-                                   dist_latlong, neigh_index, niche_values) 
+                                   dist_latlong, neigh_index, niche_values, stages) 
 {
   seeds_per_population_migrate_LDD <- round(seeds_per_population *    #number of seeds to ldd - can this number be larger than 1? added round
                                               fraction_LDD)
@@ -43,66 +43,65 @@ demoniche_dispersal_csv<-function (seeds_per_population, fraction_LDD, fraction_
     }
   }
   
-  # install.packages('ncdf4', repos="http://cran.r-project.org")
-  # library(ncdf4)
-  
-  
   if (fraction_LDD > 0) {
 
     source_patches_ldd<-which(colSums(seeds_per_population_migrate_LDD)>0)
     
-    #disp_prob<-read.table(dispersal_probabilities, sep=" ")
     disp_prob<-dispersal_probabilities
-    #disp_prob[is.na(disp_prob)]<-0    
     
     sample_ages<-function(x){
       new_patches<-sample(1:length(dp),x,prob=dp, replace =TRUE)
       return(new_patches)
     }
     
-    for (j in source_patches_ldd){
+    disp_out<-function(stg,seeds_new){
+      
+      a<-data.frame(table(stage_out[[stg]]))
+      a$Var1<-as.numeric(as.character(a$Var1))
+      a$Freq<-as.numeric(as.character(a$Freq))
+      
+      if (nrow(a)>0){
+        seeds_new[stg,a$Var1]<-seeds_new[stg,a$Var1] +a$Freq
+      } else {
+        seeds_new[stg,]<-seeds_new[stg,]
+      }
+      return(seeds_new[stg,])
+    }
+    
+   
+    dispersal<-function(j){
       
       dp<-disp_prob[j,]
+      ages<-matrix(seeds_per_population_migrate_LDD[,j], ncol = 1)
+      stage_out<-lapply(ages, sample_ages)
+      st<-as.matrix(1:length(stage_out))
       
-      if (dp[1] >= 1){
-        dp<-dp[-1]
-      }
-      
-      if (sum(dp)> 0){
+      if(length(stage_out)>0){
+        seeds_new_out<-sapply( X = st,FUN  =  disp_out,  seeds_new =  seeds_new)
+        seeds_newt<-t(seeds_new_out)
         
-        ages<-matrix(seeds_per_population_migrate_LDD[,j], ncol = 1)
+        return(seeds_new_out)
         
-        stage_out<-apply(ages,1,sample_ages)
+      } else {
         
-        # disp_stages<-function(x){
-        #   a<-as.data.frame(table(stage_out))
-        # }
-        # 
-        for(k in 1:length(stage_out)){
-          a<-data.frame(table(stage_out[[k]]))
-          a$Var1<-as.numeric(as.character(a$Var1))
-          a$Freq<-as.numeric(as.character(a$Freq))
-          
-          if (nrow(a)>0){
-            seeds_per_population_new_LDD[k,a$Var1]<-seeds_per_population_new_LDD[k,a$Var1] +a$Freq
-            #print(seeds_per_population_new_LDD[k,a$Var1])
-          } else{
-            seeds_per_population_new_LDD[k,]<-seeds_per_population_new_LDD[k,]
-          }
-        }
+        return(seeds_new)  
+        
       }
-      #seeds_per_population_new_LDD <- as.vector(dispersal_probabilities %*% seeds_per_population_migrate_LDD[1,])
-    #print(paste("cell",j,sep=" "))
-      }
+    }
+    
+    seeds_new<-seeds_per_population_new_LDD
+    
+    source_patches<-as.matrix(source_patches_ldd, ncol = 1)
+    
+    check_disp<-apply(X = source_patches,1, FUN = dispersal)
+    
+    seeds_per_population_new_LDD<-matrix(check_disp, ncol = ncol(seeds_per_population_new_LDD) , nrow = length(stages), byrow = T)
   }
-  
-  
+      
+
   seeds_stay <- (seeds_per_population - seeds_per_population_migrate_SDD -   #seeds that migrate must go out of the cell and are taken off the total
                    seeds_per_population_migrate_LDD)
-  print(sum(seeds_stay))
-  #seeds_stay<-niche_values*seeds_stay
-  #seeds_total<-niche_values*(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
-  return(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
-  #return(seeds_stay)
+  print(sum(seeds_stay+ seeds_per_population_new_SDD + seeds_per_population_new_LDD))
   
+  return(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
 }
