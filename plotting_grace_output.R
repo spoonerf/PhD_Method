@@ -38,18 +38,18 @@ convert_pop_out<-function(foldername){
   gridded(pop_out) <- TRUE
   rasterDF <- stack(pop_out)
   trends<-raster:::extract(rasterDF,xy)
-  med_disp<-strsplit(foldername, "[/_]")[[1]][6]
+  SD<-strsplit(foldername, "[/_]")[[1]][6]
   sdd<-strsplit(foldername, "[/_]")[[1]][7]
   ldd<-strsplit(foldername, "[/_]")[[1]][8]
-  kern<-strsplit(foldername, "[/_]")[[1]][9]
-  SD<-strsplit(foldername, "[/_]")[[1]][10]
-  dens<-strsplit(foldername, "[/_]")[[1]][11]
-  link<-strsplit(foldername, "[/_]")[[1]][length(strsplit(foldername, "[/_]")[[1]])-1]
-  rep_id<-strsplit(foldername, "[/_]")[[1]][length(strsplit(foldername, "[/_]")[[1]])]
-  trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,kern,SD,dens,link,rep_id,trends)
+  dens<-strsplit(foldername, "[/_]")[[1]][9]
+  link<-strsplit(foldername, "[/_]")[[1]][10]
+  med_disp<-strsplit(foldername, "[/_]")[[1]][11]
+  max_disp<-strsplit(foldername, "[/_]")[[1]][12]
+  rep_id<-strsplit(foldername, "[/_]")[[1]][13]
+  trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,SD,dens,link,rep_id,trends)
 }
 
-demoniche_pop_out<-lapply(foldernames, convert_pop_out)
+demoniche_pop_out<-lapply(highfoldernames, convert_pop_out)
 df <- do.call("rbind", demoniche_pop_out)
 dfm<-as.matrix(df)
 
