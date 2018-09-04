@@ -11,8 +11,8 @@ lpi<-read.csv("LPI_pops_20160523_edited.csv")
 spin_years<-1850:1949
 years<-1950:2005
 
-binomial = "Capra_ibex"
-demoniche_folder<-"C:/Users/Fiona/Desktop/Grace_Output/Ibex/Output"
+binomial = "Cervus_elaphus"
+demoniche_folder<-"C:/Users/Fiona/net_docs/Red_Deer_new/Output"
 
 l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
@@ -76,6 +76,14 @@ melt_short$sp_lpi.ID<-as.factor(melt_short$sp_lpi.ID)
 
 melt_lambda_short<-melt_lambda[melt_lambda$year>years[1] ,]
 melt_lambda_short$sp_lpi.ID<-as.factor(melt_lambda_short$sp_lpi.ID)
+
+
+#write.csv(melt_short, "cervus_elaphus_melt_short.csv")
+#write.csv(melt_lambda_short, "cervus_elaphus_melt_lambda_short.csv")
+
+
+melt_short<-read.csv("cervus_elaphus_melt_short.csv")
+melt_lambda_short<-read.csv("cervus_elaphus_melt_lambda_short.csv")
 
 
 library(ggplot2)
@@ -218,6 +226,7 @@ gammy<-function(df, start_year = 1950, end_year = 2005){
 }
 
 gam_r<-gammy(melt_short)
+
 
 #remove time series of all zeros - identify which these are
 
@@ -443,12 +452,33 @@ both_df<-rbind(mld, all_year_r)
 
 gam_r_lambda<-gammy(melt_lambda_short, 1951, 2005)
 
+both_df[both_df$sp_lpi.ID == "  539",]$sp_lpi.ID<-539
+gam_r_lambda$sp_lpi.ID<-as.numeric(as.character(gam_r_lambda$sp_lpi.ID))
 
 ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, med_disp,sp_lpi.ID), colour= sp_lpi.ID))+
   geom_line(colour="grey", alpha = 0.2)+
   geom_line(data=both_df[both_df$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
   geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ sp_lpi.ID)
+
+
+
+mldab_no_z_sdd_0_1_sd_0_1<-filter(mldab_no_z, sdd == 0.1 & ldd ==0.1 & SD == 0.1)
+
+gam_no_z_sdd_0_1_sd_0_1<-gammy(mldab_no_z_sdd_0_1_sd_0_1)
+
+ggplot(mldab_no_z_sdd_0_1_sd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
+  geom_line(colour="grey", alpha = 0.4)+
+  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
+  geom_line(data =  gam_no_z_sdd_0_1_sd_0_1, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ sp_lpi.ID)+
+  theme_bw()
+
+
+
+
+
+
 
 # 
 # for (i in 1:length(unique(both_df$sp_lpi.ID))){
