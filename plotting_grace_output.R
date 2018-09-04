@@ -42,14 +42,14 @@ convert_pop_out<-function(foldername){
   sdd<-strsplit(foldername, "[/_]")[[1]][7]
   ldd<-strsplit(foldername, "[/_]")[[1]][8]
   dens<-strsplit(foldername, "[/_]")[[1]][9]
-  k<-strsplit(foldername, "[/_]")[[1]][10]
+  link<-strsplit(foldername, "[/_]")[[1]][10]
   med_disp<-strsplit(foldername, "[/_]")[[1]][11]
   max_disp<-strsplit(foldername, "[/_]")[[1]][12]
   rep_id<-strsplit(foldername, "[/_]")[[1]][13]
-  trends_df<-data.frame(sp_lpi$ID,SD,sdd,ldd,dens,k,med_disp,max_disp,rep_id,trends)
+  trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,SD,dens,link,rep_id,trends)
 }
 
-demoniche_pop_out<-lapply(foldernames, convert_pop_out)
+demoniche_pop_out<-lapply(highfoldernames, convert_pop_out)
 df <- do.call("rbind", demoniche_pop_out)
 dfm<-as.matrix(df)
 
