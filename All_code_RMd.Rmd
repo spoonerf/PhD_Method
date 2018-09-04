@@ -1,0 +1,595 @@
+---
+title: "coupled_niche_demo"
+author: "Fiona Spooner"
+date: "31 August 2018"
+output: word_document
+---
+
+Creating a dispersal kernel
+
+```{r}
+
+
+demoniche_create_csv<-function (Populations, Nichemap = "oneperiod",dispersal_constants = c(50, 100))
+{
+  require(LaplacesDemon)
+  require(sp)
+  if (exists("BEMDEM"))
+    rm(BEMDEM, inherits = TRUE)
+  if (is.vector(Populations))
+    print("There must be at least two populations!")
+  if (is.vector(Nichemap) | (Nichemap == "oneperiod")[1]) {
+    min_dist <- sort(unique(dist(Populations[, 2:3])))[1]
+    extent <- expand.grid(X = seq(min(Populations[, "X"]),
+                                  max(Populations[, "X"]), by = min_dist), Y = seq(min(Populations[,"Y"]), max(Populations[, "Y"]), 
+                                  by = min_dist))
+    Nichemap <- cbind(HScoreID = 1:nrow(extent), extent,
+                      matrix(1, ncol = length(Nichemap), nrow = nrow(extent),
+                             dimnames = list(NULL, paste(Nichemap))))
+  }
+  if (is.vector(Nichemap[, -c(1:3)])) {
+    Nichemap <- Nichemap[Nichemap[, -c(1:3)] != 0, ]
+  } else {
+    Nichemap <- Nichemap[rowSums(Nichemap[, -c(1:3)]) != 0, ]
+  }
+  years_projections <- colnames(Nichemap)[4:ncol(Nichemap)]
+  if ((ncol(Nichemap) - 3) != length(years_projections))
+    print("Number of years of projections is not equal to the number of habitat scores!")
+  colnames(Populations) <- c("PatchID", "XCOORD", "YCOORD",
+                             "area_population")
+  colnames(Nichemap) <- c("HScoreID", "XCOORD", "YCOORD", years_projections)
+  if (max(Nichemap[, 4:ncol(Nichemap)]) > 100) {
+    Nichemap[, 4:ncol(Nichemap)] <- Nichemap[, 4:ncol(Nichemap)]/1000
+  }
+  if (max(Nichemap[, 4:ncol(Nichemap)]) > 10) {
+    Nichemap[, 4:ncol(Nichemap)] <- Nichemap[, 4:ncol(Nichemap)]/100
+  }
+  Niche_ID <- data.frame(matrix(0, nrow = nrow(Nichemap), ncol = 4))
+  Niche_ID[, 1:3] <- Nichemap[, 1:3]
+  colnames(Niche_ID) <- c("Niche_ID", "X", "Y", "PopulationID")
+  rownames(Niche_ID) <- Nichemap[, 1]
+  destination_Nicherows <- 1:nrow(Populations)
+  for (pxs in 1:nrow(Populations)) {
+    rows <- which(spDistsN1(as.matrix(Nichemap[, 2:3], ncol = 2),
+                            matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2),
+                            longlat = TRUE) == min(spDistsN1(as.matrix(Nichemap[,2:3], ncol = 2), 
+                             matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2), longlat = TRUE)))
+    Niche_ID[rows, 4] <- Populations[pxs, 1]
+    destination_Nicherows[pxs] <- rows[1]
+  }
+  Niche_values <- as.matrix(Nichemap[, 4:(length(years_projections) + 3)], ncol = length(years_projections))
+    dist_populations <- spDists(as.matrix(Niche_ID[, 2:3]), longlat = TRUE)
+    dimnames(dist_populations) <- list(Niche_ID[, 1], Niche_ID[,1])
+    disp_prob<-function(x){
+      data4<-dist_populations[x,]
+      dispersal_probabilities_row<-dhalfcauchy(data4, scale=dispersal_constants[1], log=FALSE)
+      dispersal_probabilities_row[data4 > dispersal_constants[2]]<-0
+      return(dispersal_probabilities_row)
+    }
+    
+    disp_prob_out<-lapply(1:nrow(dist_populations), disp_prob)
+    disp_prob_out_m<-do.call("rbind", disp_prob_out)
+    diag(disp_prob_out_m)<-0
+    sea<-which(Nichemap[,4] == - 1)
+    disp_prob_out_m[,sea]<-0
+    
+    scale_ldd<-function(x){
+      dispersal_probs<-disp_prob_out_m[x, ]/sum(disp_prob_out_m[x, ])
+      return(dispersal_probs)
+    }
+    
+    rep_scale_ldd<-lapply(1:nrow(disp_prob_out_m), scale_ldd)
+    dispersal_probabilities<-do.call(rbind,rep_scale_ldd)
+    
+    write.table(dispersal_probabilities, "disp_probs_hc_max.csv", row.names = FALSE, col.names = FALSE)
+ }
+
+```
+
+
+Setting up the demoniche model
+
+```{r}
+
+demoniche_setup_csv<-function (modelname, Populations, stages, Nichemap = "oneperiod",
+                              matrices, matrices_var = FALSE, prob_scenario = c(0.5, 0.5),
+                              proportion_initial, density_individuals, transition_affected_niche = FALSE,
+                              transition_affected_env = FALSE, transition_affected_demogr = FALSE,
+                              env_stochas_type = "normal", noise = 1, fraction_SDD = FALSE,
+                              fraction_LDD = FALSE, dispersal_constants = c(50, 100), no_yrs, Ktype = "ceiling", K = NULL, Kweight = FALSE,
+                              sumweight = FALSE, spin_years = spin_years, dispersal_probabilities)
+{
+  require(sp)
+  if (exists("BEMDEM"))
+    rm(BEMDEM, inherits = TRUE)
+  if (is.vector(matrices)) {
+    matrices <- matrix(matrices, ncol = 2, nrow = length(matrices))
+    print("You are carrying out deterministic modelling.")
+    colnames(matrices) <- c("matrixA", "matrixA")
+  }
+  if (length(proportion_initial) != length(stages))
+    print("Number of stages or proportions is wrong!")
+  if (nrow(matrices)%%length(stages) != 0)
+    print("Number of rows in matrix is not a multiple of stages name vector!")
+  if (is.vector(Populations))
+    print("There must be at least two populations!")
+  if (sum(proportion_initial) > 1.02 | sum(proportion_initial) <
+      0.99)
+    print("Your 'proportion_initial' doesn't add to one...")
+  if (is.numeric(sumweight)) {
+    if (length(sumweight) != length(stages))
+      print("Length of sumweight does not correpond to length of stages!")
+  }
+  list_names_matrices <- list()
+  for (i in 1:ncol(matrices)) {
+    M_name_one <- paste(colnames(matrices)[i], sep = "_")
+    list_names_matrices <- c(list_names_matrices, list(M_name_one))
+  }
+  if (is.vector(Nichemap) | (Nichemap == "oneperiod")[1]) {
+    min_dist <- sort(unique(dist(Populations[, 2:3])))[1]
+    extent <- expand.grid(X = seq(min(Populations[, "X"]),
+                                  max(Populations[, "X"]), by = min_dist), Y = seq(min(Populations[,
+                                                                                                   "Y"]), max(Populations[, "Y"]), by = min_dist))
+    Nichemap <- cbind(HScoreID = 1:nrow(extent), extent,
+                      matrix(1, ncol = length(Nichemap), nrow = nrow(extent),
+                             dimnames = list(NULL, paste(Nichemap))))
+  }
+  if (is.vector(Nichemap[, -c(1:3)])) {
+    Nichemap <- Nichemap[Nichemap[, -c(1:3)] != 0, ]
+  } else {
+    Nichemap <- Nichemap[rowSums(Nichemap[, -c(1:3)]) != 0, ]
+  }
+  years_projections <- colnames(Nichemap)[4:ncol(Nichemap)]
+  if ((ncol(Nichemap) - 3) != length(years_projections))
+    print("Number of years of projections is not equal to the number of habitat scores!")
+  colnames(Populations) <- c("PatchID", "XCOORD", "YCOORD",
+                             "area_population")
+  colnames(Nichemap) <- c("HScoreID", "XCOORD", "YCOORD", years_projections)
+  if (max(Nichemap[, 4:ncol(Nichemap)]) > 100) {
+    Nichemap[, 4:ncol(Nichemap)] <- Nichemap[, 4:ncol(Nichemap)]/1000
+  }
+  if (max(Nichemap[, 4:ncol(Nichemap)]) > 10) {
+    Nichemap[, 4:ncol(Nichemap)] <- Nichemap[, 4:ncol(Nichemap)]/100
+  }
+  Niche_ID <- data.frame(matrix(0, nrow = nrow(Nichemap), ncol = 4))
+  Niche_ID[, 1:3] <- Nichemap[, 1:3]
+  colnames(Niche_ID) <- c("Niche_ID", "X", "Y", "PopulationID")
+  rownames(Niche_ID) <- Nichemap[, 1]
+  if (length(density_individuals) == 1) {
+    density_individuals <- rep(density_individuals, times = nrow(Populations))
+  }
+  n0_all <- matrix(0, nrow = nrow(Nichemap), ncol = length(stages))
+  destination_Nicherows <- 1:nrow(Populations)
+  for (pxs in 1:nrow(Populations)) {
+     rows <- which(spDistsN1(as.matrix(Nichemap[, 2:3], ncol = 2),
+                            matrix(as.numeric(Populations[pxs, 2:3]), ncol = 2),
+                            longlat = TRUE) == min(spDistsN1(as.matrix(Nichemap[,2:3], ncol = 2), 
+                            matrix(as.numeric(Populations[pxs,2:3]), ncol = 2), longlat = TRUE)))
+    Niche_ID[rows, 4] <- Populations[pxs, 1]
+    n0_all[rows[1], ] <- n0_all[rows[1], ] + (Populations[pxs,
+                                                          4] * proportion_initial * density_individuals[pxs])
+    destination_Nicherows[pxs] <- rows[1]
+  }
+  Niche_values <- as.matrix(Nichemap[, 4:(length(years_projections) +
+                                            3)], ncol = length(years_projections))
+  if (is.numeric(K)) {
+    populationmax_all <- matrix(mean(K), ncol = length(years_projections),
+                                nrow = nrow(Nichemap))
+    colnames(populationmax_all) <- years_projections
+    rownames(populationmax_all) <- Niche_ID[, "Niche_ID"]
+  }
+  if (length(K) == 1) {
+    populationmax_all <- matrix(K, ncol = length(years_projections),
+                                nrow = nrow(Nichemap))
+  }
+  if (length(K) == nrow(Populations)) {
+    populationmax_all <- matrix(0, ncol = length(years_projections),
+                                nrow = nrow(Nichemap))
+    for (rx in 1:length(destination_Nicherows)) {
+      populationmax_all[destination_Nicherows[rx], ] <- populationmax_all[destination_Nicherows[rx],
+                                                                          ] + K[rx]
+    }
+    populationmax_all[populationmax_all == 0] <- mean(K)
+  }
+  if (length(K) == length(years_projections)) {
+    populationmax_all[rowSums(n0_all) == 0, ] <- matrix(K,
+                                                        ncol = length(years_projections), nrow = nrow(Nichemap) -
+                                                          nrow(Populations))
+    populationmax_all[rowSums(n0_all) > 0, ] <- matrix(K,
+                                                       ncol = length(years_projections), nrow = nrow(Populations),
+                                                       byrow = TRUE)
+  }
+  if (length(dim(K)) == 2) {
+    populationmax_all[, ] <- matrix(colMeans(K), ncol = length(years_projections),
+                                    nrow = nrow(Nichemap), byrow = TRUE)
+    populationmax_all[rowSums(n0_all) > 0, ] <- K #NA in rowsums where there shouldn't be
+  }
+  
+  if (is.null(K)) {
+    populationmax_all <- matrix("no_K", ncol = length(years_projections),
+                                nrow = nrow(Nichemap))
+  }
+  
+  dist_latlong <- round(as.matrix(dist(Niche_ID[1:(length(unique(Niche_ID[,2]))+2), 2:3])), 1)
+  neigh_index <- sort(unique(as.numeric(dist_latlong[1,])))[2:3] #distance two closest cells
+  if (sumweight[1] == "all_stages") 
+    sumweight <- rep(1, length(proportion_initial))
+  if (Kweight[1] == "FALSE")
+    Kweight <- rep(1, length(proportion_initial))
+  if (transition_affected_env[1] == "all")
+    transition_affected_env <- which(matrices[, 1] > 0)
+  if (transition_affected_niche[1] == "all")
+    transition_affected_niche <- which(matrices[, 1] > 0)
+  if (transition_affected_demogr[1] == "all")
+    transition_affected_demogr <- which(matrices[, 1] > 0)
+  if (any(matrices < 0))
+    print("There are some negative rates in the transition matrices!")
+  if (any(matrices_var < 0))
+    print("There are some negative rates in the standard deviation transition matrices!")
+  if (max(transition_affected_niche) > nrow(matrices)) {
+    print("Stages affected by Habitat suitability values does not comply with the size of matrix! Not that the matrix is made with 'byrow = FALSE")
+  }
+  if (max(transition_affected_env) > nrow(matrices)) {
+    print("Stages affected by environmental stochasticity does not comply with the size of matrix! Note that the matrix is made with 'byrow = FALSE")
+  }
+  if (max(transition_affected_demogr) > nrow(matrices)) {
+    print("Stages affected by demographic stochasticity does not comply with the size of matrix! Note that the matrix is made with 'byrow = FALSE")
+  }
+  BEMDEM <- list(Orig_Populations = Populations, Niche_ID = Niche_ID,
+                 Niche_values = Niche_values, years_projections = years_projections,
+                 matrices = matrices, matrices_var = matrices_var, prob_scenario = prob_scenario,
+                 noise = noise, stages = stages, proportion_initial = proportion_initial,
+                 density_individuals = density_individuals, fraction_LDD = fraction_LDD,
+                 fraction_SDD = fraction_SDD, dispersal_probabilities = dispersal_probabilities,
+                 dist_latlong = dist_latlong, neigh_index = neigh_index,
+                 no_yrs = no_yrs, K = K, Kweight = Kweight, populationmax_all = populationmax_all,
+                 n0_all = n0_all, list_names_matrices = list_names_matrices,
+                 sumweight = sumweight, transition_affected_env = transition_affected_env,
+                 transition_affected_niche = transition_affected_niche,
+                 transition_affected_demogr = transition_affected_demogr,
+                 env_stochas_type = env_stochas_type,  dispersal_probabilities = dispersal_probabilities )
+  assign(modelname, BEMDEM, envir = .GlobalEnv)
+  eval(parse(text = paste("save(", modelname, ", file='", modelname,
+                          ".rda')", sep = "")))
+}
+
+
+```
+
+The demographic model 
+
+```{r pressure}
+
+demoniche_population_function<-function (Matrix_projection, Matrix_projection_var, n, populationmax, 
+          K = NULL, Kweight = BEMDEM$Kweight, onepopulation_Niche, 
+          sumweight, noise, prob_scenario, prev_mx, transition_affected_demogr, 
+          transition_affected_niche, transition_affected_env, env_stochas_type, 
+          yx_tx) 
+{
+  prob_scenario_noise <- c(prob_scenario[prev_mx[yx_tx]] * 
+                             noise, 1 - (prob_scenario[prev_mx[yx_tx]] * noise))   #this all seems strange and samples from a first or second matrix
+  rand_mxs <- sample(1:2, 1, prob = prob_scenario_noise, replace = TRUE)
+
+    one_mxs <- Matrix_projection[, rand_mxs]
+  prev_mx[yx_tx + 1] <- rand_mxs
+  if (Matrix_projection_var[1] != FALSE) {
+    one_mxs_var <- one_mxs * (Matrix_projection_var[, rand_mxs])
+    if (is.numeric(transition_affected_niche)) {
+      one_mxs[transition_affected_niche] <- one_mxs[transition_affected_niche] * 
+        onepopulation_Niche
+    }
+    if (is.numeric(transition_affected_env)) {
+      #normal or log-normal effects of env      #sd here has already been multiplied by the corresponding values in the matrix (here 0.93)
+      switch(EXPR = env_stochas_type, normal = one_mxs[transition_affected_env] <- rnorm(length(one_mxs[transition_affected_env]), 
+                                                                                         mean = one_mxs[transition_affected_env], sd = one_mxs_var[transition_affected_env]), 
+             lognormal = one_mxs[transition_affected_env] <- rlnorm(length(one_mxs[transition_affected_env]), 
+                                                                    meanlog = one_mxs[transition_affected_env], 
+                                                                    sdlog = one_mxs_var[transition_affected_env]))
+    }
+  }
+  one_mxs[one_mxs < 0] <- 0   #changing any negative values to zero
+  A <- matrix(one_mxs, ncol = length(n), nrow = length(n), 
+              byrow = FALSE)
+  Atest <- A
+  Atest[1, ][-1] <- 0   #getting fertility values 
+  if (sum(colSums(Atest) > 1)) {      #picking out survival scores higher than 1 
+    for (zerox in which(colSums(Atest) > 1)) {
+      Atest[, zerox] <- Atest[, zerox]/sum(Atest[, zerox])
+    }
+    A[-1, ] <- Atest[-1, ] #changing survival values
+  }
+  n[is.na(n)]<-0
+  n <- as.vector(A %*% n)    #n is the number of ibex in each stage of the matrix - a row from n0s which is all of the populations - here it is multipled by the matrix
+  n <- floor(n)
+
+  if (sum(n) > 0) {
+    if (is.numeric(populationmax)) {
+      if (sum(n * Kweight) > populationmax) {
+        n <- n * (populationmax/sum(n * sumweight))   #where carrying capacity comes in - brings n back down to carrying capacity 
+      }
+    }
+  }
+  print(sum(n))
+  return(n)
+}
+
+
+
+```
+
+
+The dispersal model
+
+````{r}
+ 
+dispersal_faster_csv<-function (seeds_per_population, fraction_LDD, fraction_SDD, dispersal_probabilities, 
+                                   dist_latlong, neigh_index, niche_values, stages) 
+{
+  seeds_per_population_migrate_LDD <- round(seeds_per_population *    #number of seeds to ldd - can this number be larger than 1? added round
+                                              fraction_LDD)
+  seeds_per_population_migrate_SDD <- round(seeds_per_population * 
+                                              fraction_SDD)
+  seeds_per_population_new_SDD <- seeds_per_population_new_LDD <- matrix(0, nrow = nrow(seeds_per_population), ncol = ncol(seeds_per_population))
+  
+  if (fraction_SDD > 0) {
+    source_patches <- which(colSums(seeds_per_population_migrate_SDD) >
+                              0)
+    for (px_orig in source_patches) {
+      for (pxdisp_new in 1:length(seeds_per_population_migrate_SDD[1,])) {
+        if (dist_latlong[pxdisp_new, px_orig] == neigh_index[1]) {
+          seeds_per_population_new_SDD[,pxdisp_new] <- round(seeds_per_population_new_SDD[,pxdisp_new] + 
+                                                               (seeds_per_population_migrate_SDD[,px_orig] * 
+                                                                  0.2))
+        }
+        if (length(neigh_index) == 2) {
+          if (dist_latlong[pxdisp_new, px_orig] == neigh_index[2]) {
+            seeds_per_population_new_SDD[,pxdisp_new] <- round(seeds_per_population_new_SDD[,pxdisp_new] +
+                                                                 (seeds_per_population_migrate_SDD[,px_orig] *
+                                                                    0.05))
+          }
+        }
+      }
+    }
+  }
+  
+  if (fraction_LDD > 0) {
+
+    source_patches_ldd<-which(colSums(seeds_per_population_migrate_LDD)>0)
+    
+    disp_prob<-dispersal_probabilities
+    
+    sample_ages<-function(x, dp){
+      new_patches<-sample(1:length(dp),x,prob=dp, replace =TRUE)
+      return(new_patches)
+    }
+    
+    disp_out<-function(stg,seeds_new, stage_out){
+      
+      a<-data.frame(table(stage_out[[stg]])) #slowness
+      a$Var1<-as.numeric(as.character(a$Var1))
+      a$Freq<-as.numeric(as.character(a$Freq))
+      
+      if (nrow(a)>0){
+        seeds_new[stg,a$Var1]<-seeds_new[stg,a$Var1] +a$Freq
+      } else {
+        seeds_new[stg,]<-seeds_new[stg,]
+      }
+      return(seeds_new[stg,])
+    }
+    
+   
+    dispersal<-function(j, seeds_ldd, disp_prob){
+      
+      dp<-disp_prob[j,]
+      print(j)
+      ages<-matrix(seeds_ldd[,j], ncol = 1)
+      stage_out<-lapply(X = ages, FUN = sample_ages, dp = dp )
+      st<-as.matrix(1:length(stage_out))
+      
+      if(length(stage_out)>0){
+        seeds_new_out<-sapply( X = st,FUN  =  disp_out,  seeds_new =  seeds_new, stage_out = stage_out)
+        #seeds_newt<-t(seeds_new_out)
+        
+        return(seeds_new_out)
+        
+      } else {
+        
+        return(seeds_new)  
+        
+      }
+    }
+    
+    seeds_new<-seeds_per_population_new_LDD
+    
+    source_patches<-as.matrix(source_patches_ldd, ncol = 1)
+    
+    check_disp<-apply(X = source_patches,1, FUN = dispersal, seeds_ldd = seeds_per_population_migrate_LDD, disp_prob = disp_prob)
+    
+    seeds_per_population_new_LDD<-matrix(rowSums(check_disp), ncol = ncol(seeds_per_population_new_LDD) , nrow = length(stages), byrow = T)
+    
+    print(paste("no. source_patches ", length(source_patches_ldd), sep=""))
+    print(paste("no. to migrate ",sum(colSums(seeds_per_population_migrate_LDD)), sep=""))
+    print(paste("no. which migrated ", sum(colSums(seeds_per_population_new_LDD)), sep=""))
+    
+    }
+      
+
+  seeds_stay <- (seeds_per_population - seeds_per_population_migrate_SDD -   #seeds that migrate must go out of the cell and are taken off the total
+                   seeds_per_population_migrate_LDD)
+  print(sum(seeds_stay+ seeds_per_population_new_SDD + seeds_per_population_new_LDD))
+  
+  return(seeds_stay + seeds_per_population_new_SDD + seeds_per_population_new_LDD)
+}
+
+```
+
+
+The coupled model
+
+```{r}
+demoniche_model_csv<-function (modelname, Niche, Dispersal, repetitions, foldername) 
+{
+  BEMDEM <- get(modelname, envir = .GlobalEnv)
+  require(popbio)
+  require(lattice)
+  Projection <- array(0, dim = c(BEMDEM$no_yrs, length(BEMDEM$stages), 
+                                 nrow(BEMDEM$Niche_ID), length(BEMDEM$years_projections)), 
+                      dimnames = list(paste("timesliceyear", 1:BEMDEM$no_yrs, 
+                                            sep = "_"), c(paste(BEMDEM$stages)), BEMDEM$Niche_ID[,"Niche_ID"], paste(BEMDEM$years_projections)))
+  eigen_results <- vector(mode = "list", length(BEMDEM$list_names_matrices))
+  names(eigen_results) <- unlist(BEMDEM$list_names_matrices)
+  yrs_total <- BEMDEM$no_yrs * length(BEMDEM$years_projections)
+  population_sizes <- array(NA, dim = c(yrs_total, length(BEMDEM$list_names_matrices), 
+                                        repetitions), dimnames = list(paste("year", 1:yrs_total, 
+                                                                            sep = ""), BEMDEM$list_names_matrices, paste("rep", 1:repetitions, 
+                                                                                                                         sep = "_")))
+  population_results <- array(1:200, dim = c(yrs_total, 4, 
+                                             length(BEMDEM$list_names_matrices)), dimnames = list(paste("year", 
+                                                                                                        1:yrs_total, sep = ""), c("Meanpop", "SD", "Max", "Min"), 
+                                                                                                  paste(BEMDEM$list_names_matrices)))
+  metapop_results <- array(NA, dim = c(yrs_total, length(BEMDEM$list_names_matrices), 
+                                       repetitions), dimnames = list(paste("year", 1:yrs_total, 
+                                                                           sep = ""), BEMDEM$list_names_matrices, paste("rep", 1:repetitions, 
+                                                                                                                        sep = "_")))
+  simulation_results <- array(NA, dim = c(length(BEMDEM$list_names_matrices), 
+                                          7 + length(BEMDEM$years_projections)), dimnames = list(BEMDEM$list_names_matrices, 
+                                                                                                 c("lambda", "stoch_lambda", "mean_perc_ext_final", "initial_population_area", 
+                                                                                                   "initial_population", "mean_final_pop", "mean_no_patches_final", 
+                                                                                                   paste("EMA", BEMDEM$years_projections))))
+  EMA <- array(0, dim = c(repetitions, length(BEMDEM$list_names_matrices), 
+                          length(BEMDEM$years_projections), 2), dimnames = list(paste("rep", 
+                                                                                      1:repetitions, sep = "_"), BEMDEM$list_names_matrices, 
+                                                                                BEMDEM$years_projections, c("EMA", "No_populations")))
+  population_Niche <- rep(1, nrow(BEMDEM$Niche_ID))
+  simulation_results[, "initial_population_area"] <- sum(BEMDEM$Orig_Populations[, 
+                                                                                 "area_population"])
+  simulation_results[, "initial_population"] <- round(sum(colSums(BEMDEM$n0_all) * 
+                                                            BEMDEM$sumweight), 0)
+  dir.create(paste(getwd(), "/", foldername, sep = ""), showWarnings = FALSE)
+  for (rx in 1:repetitions) {
+    print(paste("Starting projections for repetition:", rx), 
+          quote = FALSE)
+    for (mx in 1:length(BEMDEM$list_names_matrices)) {
+      print(paste("Projecting for scenario/matrix:", (BEMDEM$list_names_matrices)[mx]), 
+            quote = FALSE)
+      yx_tx <- 0
+      Matrix_projection <- cbind(BEMDEM$matrices[, 1], 
+                                 (BEMDEM$matrices[, mx]))
+      if (BEMDEM$matrices_var[1] != FALSE) {
+        if (ncol(BEMDEM$matrices_var) > 1) {
+          Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
+                                                             1], (BEMDEM$matrices_var[, mx]))
+        } else {
+          Matrix_projection_var <- cbind(BEMDEM$matrices_var[, 
+                                                             1], (BEMDEM$matrices_var[, 1]))
+        }
+      } else {
+        Matrix_projection_var <- FALSE
+      }
+      prev_mx <- rep(1, times = yrs_total + 1)
+      for (tx in 1:length(BEMDEM$years_projections)) {
+       # print(tx)
+        if (Niche == TRUE) {
+          population_Niche <- BEMDEM$Niche_values[, tx]
+        }
+        for (yx in 1:BEMDEM$no_yrs) {
+          yx_tx <- yx_tx + 1
+          if (tx == 1 && yx == 1) {
+            n0s <- BEMDEM$n0_all[rowSums(BEMDEM$n0_all) > 
+                                   0, ]
+            n0s_ID <- which(rowSums(BEMDEM$n0_all) > 
+                              0)
+          } else {
+            if (tx != 1 && yx == 1) {
+              ###added by me###
+              paste(sum(is.na(Projection[BEMDEM$no_yrs, , , tx - 1]))," NAs")
+              
+              Projection[BEMDEM$no_yrs, , , tx - 1][is.na(Projection[BEMDEM$no_yrs, , , tx - 1])]<-0
+              ######
+              
+              n0s <- t(Projection[BEMDEM$no_yrs, , colSums(Projection[BEMDEM$no_yrs, 
+                                                                      , , tx - 1]) > 0, tx - 1])
+              n0s_ID <- which(colSums(Projection[BEMDEM$no_yrs, 
+                                                 , , tx - 1]) > 0)
+          } else {
+              n0s <- t(Projection[yx - 1, , colSums(Projection[yx - 
+                                                                 1, , , tx]) > 0, tx])
+              n0s_ID <- which(colSums(Projection[yx - 
+                                                   1, , , tx]) > 0)
+            }
+          }
+          
+          population_Niche_short <- population_Niche[n0s_ID]
+          if (nrow(n0s) > 0) {
+            for (px in 1:nrow(n0s)) {
+              n <- as.vector(n0s[px, ])
+              populationmax <- BEMDEM$populationmax_all[n0s_ID[px], 
+                                                        tx]
+              #added by FS
+              populationmax[is.na(populationmax)]<-min(BEMDEM$populationmax_all)
+              ##
+              Projection[yx, , n0s_ID[px], tx] <- demoniche_population_function(Matrix_projection = Matrix_projection, 
+                                                                          Matrix_projection_var = Matrix_projection_var, 
+                                                                          n = n, populationmax = populationmax, 
+                                                                          onepopulation_Niche = population_Niche_short[px], 
+                                                                          sumweight = BEMDEM$sumweight, Kweight = BEMDEM$Kweight, 
+                                                                          prob_scenario = BEMDEM$prob_scenario, 
+                                                                          noise = BEMDEM$noise, prev_mx = prev_mx, 
+                                                                          transition_affected_demogr = BEMDEM$transition_affected_demogr, 
+                                                                          transition_affected_niche = BEMDEM$transition_affected_niche, 
+                                                                          transition_affected_env = BEMDEM$transition_affected_env, 
+                                                                          env_stochas_type = BEMDEM$env_stochas_type,
+                                                                          yx_tx = yx_tx)
+            }
+          }
+          metapop_results[yx_tx, mx, rx] <- length(intersect(which(colSums(Projection[yx, , , tx]) > 1), n0s_ID))
+          if (sum(Projection[yx, , , tx]) > 0) {
+            if (Dispersal == TRUE) {
+              if (Niche == TRUE) {
+                population_Niche <- BEMDEM$Niche_values[, 
+                                                        tx]
+              }
+              print(paste("Year ", tx+1849, sep=""))
+              disp <- dispersal_faster_csv(seeds_per_population = Projection[yx,, , tx], fraction_LDD = BEMDEM$fraction_LDD,
+                                             dispersal_probabilities = BEMDEM$dispersal_probabilities,
+                                             dist_latlong = BEMDEM$dist_latlong, neigh_index = BEMDEM$neigh_index,
+                                             fraction_SDD = BEMDEM$fraction_SDD, niche_values = population_Niche, stages = BEMDEM$stages)
+              Projection[yx, , , tx] <- disp   #age here 0 years/seed
+             
+            }
+          }
+          population_sizes[yx_tx, mx, rx] <- sum(rowSums(Projection[yx, 
+                                                                    , , tx]) * BEMDEM$sumweight)
+        }
+        EMA[rx, mx, tx, 1] <- min(apply((Projection[, 
+                                                    , , tx] * BEMDEM$sumweight), 1, sum))
+        EMA[rx, mx, tx, 2] <- sum(colSums(Projection[yx, 
+                                                     , , tx]) > 1)
+        simulation_results[mx, 7 + tx] <- mean(EMA[, 
+                                                   mx, tx, 1])
+      }
+      pop <- data.frame(cbind(BEMDEM$Niche_ID[, 2:3], (colSums(Projection[yx,
+                                                                          , , ] * BEMDEM$sumweight))))
+      
+      print(sum(pop))
+      write.csv(pop, paste(getwd(), "/", foldername, "/",BEMDEM$list_names_matrices[mx],"_pop_output.csv", sep=""))
+    }
+  }
+  rm(Projection)
+  print("Calculating summary values", quote = FALSE)
+  for (mx in 1:length(BEMDEM$list_names_matrices)) {
+    for (yx_tx in 1:yrs_total) {
+      population_results[yx_tx, "Meanpop", mx] <- mean(population_sizes[yx_tx,
+                                                                        mx, ])
+      population_results[yx_tx, "SD", mx] <- sd(population_sizes[yx_tx,
+                                                                 mx, ])
+      population_results[yx_tx, "Min", mx] <- min(population_sizes[yx_tx,
+                                                                   mx, ])
+      population_results[yx_tx, "Max", mx] <- max(population_sizes[yx_tx,
+                                                                   mx, ])
+    }
+  }
+  return(population_results)
+}
+
+```
