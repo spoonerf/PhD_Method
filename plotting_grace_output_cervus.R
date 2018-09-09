@@ -8,11 +8,13 @@ library(reshape2)
 
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
-spin_years<-1850:1949
+spin_years<-1940:1949
 years<-1950:2005
 
 binomial = "Cervus_elaphus"
 demoniche_folder<-"C:/Users/Fiona/Documents/PhD/PhD_Method/Legion/cervus_output"
+demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_cervus_bias/output_new"
+
 
 l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
@@ -22,7 +24,7 @@ lowfoldernames<-rep(1:nf, each=length(l))
 
 foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
 
-sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1,]
+sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1 & lpi$Region == "Europe",]
 
 xy<-data.frame(sp_lpi$Longitude, sp_lpi$Latitude)
 coordinates(xy)<-c("sp_lpi.Longitude", "sp_lpi.Latitude")
@@ -32,6 +34,7 @@ proj4string(xy) <- CRS("+init=epsg:4326") # WGS 84
 
 convert_pop_out<-function(foldername){
   
+  if(length(dir(paste(demoniche_folder, foldername, sep="/"))) !=0){
   pop_out<-read.csv(paste(demoniche_folder ,foldername, "Reference_matrix_pop_output.csv", sep="/"), header = TRUE)
   pop_out<-pop_out[,-1]
   coordinates(pop_out) <- ~ X + Y
@@ -48,14 +51,14 @@ convert_pop_out<-function(foldername){
   rep_id<-strsplit(foldername, "[/_]")[[1]][13]
   trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,SD,dens,link,rep_id,trends)
 }
-
-demoniche_pop_out<-lapply(highfoldernames[1:100], convert_pop_out)
+}
+demoniche_pop_out<-lapply(highfoldernames, convert_pop_out)
 df <- do.call("rbind", demoniche_pop_out)
 dfm<-as.matrix(df)
 
 lambda<-function(x){
   
-  l10<-10^diff(log1p(as.numeric(x[10:length(x)])))
+  l10<-diff(log1p(as.numeric(x[10:length(x)])))
   #l10<-10^diff(log1p(as.numeric(x[20:length(x)])))
   
 }
@@ -80,16 +83,17 @@ melt_lambda_short$sp_lpi.ID<-as.factor(melt_lambda_short$sp_lpi.ID)
 
 
 library(ggplot2)
-ggplot(melt_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
+ggplot(melt_short, aes(x= year, y=value, group=rep_id, colour= sp_lpi.ID))+
   geom_line()+
   facet_grid(med_disp~ sp_lpi.ID)
 
 ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
   geom_line()+
+  geom_smooth()+
   facet_grid(med_disp~ sp_lpi.ID)
 
 
-ggplot(melt_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
+ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
   geom_line()+
   facet_grid(sdd ~ sp_lpi.ID)
 
@@ -100,6 +104,17 @@ library(plyr)
 library(mgcv)
 
 pops<-sp_lpi[,c(1,65:120)]
+
+pop_counts<-sp_lpi[,c(65:120)]
+pop_counts <- (pop_counts !="NULL")
+points_per_pop1950_2005 = rowSums(pop_counts)
+if(sum(points_per_pop1950_2005<5)>=1){
+  #pyr<-pyr[-which(points_per_pop1950_2005<5),]
+  pops<-pops[-which(points_per_pop1950_2005<5),]
+}
+
+colnames(pops)<-c("ID", 1950:2005)
+
 colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2005, sep="_")
 pops[pops=="NULL"]<-NA
 pops$rep_id<-"Observed"
@@ -131,9 +146,9 @@ gam_lpi<-function(x){
     df$Population<-df$Population+1
   }
   
-  
+  PopN = log10(df$Population)
   if (points >=6) {
-    PopN = df$Population
+    
     if (length(na.omit(PopN)) >=6) {
       SmoothParm = round(length(na.omit(PopN))/2)
     } else {
@@ -145,16 +160,18 @@ gam_lpi<-function(x){
     R_sq2<-summary(mg2)$r.sq
     model<-1
     pv2$fit[pv2$fit <= 0] <- NA
-    lambda2<-pv2$fit
-    ial<-data.frame(id, Year,lambda2)
     
-    colnames(ial)<-c("ID", "Year", "Abundance")
+    lambda2<-diff(pv2$fit)
+    
+    ial<-data.frame(id, Year[-length(Year)], lambda2)
+    colnames(ial)<-c("ID", "Year", "Lambdas")
   } else {
     
-    lint<-approx(df$Population, n = length(df$Population))$y
-    ial<-data.frame(id, Year, lint)
-    colnames(ial)<-c("ID", "Year", "Abundance")
-     
+    lint<-na.approx(PopN)
+    lint[lint<=0] <- NA
+    lambda2<-diff(lint)
+    ial<-data.frame(id, Year[-length(Year)], lambda2)
+    colnames(ial)<-c("ID", "Year", "Lambdas")
     }
   
   return(ial)
@@ -170,302 +187,169 @@ colnames(fill)<-c("ID", "Year")
 
 all_year_ab<-join(fill, gam_r, type="right")
 
-all_year_ab$med_disp<-"Observed"
-all_year_ab$sdd<-"Observed"
-all_year_ab$ldd<-"Observed"
-all_year_ab$SD<-"Observed"
-all_year_ab$dens<-"Observed"
-all_year_ab$link<-"Observed"
-all_year_ab$rep_id<-"Observed"
+colnames(melt_lambda_short)[1]<-"ID"
 
-colnames(all_year_ab)[1:3]<-c("sp_lpi.ID", "year", "value")
+all_year_ab$ID<-as.numeric(as.character(all_year_ab$ID))
+melt_lambda_short$ID<-as.numeric(as.character(melt_lambda_short$ID))
+
+melt_lambda_short<-melt_lambda_short[melt_lambda_short$ID %in% all_year_ab$ID,]
 
 
+ggplot()+
+  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=ID), colour = "black")+
+  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red")+
+  #geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
+  facet_grid(.~ID)
 
-mldab<-melt_short[,-9]
-all_year_ab$sp_lpi.ID<-as.factor(all_year_ab$sp_lpi.ID)
-all_year_ab$med_disp<-as.factor(all_year_ab$med_disp)
-all_year_ab$rep_id<-as.factor(all_year_ab$rep_id)
-all_year_ab$value<-as.numeric(all_year_ab$value)
-all_year_ab$year<-as.numeric(all_year_ab$year)
 
-all_year_ab<-all_year_ab[,c(1,4:10, 3, 2)]
+smooth_vals_pred = predict(loess(value~year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[1],]), melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[1]])
 
-both_df_ab<-rbind(mldab, all_year_ab)
+smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[1],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[1]])
 
-both_df_ab<-rbind(mldab, all_year_ab)
+####need to match the years up 
+#rmse(smooth_vals_pred, smooth_vals_obs)
 
-both_df_ab[both_df_ab$sp_lpi.ID == "  543",]$sp_lpi.ID<-543
-both_df_ab[both_df_ab$sp_lpi.ID == " 3425",]$sp_lpi.ID<-3425
-both_df_ab[both_df_ab$sp_lpi.ID == " 4382",]$sp_lpi.ID<-4382
-both_df_ab[both_df_ab$sp_lpi.ID == " 4383",]$sp_lpi.ID<-4383
-both_df_ab[both_df_ab$sp_lpi.ID == " 4384",]$sp_lpi.ID<-4384
-both_df_ab[both_df_ab$sp_lpi.ID == " 6555",]$sp_lpi.ID<-6555
 
-library(ggplot2)
-library(dplyr)
-library(mgcv)
-library(purrr)
 
-model_gam<-function(df) {
-  gam(value~s(year), data=df)
+###sdm trends
+
+sdm_stack<-stack(paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years,".tif", sep=""))
+patch_stack<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
+
+pyr<-subset(lpi, Binomial ==binomial & Specific_location==1& Region=="Europe")    #record 11470 had wrong longitude - in Russia!
+pops<-pyr[,c(65:120)]
+pop_counts <- (pops !="NULL")
+points_per_pop1950_2005 = rowSums(pop_counts)
+if(sum(points_per_pop1950_2005<5)>=1){
+  pyr<-pyr[-which(points_per_pop1950_2005<5),]
+  pops<-pops[-which(points_per_pop1950_2005<5),]
+}
+pops<-data.frame(pyr$ID, pops)
+colnames(pops)<-c("ID", 1950:2005)
+
+
+#formatting the lpi data for use in demoniche
+pyrs<-pyr[,c("ID","Longitude","Latitude")]
+xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
+
+sdm_lpi<-extract(sdm_stack, xy_lpi)
+colnames(sdm_lpi)<-1950:2005
+sdm_lpi_melt<-melt(sdm_lpi)
+colnames(sdm_lpi_melt)<-c("ID", "Year", "HSI")
+sdm_lpi_melt$ID<-rep(pyrs$ID, length(1950:2005))
+
+lambda<-function(x){
+  
+  lambdas<-diff(log10(as.numeric(x)))
+  
 }
 
-gammy<-function(df, start_year = 1950, end_year = 2005){
+sdm_lambdas<-t(apply(sdm_lpi,1,lambda))
+
+colnames(sdm_lambdas)<-1950:2004
+sdm_lambdas_melt<-melt(sdm_lambdas)
+colnames(sdm_lambdas_melt)<-c("ID", "Year", "HSI")
+sdm_lambdas_melt$ID<-rep(pyrs$ID, length(1950:2004))
+
+
+#with loess
+ggplot()+
+  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=ID), colour = "black", fill="grey", method = "loess")+   #demoniche
+  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "loess")+    #real
+  geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI, group=ID), colour = "blue", fill="light blue",method = "loess")+   #sdm trend
+  facet_grid(.~ID,labeller=label_both)
+
+#with gam
+ggplot()+
+  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=ID), colour = "black", fill="grey", method = "gam", formula = y ~ s(x, bs = "cs"))+   #demoniche
+  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "gam", formula = y ~ s(x, bs = "cs"))+    #real
+  geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI, group=ID), colour = "blue", fill="light blue",method = "gam", formula = y ~ s(x, bs = "cs"))+   #sdm trend
+  facet_grid(.~ID,labeller=label_both)
+
+
+#need start year and end year
+
+
+rmse_get<-function(x){
+
+  cnd_gam = gam(value~s(year, bs="cs"),data = melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],])
+  obs_gam = gam(Lambdas~s(Year, bs="cs"),data = all_year_ab[all_year_ab$ID == all_year_ab$ID[x],])
+  sdm_gam = gam(HSI~s(Year, bs="cs"),data = sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],])
   
-  gam_out<-df %>%
-    split(.$sp_lpi.ID) %>%
-    map(.,model_gam)%>%
-    map(fitted.values)%>%
-    map_dfr(unique)
-  
-  gam_out<-melt(gam_out)
-  gam_out<-data.frame(gam_out, start_year:end_year)
-  colnames(gam_out)<-c("sp_lpi.ID", "Abundance", "Year")
-  
-  return(gam_out)
+  smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )
+  smooth_vals_obs = predict(obs_gam,newdata =all_year_ab[all_year_ab$ID == all_year_ab$ID[x],] )
+  smooth_vals_sdm = predict(sdm_gam,newdata =sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],] )    
+  # smooth_vals_cnd = predict(loess(value~year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],]), unique(melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[x]]))
+  # smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[x]])
+  # smooth_vals_sdm = predict(loess(HSI~Year,sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],]), sdm_lambdas_melt$Year[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x]])
+
+  obs_x<-all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]
+  cnd_x<-melt_lambda_short[melt_lambda_short$ID==melt_lambda_short$ID[x],]
+  sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID==sdm_lambdas_melt$ID[x],]
+
+  start_obs<-which(unique(all_year_ab$Year) == min(obs_x$Year))
+  end_obs<-which(unique(all_year_ab$Year) == max(obs_x$Year))
+
+  start_cnd<-which(unique(melt_lambda_short$year) == min(obs_x$Year))
+  end_cnd<-which(unique(melt_lambda_short$year) == max(obs_x$Year))
+
+  start_sdm<-which(unique(sdm_lambdas_melt$Year) == min(obs_x$Year))
+  end_sdm<-which(unique(sdm_lambdas_melt$Year) == max(obs_x$Year))
+
+  cnd_rmse<-rmse(smooth_vals_cnd[start_cnd:end_cnd], smooth_vals_obs[start_obs:end_obs])
+  sdm_rmse<-rmse(smooth_vals_sdm[start_sdm:end_sdm], smooth_vals_obs[start_obs:end_obs])
+
+  rmse_out<-data.frame(cnd_rmse, sdm_rmse)
+  colnames(rmse_out)<-c("cnd", "sdm")
+
+return(rmse_out)
 }
 
-gam_r<-gammy(melt_short)
+rmse_scores<-t(sapply(1:length(unique(melt_lambda_short$ID)), rmse_get))
 
-#remove time series of all zeros - identify which these are
+boxplot(rmse_scores, use.cols = TRUE)
 
-ggplot(mldab, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_r, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
 
-mldab_no_z<-group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
-  mutate(value_sum = sum(value)) %>% 
-  filter(value_sum >= 0)
+ccf_get<-function(x){
   
-group_by(mldab, sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)%>%
-  mutate(value_sum = sum(value)) %>% 
-  filter(value_sum <= 0)%>%
-  distinct(sp_lpi.ID, med_disp, sdd, ldd, kern,SD, dens, link, rep_id)
-
-
-#plots without low populations
-
-gam_no_z<-gammy(mldab_no_z)
-
-ggplot(mldab_no_z, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_no_z, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
-
-#dispersal = 0.1 & sd = 0.1
-
-mldab_no_z_sdd_0_1_sd_0_1<-filter(mldab_no_z, sdd == 0.1 & ldd ==0.1 & SD == 0.1)
-
-gam_no_z_sdd_0_1_sd_0_1<-gammy(mldab_no_z_sdd_0_1_sd_0_1)
-
-ggplot(mldab_no_z_sdd_0_1_sd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_no_z_sdd_0_1_sd_0_1, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
-
-
-#dispersal = 0.1 & sd = 0.25
-
-mldab_no_z_sdd_0_1_sd_0_25<-filter(mldab_no_z, sdd == 0.1 & ldd ==0.1 & SD == 0.25)
-
-gam_no_z_sdd_0_1_sd_0_25<-gammy(mldab_no_z_sdd_0_1_sd_0_25)
-
-ggplot(mldab_no_z_sdd_0_1_sd_0_25, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_no_z_sdd_0_1_sd_0_25, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
-
-
-#dispersal = 0.25 & sd = 0.1
-
-
-mldab_no_z_sdd_0_25_sd_0_1<-filter(mldab_no_z, sdd == 0.25 & ldd ==0.25 & SD == 0.1)
-
-gam_no_z_sdd_0_25_sd_0_1<-gammy(mldab_no_z_sdd_0_25_sd_0_1)
-
-ggplot(mldab_no_z_sdd_0_25_sd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_no_z_sdd_0_25_sd_0_1, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
-
-#dispersal = 0.25 & sd = 0.25
-
-
-mldab_no_z_sdd_0_25_sd_0_25<-filter(mldab_no_z, sdd == 0.25 & ldd ==0.25 & SD == 0.25)
-
-gam_no_z_sdd_0_25_sd_0_25<-gammy(mldab_no_z_sdd_0_25_sd_0_25)
-
-ggplot(mldab_no_z_sdd_0_25_sd_0_25, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_no_z_sdd_0_25_sd_0_25, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
-
-#dispersal = 0.5 & SD = 0.1
-
-mldab_no_z_sdd_0_5_sd_0_1<-filter(mldab_no_z, sdd == 0.5 & ldd ==0.5 & SD == 0.1)
-
-gam_no_z_sdd_0_5_sd_0_1<-gammy(mldab_no_z_sdd_0_5_sd_0_1)
-
-ggplot(mldab_no_z_sdd_0_5_sd_0_1, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_no_z_sdd_0_5_sd_0_1, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
-
-#dispersal = 0.5 & SD = 0.25
-#this one not working cos some pops have no pops that didn't crash out
-
-mldab_no_z_sdd_0_5_sd_0_25<-filter(mldab_no_z, sdd == 0.5 & ldd ==0.5 & SD == 0.25)
-
-gam_no_z_sdd_0_5_sd_0_25<-gammy(mldab_no_z_sdd_0_5_sd_0_25)
-
-ggplot(mldab_no_z_sdd_0_5_sd_0_25, aes(x= year, y=value, group=interaction(rep_id, med_disp, sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.4)+
-  geom_line(data=both_df_ab[both_df_ab$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_no_z_sdd_0_5_sd_0_25, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)+
-  theme_bw()
-
-
-
-######too many NAs
-
-#melt_lambda_short[melt_lambda_short$sp_lpi.ID == "  539",]$sp_lpi.ID<-539
-
-
-
-
-####plotting in lambda
-
-
-pops<-sp_lpi[,c(1,65:120)]
-colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2005, sep="_")
-pops[pops=="NULL"]<-NA
-pops$rep_id<-"Observed"
-pops$med_disp<-"Observed"
-pops$sdd<-"Observed"
-pops$ldd<-"Observed"
-pops$kern<-"Observed"
-pops$SD<-"Observed"
-pops$dens<-"Observed"
-pops$link<-"Observed"
-
-
-library(taRifx)
-popsm<-as.matrix(pops)
-
-#change this to purrr?
-
-gam_lpi<-function(x){
-  #subsetting the population data by each population
-  spid = x[2:(length(x)-8)]                     #subsetting only the dates
-  names(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
-  spid<-as.numeric(spid)
-  pop_datab <- (!is.na(spid) )
-  points = sum(pop_datab)
-  id<-x[1]
-  id<-as.numeric(id)
-  Date<-1950:2005
-  spidt<-destring(t(spid))
-  time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
-  missing<-time-points
+  cnd_gam = gam(value~s(year, bs="cs"),data = melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],])
+  obs_gam = gam(Lambdas~s(Year, bs="cs"),data = all_year_ab[all_year_ab$ID == all_year_ab$ID[x],])
+  sdm_gam = gam(HSI~s(Year, bs="cs"),data = sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],])
   
-  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
-  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 #if a population is zero one year thhis is replaced with 1% of the average population estimate - because you can log zeros
+  smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )
+  smooth_vals_obs = predict(obs_gam,newdata =all_year_ab[all_year_ab$ID == all_year_ab$ID[x],] )
+  smooth_vals_sdm = predict(sdm_gam,newdata =sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],] )    
+  # #need to check this is okay on another dataset
+  # smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )    
+  # smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[x]])
+  # smooth_vals_sdm = predict(loess(HSI~Year,sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],]), sdm_lambdas_melt$Year[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x]])
+  # 
+  obs_x<-all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]
+  cnd_x<-melt_lambda_short[melt_lambda_short$ID==melt_lambda_short$ID[x],]
+  sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID==sdm_lambdas_melt$ID[x],]
   
-  df<-data.frame(Year,Population)
+  start_obs<-which(unique(all_year_ab$Year) == min(obs_x$Year))
+  end_obs<-which(unique(all_year_ab$Year) == max(obs_x$Year))
   
-
-  if (points >=6) {
-    PopN = log1p(df$Population)
-    if (length(na.omit(PopN)) >=6) {
-      SmoothParm = round(length(na.omit(PopN))/2)
-    } else {
-      SmoothParm=3
-    }
-    
-    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
-    pv2 <- predict(mg2,df,type="response",se=TRUE)
-    R_sq2<-summary(mg2)$r.sq
-    model<-1
-    pv2$fit[pv2$fit <= 0] <- NA
-    
-    lambda2<-diff(pv2$fit)
-    
-    ial<-data.frame(id, Year[-length(Year)], exp(lambda2))
-    
-    colnames(ial)<-c("ID", "Year", "R")
-  }
+  start_cnd<-which(unique(melt_lambda_short$year) == min(obs_x$Year))
+  end_cnd<-which(unique(melt_lambda_short$year) == max(obs_x$Year))
   
-  return(ial)
+  start_sdm<-which(unique(sdm_lambdas_melt$Year) == min(obs_x$Year))
+  end_sdm<-which(unique(sdm_lambdas_melt$Year) == max(obs_x$Year))
+  
+  cnd_ccf<-ccf(smooth_vals_cnd[start_cnd:end_cnd], smooth_vals_obs[start_obs:end_obs], type="correlation")
+  sdm_ccf<-ccf(smooth_vals_sdm[start_sdm:end_sdm], smooth_vals_obs[start_obs:end_obs], type="correlation")
+  
+  lag_0_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 0)]
+  lag_0_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 0)]
+  
+  ccf_out<-data.frame(lag_0_cnd, lag_0_sdm)
+  colnames(ccf_out)<-c("cnd", "sdm")
+  
+  return(ccf_out)
 }
 
-gam_lpi_r<-apply(popsm,  1, gam_lpi)
-gam_r<-do.call( "rbind", gam_lpi_r)
-
-fill<-data.frame(rep(pops$ID, each=length(1950:2005)), 1950:2005)
-colnames(fill)<-c("ID", "Year")
-
-all_year_r<-join(fill, gam_r, type="right")
-
-all_year_r$med_disp<-"Observed"
-all_year_r$sdd<-"Observed"
-all_year_r$ldd<-"Observed"
-all_year_r$kern<-"Observed"
-all_year_r$SD<-"Observed"
-all_year_r$dens<-"Observed"
-all_year_r$link<-"Observed"
-all_year_r$rep_id<-"Observed"
-
-colnames(all_year_r)[1:3]<-c("sp_lpi.ID", "year", "value")
-
-mld<-melt_lambda_short[,-10]
-all_year_r$sp_lpi.ID<-as.factor(all_year_r$sp_lpi.ID)
-all_year_r$med_disp<-as.factor(all_year_r$med_disp)
-all_year_r$rep_id<-as.factor(all_year_r$rep_id)
-all_year_r$value<-as.numeric(all_year_r$value)
-all_year_r$year<-as.numeric(all_year_r$year)
-
-both_df<-rbind(mld, all_year_r)
 
 
+ccf_scores<-sapply(1:length(unique(melt_lambda_short$ID)), ccf_get)
 
-
-#should consider splitting both_df anf gam_r_lambda into several plots based on each of the variables e.g one facet plot for LDD = 0.5 - yes do this - copy as above
-
-
-gam_r_lambda<-gammy(melt_lambda_short, 1951, 2005)
-
-
-ggplot(both_df, aes(x= year, y=value, group=interaction(rep_id, med_disp,sp_lpi.ID), colour= sp_lpi.ID))+
-  geom_line(colour="grey", alpha = 0.2)+
-  geom_line(data=both_df[both_df$med_disp=="Observed",], aes(x=year, y=value), colour="red")+
-  geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
-  facet_grid(.~ sp_lpi.ID)
-
-# 
-# for (i in 1:length(unique(both_df$sp_lpi.ID))){
-#   pp<-ggplot(both_df[both_df$sp_lpi.ID == unique(both_df$sp_lpi.ID)[i],], aes(x= year, y=value, group=interaction(rep_id, max_disp)))+
-#     geom_line(colour="grey")+
-#     geom_line(data=both_df[both_df$max_disp=="Observed" & both_df$sp_lpi.ID == both_df$sp_lpi.ID[i],], aes(x=year, y=value), colour="red")+
-#     geom_line(data =  gam_r_lambda[gam_r_lambda$sp_lpi.ID ==gam_r_lambda$sp_lpi.ID[i], ], aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )
-#   plot(pp)
-# }
-# 
-# 
