@@ -14,6 +14,7 @@ years<-1950:2005
 binomial = "Cervus_elaphus"
 demoniche_folder<-"C:/Users/Fiona/Documents/PhD/PhD_Method/Legion/cervus_output"
 demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_cervus_bias/output_new"
+demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_capra_bias/output"
 
 
 l<-list.files(demoniche_folder)
@@ -85,12 +86,11 @@ melt_lambda_short$sp_lpi.ID<-as.factor(melt_lambda_short$sp_lpi.ID)
 library(ggplot2)
 ggplot(melt_short, aes(x= year, y=value, group=rep_id, colour= sp_lpi.ID))+
   geom_line()+
-  facet_grid(med_disp~ sp_lpi.ID)
+  facet_grid(~ sp_lpi.ID)
 
-ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
-  geom_line()+
-  geom_smooth()+
-  facet_grid(med_disp~ sp_lpi.ID)
+ggplot()+
+  geom_smooth(data = melt_lambda_short, aes(x= year, y=value, group= sp_lpi.ID, colour= sp_lpi.ID), method="loess")+
+  facet_grid(~ sp_lpi.ID)
 
 
 ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
@@ -270,6 +270,8 @@ ggplot()+
 #need start year and end year
 
 
+
+
 rmse_get<-function(x){
 
   cnd_gam = gam(value~s(year, bs="cs"),data = melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],])
@@ -283,16 +285,16 @@ rmse_get<-function(x){
   # smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[x]])
   # smooth_vals_sdm = predict(loess(HSI~Year,sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],]), sdm_lambdas_melt$Year[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x]])
 
-  obs_x<-all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]
   cnd_x<-melt_lambda_short[melt_lambda_short$ID==melt_lambda_short$ID[x],]
+  obs_x<-all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]
   sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID==sdm_lambdas_melt$ID[x],]
-
-  start_obs<-which(unique(all_year_ab$Year) == min(obs_x$Year))
-  end_obs<-which(unique(all_year_ab$Year) == max(obs_x$Year))
 
   start_cnd<-which(unique(melt_lambda_short$year) == min(obs_x$Year))
   end_cnd<-which(unique(melt_lambda_short$year) == max(obs_x$Year))
 
+  start_obs<-which(unique(all_year_ab$Year) == min(obs_x$Year))
+  end_obs<-which(unique(all_year_ab$Year) == max(obs_x$Year))
+  
   start_sdm<-which(unique(sdm_lambdas_melt$Year) == min(obs_x$Year))
   end_sdm<-which(unique(sdm_lambdas_melt$Year) == max(obs_x$Year))
 
