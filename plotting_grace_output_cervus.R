@@ -5,7 +5,8 @@
 #need to talk to damaris about optimising the matrix
 
 library(reshape2)
-
+library(sp)
+wd<-getwd()
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
 spin_years<-1940:1949
@@ -14,7 +15,7 @@ years<-1950:2005
 binomial = "Cervus_elaphus"
 demoniche_folder<-"C:/Users/Fiona/Documents/PhD/PhD_Method/Legion/cervus_output"
 demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_cervus_bias/output_new"
-demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_capra_bias/output"
+demoniche_folder<-paste(wd, "/Legion/snow_cervus_bias/output_patch", sep="")
 
 
 l<-list.files(demoniche_folder)
@@ -40,16 +41,17 @@ convert_pop_out<-function(foldername){
   pop_out<-pop_out[,-1]
   coordinates(pop_out) <- ~ X + Y
   gridded(pop_out) <- TRUE
-  rasterDF <- stack(pop_out)
-  trends<-raster:::extract(rasterDF,xy)
-  SD<-strsplit(foldername, "[/_]")[[1]][6]
-  sdd<-strsplit(foldername, "[/_]")[[1]][7]
-  ldd<-strsplit(foldername, "[/_]")[[1]][8]
-  dens<-strsplit(foldername, "[/_]")[[1]][9]
-  link<-strsplit(foldername, "[/_]")[[1]][10]
-  med_disp<-strsplit(foldername, "[/_]")[[1]][11]
-  max_disp<-strsplit(foldername, "[/_]")[[1]][12]
-  rep_id<-strsplit(foldername, "[/_]")[[1]][13]
+  rasterDF <- raster:::stack(pop_out)
+  crs(rasterDF)<- CRS("+proj=longlat +datum=WGS84")
+  trends<-raster:::extract(rasterDF,xy, buffer = 50000, fun = mean, na.rm = TRUE)
+  SD<-strsplit(foldername, "[/_]")[[1]][2]
+  sdd<-strsplit(foldername, "[/_]")[[1]][3]
+  ldd<-strsplit(foldername, "[/_]")[[1]][4]
+  dens<-strsplit(foldername, "[/_]")[[1]][5]
+  link<-strsplit(foldername, "[/_]")[[1]][6]
+  med_disp<-strsplit(foldername, "[/_]")[[1]][7]
+  max_disp<-strsplit(foldername, "[/_]")[[1]][8]
+  rep_id<-strsplit(foldername, "[/_]")[[1]][9]
   trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,SD,dens,link,rep_id,trends)
 }
 }
@@ -57,61 +59,88 @@ demoniche_pop_out<-lapply(highfoldernames, convert_pop_out)
 df <- do.call("rbind", demoniche_pop_out)
 dfm<-as.matrix(df)
 
-lambda<-function(x){
-  
-  l10<-diff(log1p(as.numeric(x[10:length(x)])))
-  #l10<-10^diff(log1p(as.numeric(x[20:length(x)])))
-  
-}
+# lambda<-function(x){
+#   
+#   l10<-diff(log1p(as.numeric(x[10:length(x)])))
+#   #l10<-10^diff(log1p(as.numeric(x[20:length(x)])))
+#   
+# }
+# 
+# dft<-t(apply(dfm,1,lambda))
+# 
+# df_lambda<-data.frame(dfm[,1:8],dft)
+# 
+# colnames(df_lambda)[9:ncol(df_lambda)]<-colnames(dfm)[9:ncol(df_lambda)]
 
-dft<-t(apply(dfm,1,lambda))
-
-df_lambda<-data.frame(dfm[,1:8],dft)
-
-colnames(df_lambda)[9:ncol(df_lambda)]<-colnames(dfm)[9:ncol(df_lambda)]
 
 melt_df<-melt(df, id=1:8)
 melt_df$year<-as.numeric(gsub("Year_", "", melt_df$variable))
 
-melt_lambda<-melt(df_lambda, id=1:8)
-melt_lambda$year<-as.numeric(gsub("Year_", "", melt_lambda$variable))
-
 melt_short<-melt_df[melt_df$year>spin_years[length(spin_years)] ,]
 melt_short$sp_lpi.ID<-as.factor(melt_short$sp_lpi.ID)
 
-melt_lambda_short<-melt_lambda[melt_lambda$year>years[1] ,]
-melt_lambda_short$sp_lpi.ID<-as.factor(melt_lambda_short$sp_lpi.ID)
+
+library(ggplot2)
+ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD), colour= sp_lpi.ID))+
+ # geom_line()+
+  geom_smooth(se = FALSE)+
+  facet_grid(~ sp_lpi.ID)
 
 
 library(ggplot2)
-ggplot(melt_short, aes(x= year, y=value, group=rep_id, colour= sp_lpi.ID))+
-  geom_line()+
+ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD), colour= sp_lpi.ID))+
+  # geom_line()+
+  geom_smooth()+
   facet_grid(~ sp_lpi.ID)
+
+
+dfl<-split(melt_short, list(melt_short$sp_lpi.ID, melt_short$ldd, melt_short$SD))
+gam_smooth<-function(x){
+  if(nrow(x)>0){
+  ind<-seq(length(unique(x$rep_id)),(length(unique(x$rep_id)) * length(unique(x$year))* length(unique(x$sp_lpi.ID))), by=length(unique(x$rep_id)))
+  id<-as.numeric(as.character(x$sp_lpi.ID[1]))
+  ldd<-as.numeric(as.character(x$ldd[1]))
+  sd<-as.numeric(as.character(x$SD[1]))
+  mg<-mgcv:::gam(log10(value)~s(year, bs="cs", k = -1), data = x)
+  fmg<-fitted.values(mg)
+  lambdas<-diff(fmg[ind])
+  out<-cbind(id,ldd,sd,lambdas, unique(x$year)[-1])
+  gam_out<-data.frame(out)
+  colnames(gam_out)<-c("ID","ldd","SD","Lambdas", "Year")
+  return(gam_out)
+  }
+}
+# for(i in 1:length(dfl)){
+# 
+#   mgcv:::gam(log10(value)~s(year, bs="cs", k = -1), data = dfl[[i]])
+#   print(i)
+# 
+#   }
+
+df_out<-lapply(dfl, gam_smooth)
+melt_lambda_short<-do.call( "rbind", df_out)
+
+melt_lambda_short$ID<-as.factor(melt_lambda_short$ID)
 
 ggplot()+
-  geom_smooth(data = melt_lambda_short, aes(x= year, y=value, group= sp_lpi.ID, colour= sp_lpi.ID), method="loess")+
-  facet_grid(~ sp_lpi.ID)
-
-
-ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
-  geom_line()+
-  facet_grid(sdd ~ sp_lpi.ID)
-
+  geom_smooth(data = melt_lambda_short, aes(x= Year, y=Lambdas, group=interaction(ldd, SD), colour= ID), method="loess")+
+  facet_grid(~ ID)
 
 
 library(taRifx)
 library(plyr)
 library(mgcv)
+library(zoo)
 
 pops<-sp_lpi[,c(1,65:120)]
 
 pop_counts<-sp_lpi[,c(65:120)]
 pop_counts <- (pop_counts !="NULL")
 points_per_pop1950_2005 = rowSums(pop_counts)
-if(sum(points_per_pop1950_2005<5)>=1){
-  #pyr<-pyr[-which(points_per_pop1950_2005<5),]
-  pops<-pops[-which(points_per_pop1950_2005<5),]
-}
+#if(sum(points_per_pop1950_2005<5)>=1){
+# pyr<-pyr[-which(points_per_pop1950_2005<5),]
+# pops<-pops[-which(points_per_pop1950_2005<5),]
+#}
 
 colnames(pops)<-c("ID", 1950:2005)
 
@@ -192,17 +221,17 @@ colnames(melt_lambda_short)[1]<-"ID"
 all_year_ab$ID<-as.numeric(as.character(all_year_ab$ID))
 melt_lambda_short$ID<-as.numeric(as.character(melt_lambda_short$ID))
 
-melt_lambda_short<-melt_lambda_short[melt_lambda_short$ID %in% all_year_ab$ID,]
+#melt_lambda_short<-melt_lambda_short[melt_lambda_short$ID %in% all_year_ab$ID,]
 
 
 ggplot()+
-  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=ID), colour = "black")+
+  geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD)), colour = "black")+
   geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red")+
   #geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ID)
 
 
-smooth_vals_pred = predict(loess(value~year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[1],]), melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[1]])
+smooth_vals_pred = predict(loess(Lambdas~Year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[1],]), melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[1]])
 
 smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[1],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[1]])
 
@@ -213,6 +242,9 @@ smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_y
 
 ###sdm trends
 
+sdm_folder<-paste(wd, "/Legion/snow_cervus_bias/Cervus_elaphus/SDM_folder", sep="")
+
+
 sdm_stack<-stack(paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years,".tif", sep=""))
 patch_stack<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 
@@ -220,10 +252,10 @@ pyr<-subset(lpi, Binomial ==binomial & Specific_location==1& Region=="Europe")  
 pops<-pyr[,c(65:120)]
 pop_counts <- (pops !="NULL")
 points_per_pop1950_2005 = rowSums(pop_counts)
-if(sum(points_per_pop1950_2005<5)>=1){
-  pyr<-pyr[-which(points_per_pop1950_2005<5),]
-  pops<-pops[-which(points_per_pop1950_2005<5),]
-}
+#if(sum(points_per_pop1950_2005<5)>=1){
+#  pyr<-pyr[-which(points_per_pop1950_2005<5),]
+#  pops<-pops[-which(points_per_pop1950_2005<5),]
+#}
 pops<-data.frame(pyr$ID, pops)
 colnames(pops)<-c("ID", 1950:2005)
 
@@ -232,115 +264,140 @@ colnames(pops)<-c("ID", 1950:2005)
 pyrs<-pyr[,c("ID","Longitude","Latitude")]
 xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
 
-sdm_lpi<-extract(sdm_stack, xy_lpi)
+sdm_lpi<-raster:::extract(sdm_stack,xy_lpi, buffer = 50000, fun = mean, na.rm = TRUE)
+
 colnames(sdm_lpi)<-1950:2005
 sdm_lpi_melt<-melt(sdm_lpi)
 colnames(sdm_lpi_melt)<-c("ID", "Year", "HSI")
 sdm_lpi_melt$ID<-rep(pyrs$ID, length(1950:2005))
 
-lambda<-function(x){
+
+ggplot(sdm_lpi_melt, aes(x = Year, y= HSI, group = ID))+
+  geom_smooth()+
+  facet_grid(.~ID)
+
+
+sdl<-split(sdm_lpi_melt, list(sdm_lpi_melt$ID))
+sdm_smooth<-function(x){
   
-  lambdas<-diff(log10(as.numeric(x)))
-  
+  #ind<-seq(length(unique(x$rep_id)),(length(unique(x$rep_id)) * length(unique(x$year))* length(unique(x$sp_lpi.ID))), by=length(unique(x$rep_id)))
+  id<-as.numeric(as.character(x$ID[1]))
+  mg<-gam(log10(HSI)~s(Year, bs="cs", k = -1), data = x)
+  fmg<-fitted.values(mg)
+  lambdas<-diff(fmg)
+  out<-cbind(id,lambdas, unique(x$Year)[-1])
+  gam_out<-data.frame(out)
+  colnames(gam_out)<-c("ID","HSI_Lambdas", "Year")
+  return(gam_out)
 }
 
-sdm_lambdas<-t(apply(sdm_lpi,1,lambda))
+df_out<-lapply(sdl, sdm_smooth)
+sdm_lambdas_melt<-do.call( "rbind", df_out)
 
-colnames(sdm_lambdas)<-1950:2004
-sdm_lambdas_melt<-melt(sdm_lambdas)
-colnames(sdm_lambdas_melt)<-c("ID", "Year", "HSI")
-sdm_lambdas_melt$ID<-rep(pyrs$ID, length(1950:2004))
 
+ggplot(data = sdm_lambdas_melt, aes(x = Year, y= HSI_Lambdas, group=ID))+
+  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "loess")+    #real
+  geom_smooth()+
+  facet_grid(.~ID,labeller=label_both)#sdm trend
 
 #with loess
 ggplot()+
-  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=ID), colour = "black", fill="grey", method = "loess")+   #demoniche
+  geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD), SE = FALSE), colour = "black", fill="grey", method = "loess")+   #demoniche
   geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "loess")+    #real
-  geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI, group=ID), colour = "blue", fill="light blue",method = "loess")+   #sdm trend
+  geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI_Lambdas, group=ID), colour = "blue", fill="light blue",method = "loess")+   #sdm trend
+  geom_smooth(data = annual_mean_temp, aes(x = Year, y = predicted_lambdas, group=ID), colour = "green")+
   facet_grid(.~ID,labeller=label_both)
 
 #with gam
 ggplot()+
-  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=ID), colour = "black", fill="grey", method = "gam", formula = y ~ s(x, bs = "cs"))+   #demoniche
-  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "gam", formula = y ~ s(x, bs = "cs"))+    #real
-  geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI, group=ID), colour = "blue", fill="light blue",method = "gam", formula = y ~ s(x, bs = "cs"))+   #sdm trend
+  geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD)), colour = "black", fill="grey", method = "gam", formula = y ~ s(x, bs = "cs", k = -1))+   #demoniche
+  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "gam", formula = y ~ s(x, bs = "cs", k =-1))+    #real
+  geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI_Lambdas, group=ID), colour = "blue", fill="light blue",method = "gam", formula = y ~ s(x, bs = "cs", k = -1))+   #sdm trend
+  geom_smooth(data = annual_mean_temp, aes(x = Year, y = predicted_lambdas, group=ID), colour = "green",method = "gam", formula = y ~ s(x, bs = "cs", k = -1))+
   facet_grid(.~ID,labeller=label_both)
 
 
 #need start year and end year
 
 
+library(Metrics)
 
 
-rmse_get<-function(x){
-
-  cnd_gam = gam(value~s(year, bs="cs"),data = melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],])
-  obs_gam = gam(Lambdas~s(Year, bs="cs"),data = all_year_ab[all_year_ab$ID == all_year_ab$ID[x],])
-  sdm_gam = gam(HSI~s(Year, bs="cs"),data = sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],])
+vg<-expand.grid(unique(melt_lambda_short$ID), unique(melt_lambda_short$ldd), unique(melt_lambda_short$SD))
+colnames(vg)<-c("ID", "ldd", "SD")
+rmse_get_sdm<-function(x){
   
-  smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )
-  smooth_vals_obs = predict(obs_gam,newdata =all_year_ab[all_year_ab$ID == all_year_ab$ID[x],] )
-  smooth_vals_sdm = predict(sdm_gam,newdata =sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],] )    
-  # smooth_vals_cnd = predict(loess(value~year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],]), unique(melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[x]]))
-  # smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[x]])
-  # smooth_vals_sdm = predict(loess(HSI~Year,sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],]), sdm_lambdas_melt$Year[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x]])
-
-  cnd_x<-melt_lambda_short[melt_lambda_short$ID==melt_lambda_short$ID[x],]
-  obs_x<-all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]
-  sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID==sdm_lambdas_melt$ID[x],]
-
-  start_cnd<-which(unique(melt_lambda_short$year) == min(obs_x$Year))
-  end_cnd<-which(unique(melt_lambda_short$year) == max(obs_x$Year))
-
-  start_obs<-which(unique(all_year_ab$Year) == min(obs_x$Year))
-  end_obs<-which(unique(all_year_ab$Year) == max(obs_x$Year))
   
-  start_sdm<-which(unique(sdm_lambdas_melt$Year) == min(obs_x$Year))
-  end_sdm<-which(unique(sdm_lambdas_melt$Year) == max(obs_x$Year))
+  cnd_x<-melt_lambda_short[melt_lambda_short$ID == vg[x,1]& melt_lambda_short$ldd == vg[x,2] & melt_lambda_short$SD == vg[x,3],]
+  obs_x<-all_year_ab[all_year_ab$ID == vg[x,1],]
+  sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID == vg[x,1],]
+  
+  if (nrow(obs_x) >= 5){
+  
+  #need to get separate line per iteration of parameters for cnd
+  cnd_gam = mgcv:::gam(Lambdas~s(Year, bs="cs", k = -1),data = cnd_x )
+  obs_gam = gam(Lambdas~s(Year, bs="cs", k = -1),data = obs_x)
+  sdm_gam = gam(HSI_Lambdas~s(Year, bs="cs", k =-1),data =sdm_x)
+  
+  smooth_vals_cnd = predict(cnd_gam,newdata = cnd_x)
+  smooth_vals_obs = predict(obs_gam,newdata = obs_x)
+  smooth_vals_sdm = predict(sdm_gam,newdata = sdm_x)    
 
+  start_cnd<-which(unique(cnd_x$Year) == min(obs_x$Year))
+  end_cnd<-which(unique(cnd_x$Year) == max(obs_x$Year))
+  
+  start_obs<-which(unique(obs_x$Year) == min(obs_x$Year))
+  end_obs<-which(unique(obs_x$Year) == max(obs_x$Year))
+  
+  start_sdm<-which(unique(sdm_x$Year) == min(obs_x$Year))
+  end_sdm<-which(unique(sdm_x$Year) == max(obs_x$Year))
+  
   cnd_rmse<-rmse(smooth_vals_cnd[start_cnd:end_cnd], smooth_vals_obs[start_obs:end_obs])
   sdm_rmse<-rmse(smooth_vals_sdm[start_sdm:end_sdm], smooth_vals_obs[start_obs:end_obs])
-
-  rmse_out<-data.frame(cnd_rmse, sdm_rmse)
+  
+  rmse_out<-data.frame(cnd_rmse,sdm_rmse)
   colnames(rmse_out)<-c("cnd", "sdm")
-
-return(rmse_out)
+  
+  return(rmse_out)
 }
+}
+rmse_scores<-sapply(1:nrow(vg), rmse_get_sdm)
+rmse_out<-do.call( "rbind", rmse_scores)
 
-rmse_scores<-t(sapply(1:length(unique(melt_lambda_short$ID)), rmse_get))
+rmse_out$diff<-rmse_out$cnd - rmse_out$sdm
 
-boxplot(rmse_scores, use.cols = TRUE)
+hist(rmse_out$diff, main = "RMSE difference between CND and SDM")
+
 
 
 ccf_get<-function(x){
   
-  cnd_gam = gam(value~s(year, bs="cs"),data = melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],])
-  obs_gam = gam(Lambdas~s(Year, bs="cs"),data = all_year_ab[all_year_ab$ID == all_year_ab$ID[x],])
-  sdm_gam = gam(HSI~s(Year, bs="cs"),data = sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],])
+  cnd_x<-melt_lambda_short[melt_lambda_short$ID == vg[x,1]& melt_lambda_short$ldd == vg[x,2]& melt_lambda_short$SD == vg[x,3],]
+  obs_x<-all_year_ab[all_year_ab$ID == vg[x,1],]
+  sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID == vg[x,1],]
   
-  smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )
-  smooth_vals_obs = predict(obs_gam,newdata =all_year_ab[all_year_ab$ID == all_year_ab$ID[x],] )
-  smooth_vals_sdm = predict(sdm_gam,newdata =sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],] )    
-  # #need to check this is okay on another dataset
-  # smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )    
-  # smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[x]])
-  # smooth_vals_sdm = predict(loess(HSI~Year,sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],]), sdm_lambdas_melt$Year[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x]])
-  # 
-  obs_x<-all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]
-  cnd_x<-melt_lambda_short[melt_lambda_short$ID==melt_lambda_short$ID[x],]
-  sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID==sdm_lambdas_melt$ID[x],]
+  if (nrow(obs_x) >= 5){
+    
+    #need to get separate line per iteration of parameters for cnd
+    cnd_gam = mgcv:::gam(Lambdas~s(Year, bs="cs", k = -1),data = cnd_x )
+    obs_gam = gam(Lambdas~s(Year, bs="cs", k = -1),data = obs_x)
+    sdm_gam = gam(HSI_Lambdas~s(Year, bs="cs", k =-1),data =sdm_x)
+    
+    smooth_vals_cnd = predict(cnd_gam,newdata = cnd_x)
+    smooth_vals_obs = predict(obs_gam,newdata = obs_x)
+    smooth_vals_sdm = predict(sdm_gam,newdata = sdm_x)    
+    
+    start_cnd<-which(unique(cnd_x$Year) == min(obs_x$Year))
+    end_cnd<-which(unique(cnd_x$Year) == max(obs_x$Year))
+    
+    start_obs<-which(unique(obs_x$Year) == min(obs_x$Year))
+    end_obs<-which(unique(obs_x$Year) == max(obs_x$Year))
+    
+    start_sdm<-which(unique(sdm_x$Year) == min(obs_x$Year))
+    end_sdm<-which(unique(sdm_x$Year) == max(obs_x$Year))
   
-  start_obs<-which(unique(all_year_ab$Year) == min(obs_x$Year))
-  end_obs<-which(unique(all_year_ab$Year) == max(obs_x$Year))
-  
-  start_cnd<-which(unique(melt_lambda_short$year) == min(obs_x$Year))
-  end_cnd<-which(unique(melt_lambda_short$year) == max(obs_x$Year))
-  
-  start_sdm<-which(unique(sdm_lambdas_melt$Year) == min(obs_x$Year))
-  end_sdm<-which(unique(sdm_lambdas_melt$Year) == max(obs_x$Year))
-  
-  cnd_ccf<-ccf(smooth_vals_cnd[start_cnd:end_cnd], smooth_vals_obs[start_obs:end_obs], type="correlation")
-  sdm_ccf<-ccf(smooth_vals_sdm[start_sdm:end_sdm], smooth_vals_obs[start_obs:end_obs], type="correlation")
+  cnd_ccf<-ccf(smooth_vals_cnd[start_cnd:end_cnd], smooth_vals_obs[start_obs:end_obs], type="correlation", main = "Coupled niche-demographic models")
+  sdm_ccf<-ccf(smooth_vals_sdm[start_sdm:end_sdm], smooth_vals_obs[start_obs:end_obs], type="correlation", main = "Species distribution models")
   
   lag_0_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 0)]
   lag_0_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 0)]
@@ -351,7 +408,7 @@ ccf_get<-function(x){
   return(ccf_out)
 }
 
-
+}
 
 ccf_scores<-sapply(1:length(unique(melt_lambda_short$ID)), ccf_get)
 
