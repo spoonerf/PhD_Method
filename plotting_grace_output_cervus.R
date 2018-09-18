@@ -1,21 +1,23 @@
 
 
+
 #There are some NAs in rep_id - not sure why..... find out!
 #need to take out the population trends which crashed out and make a note of which ones these were
 #need to talk to damaris about optimising the matrix
 
 library(reshape2)
+library(sp)
 
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
+wd<-getwd()
 
 spin_years<-1940:1949
 years<-1950:2005
 
-binomial = "Cervus_elaphus"
+binomial = "Capra_ibex"
 demoniche_folder<-"C:/Users/Fiona/Documents/PhD/PhD_Method/Legion/cervus_output"
 demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_cervus_bias/output_new"
-demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_capra_bias/output"
-
+demoniche_folder<-paste(wd, "/Legion/snow_capra_bias/output", sep="")
 
 l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
@@ -42,14 +44,14 @@ convert_pop_out<-function(foldername){
   gridded(pop_out) <- TRUE
   rasterDF <- stack(pop_out)
   trends<-raster:::extract(rasterDF,xy)
-  SD<-strsplit(foldername, "[/_]")[[1]][6]
-  sdd<-strsplit(foldername, "[/_]")[[1]][7]
-  ldd<-strsplit(foldername, "[/_]")[[1]][8]
-  dens<-strsplit(foldername, "[/_]")[[1]][9]
-  link<-strsplit(foldername, "[/_]")[[1]][10]
-  med_disp<-strsplit(foldername, "[/_]")[[1]][11]
-  max_disp<-strsplit(foldername, "[/_]")[[1]][12]
-  rep_id<-strsplit(foldername, "[/_]")[[1]][13]
+  SD<-strsplit(foldername, "[/_]")[[1]][2]
+  sdd<-strsplit(foldername, "[/_]")[[1]][3]
+  ldd<-strsplit(foldername, "[/_]")[[1]][4]
+  dens<-strsplit(foldername, "[/_]")[[1]][5]
+  link<-strsplit(foldername, "[/_]")[[1]][6]
+  med_disp<-strsplit(foldername, "[/_]")[[1]][7]
+  max_disp<-strsplit(foldername, "[/_]")[[1]][8]
+  rep_id<-strsplit(foldername, "[/_]")[[1]][9]
   trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,SD,dens,link,rep_id,trends)
 }
 }
@@ -97,8 +99,50 @@ ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, med_di
   geom_line()+
   facet_grid(sdd ~ sp_lpi.ID)
 
+library(dplyr)
+
+out<-melt_short %>%
+  group_by(ldd, SD)%>%
+  filter(year == 2005)%>%
+  summarize(final_year = sum(value))
 
 
+melt_short$ldd<-as.numeric(as.character(melt_short$ldd))
+melt_short$SD<-as.numeric(as.character(melt_short$SD))
+
+
+melt_lambda_short$ldd<-as.numeric(as.character(melt_lambda_short$ldd))
+melt_lambda_short$SD<-as.numeric(as.character(melt_lambda_short$SD))
+
+
+#pops seem to crash out when stochasticity is high and dispersal is high
+melt_short<-melt_short[melt_short$ldd <= 0.25 & melt_short$SD <= 0.25,]
+melt_lambda_short<-melt_lambda_short[melt_lambda_short$ldd <= 0.25 & melt_lambda_short$SD <=0.25,]
+
+melt_short<-melt_df[melt_df$year>spin_years[length(spin_years)] ,]
+melt_short$sp_lpi.ID<-as.factor(melt_short$sp_lpi.ID)
+
+melt_lambda_short<-melt_lambda[melt_lambda$year>years[1] ,]
+melt_lambda_short$sp_lpi.ID<-as.factor(melt_lambda_short$sp_lpi.ID)
+
+
+library(ggplot2)
+ggplot(melt_short, aes(x= year, y=value, group=rep_id, colour= sp_lpi.ID))+
+  geom_line()+
+  facet_grid(~ sp_lpi.ID)
+
+ggplot()+
+  geom_smooth(data = melt_lambda_short, aes(x= year, y=value, group= sp_lpi.ID, colour= sp_lpi.ID), method="loess")+
+  facet_grid(~ sp_lpi.ID)
+
+
+ggplot(melt_lambda_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
+  geom_line()+
+  facet_grid(sdd ~ sp_lpi.ID)
+
+
+
+library(zoo)
 library(taRifx)
 library(plyr)
 library(mgcv)
@@ -212,6 +256,8 @@ smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_y
 
 
 ###sdm trends
+species_directory<-paste(wd, "/",binomial, "_bias", sep="")
+sdm_folder<-paste(species_directory, "SDM_folder_bias", sep = "/")
 
 sdm_stack<-stack(paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years,".tif", sep=""))
 patch_stack<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
