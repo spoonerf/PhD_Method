@@ -517,13 +517,34 @@ pr <- predict(pred_crop, rf1, ext=e_iucn) #random forest predict
 
 models <- stack(pb, pgl, pr)
 names(models) <- c("bioclim", "gam", "random forest")
-plot(models)
+
+my.palette <- brewer.pal(n = 20, name = "BuGn")
+map_world <- borders("world", fill = "grey90", colour = "black")
+
+png('bioclim.png', width = 6, height = 6, units = 'in', res = 300)
+plot(models[[1]],col = my.palette, zlim = c(0,1), main = "bioclim")
+maps:::map('world', xlim=c(e_iucn[1],e_iucn[2]), ylim=c(e_iucn[3],e_iucn[4]), add=T)
+dev.off()
+
+png('gam.png', width = 6, height = 6, units = 'in', res = 300)
+plot(models[[2]],col = my.palette, zlim = c(0,1), main = "GAM")
+maps:::map('world', xlim=c(e_iucn[1],e_iucn[2]), ylim=c(e_iucn[3],e_iucn[4]), add=T)
+dev.off()
+
+png('randomforest.png', width = 6, height = 6, units = 'in', res = 300)
+plot(models[[3]],col = my.palette, zlim = c(0,1), main = "Random Forest")
+maps:::map('world', xlim=c(e_iucn[1],e_iucn[2]), ylim=c(e_iucn[3],e_iucn[4]), add=T)
+dev.off()
 
 auc<-c(bc_auc, gam_auc, rf_auc)
 w <- (auc-0.5)^2
 wm <- weighted.mean( models[[c("bioclim", "gam", "random.forest")]], w)
-plot(wm, main="Ensemble model")
+
+png('ensemblemodel.png', width = 6, height = 6, units = 'in', res = 300)
+plot(wm,col = my.palette, zlim = c(0,1), main="Ensemble Model")
+maps:::map('world', xlim=c(e_iucn[1],e_iucn[2]), ylim=c(e_iucn[3],e_iucn[4]), add=T)
 points(sp)
+dev.off()
 
 ```
 
@@ -538,6 +559,12 @@ ens<-ensemble_evaluate(sp,abs_xy , wm)
 thresh<-threshold(ens, stat="spec_sens")
 
 thresh
+
+png('presabs.png', width = 6, height = 6, units = 'in', res = 300)
+plot(wm>thresh,col = my.palette,  main="Presence/Absence Model")
+maps:::map('world', xlim=c(e_iucn[1],e_iucn[2]), ylim=c(e_iucn[3],e_iucn[4]), add=T)
+dev.off()
+
 ```
 
 
