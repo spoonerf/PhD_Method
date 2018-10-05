@@ -741,9 +741,290 @@ ggplot(data = melt_lpi, aes(x = Year, y= HSI, group=ID))+
   facet_grid(.~ID)
 
 ```
+
+
+```{r}
+#gam non logged abundances
+
+library(taRifx)
+library(plyr)
+library(mgcv)
+library(zoo)
+
+sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1 & lpi$Region == "Europe",]
+
+pops<-sp_lpi[,c(1,65:120)]
+
+pop_counts<-sp_lpi[,c(65:120)]
+pop_counts <- (pop_counts !="NULL")
+points_per_pop1950_2005 = rowSums(pop_counts)
+
+colnames(pops)<-c("ID", 1950:2005)
+
+colnames(pops)[2:ncol(pops)]<-paste("Year", 1950:2005, sep="_")
+pops[pops=="NULL"]<-NA
+pops$rep_id<-"Observed"
+pops$md_id<-"Observed"
+
+popsm<-as.matrix(pops)
+
+gam_lpi<-function(x){
+  #subsetting the population data by each population
+  spid = x[2:(length(x)-2)]                     #subsetting only the dates
+  names(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
+  spid<-as.numeric(spid)
+  pop_datab <- (!is.na(spid) )
+  points = sum(pop_datab)
+  id<-x[1]
+  Date<-1950:2005
+  spidt<-destring(t(spid))
+  time<-length(min(which(!is.na(spidt))):max(which(!is.na(spidt))))
+  missing<-time-points
+  
+  Year<-Date[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population<-spidt[min(which(!is.na(spidt))):max(which(!is.na(spidt)))]
+  Population[Population == 0] <- mean(Population, na.rm=TRUE)*0.01 #if a population is zero one year thhis is replaced with 1% of the average population estimate - because you can log zeros
+  
+  df<-data.frame(Year,Population)
+  
+  #not sure what this does - adding a constant of 1 so that logging doesn't go weird?
+  if (sum(na.omit(df$Population<1))>0) {
+    df$Population<-df$Population+1
+  }
+  
+  PopN = df$Population
+  if (points >=6) {
+    
+    if (length(na.omit(PopN)) >=6) {
+      SmoothParm = round(length(na.omit(PopN))/2)
+    } else {
+      SmoothParm=3
+    }
+    
+    mg2<-mgcv:::gam(PopN ~ s(Year, k=SmoothParm), fx=TRUE)
+    pv2 <- predict(mg2,df,type="response",se=TRUE)
+    R_sq2<-summary(mg2)$r.sq
+    model<-1
+    pv2$fit[pv2$fit <= 0] <- NA
+    
+    lambda2<-pv2$fit
+    
+    ial<-data.frame(id, Year, lambda2)
+    colnames(ial)<-c("ID", "Year", "Abundance")
+  } else {
+    
+    lint<-na.approx(PopN)
+    lint[lint<=0] <- NA
+    lambda2<-lint
+    ial<-data.frame(id, Year, lambda2)
+    colnames(ial)<-c("ID", "Year", "Abundance")
+    }
+  
+  return(ial)
+}
+
+gam_lpi_r_nl<-apply(popsm,  1, gam_lpi)
+gam_r_nl<-do.call( "rbind", gam_lpi_r_nl)
+
+gam_r_nl<-gam_r_nl[gam_r_nl$Year <=2005,]
+
+fill_nl<-data.frame(rep(pops$ID, each=length(1950:2005)), 1950:2005)
+colnames(fill_nl)<-c("ID", "Year")
+
+all_year_ab_nl<-join(fill_nl, gam_r_nl, type="right")
+
+all_year_ab_nl$ID<-as.numeric(as.character(all_year_ab_nl$ID))
+
+ggplot(data =all_year_ab_nl, aes(x = Year, y= Abundance, group=ID))+
+  geom_line()+
+  facet_grid(.~ID)
+
+
+ggplot(data =all_year_ab, aes(x = Year, y= Lambdas, group=ID))+
+  geom_line()+
+  facet_grid(.~ID)
+
+
+
+
+
+```
+
 ```{r}
 
-#gam non logged abundances
+sdm_ab_df<-join(sdm_lpi_melt, all_year_ab_nl)
+sdm_ab_df$ID<-as.factor(sdm_ab_df$ID)
+
+ggplot(sdm_ab_df, aes(x = HSI, y = log10(Abundance), group = ID, colour = ID))+
+  geom_point()+
+  facet_grid(.~ID)
+
+plot(sdm_ab_df$HSI, sdm_ab_df$Abundance)
+
+```
+
+```{r}
+sdm_lmb_df<-join(sdm_lpi_melt, all_year_ab)
+sdm_lmb_df$ID<-as.factor(sdm_lpi_melt$ID)
+
+ggplot(sdm_lmb_df, aes(x = HSI, y = Lambdas, group = ID, colour = ID))+
+  geom_point()
+
+plot(sdm_lmb_df$HSI, sdm_lmb_df$Lambdas)
+
+
+```
+
+
+```{r}
+
+
+ccf_get<-function(x){
+
+  obs_x<-all_year_ab_nl[all_year_ab_nl$ID == unique(all_year_ab_nl$ID)[x],]
+  #obs_x<-obs_x[obs_x$Year >= 1951,]
+  sdm_x<-sdm_lpi_melt[sdm_lpi_melt$ID == unique(sdm_lpi_melt$ID)[x],]
+  
+  if (nrow(obs_x) >= 5){
+
+  start_obs<-which(unique(obs_x$Year) == min(obs_x$Year))
+  end_obs<-which(unique(obs_x$Year) == max(obs_x$Year))
+  
+  start_sdm<-which(unique(sdm_x$Year) == min(obs_x$Year))
+  end_sdm<-which(unique(sdm_x$Year) == max(obs_x$Year))
+  
+  sdm_ccf<-ccf(sdm_x$HSI[start_sdm:end_sdm], obs_x$Abundance[start_obs:end_obs], type="correlation")
+
+  # lag_n5_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == -5)]
+  # lag_n5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -5)]
+  # 
+  # lag_n4_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == -4)]
+  # lag_n4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -4)]
+  #   
+  lag_n3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -3)]
+  lag_n2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -2)]
+  lag_n1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -1)]
+  lag_0_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 0)]
+  lag_1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 1)]
+  lag_2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 2)]
+  lag_3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 3)]
+  
+  # lag_4_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 4)]
+  # lag_4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 4)]
+  # 
+  # lag_5_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 5)]
+  # lag_5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 5)]
+
+  #ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, lag_n5_cnd,lag_n5_sdm,lag_n4_cnd,lag_n4_sdm,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm,lag_1_cnd, lag_1_sdm,lag_2_cnd, lag_2_sdm,lag_3_cnd, lag_3_sdm,lag_4_cnd, lag_4_sdm,lag_5_cnd, lag_5_sdm )
+  #colnames(ccf_out)<-c("ID","ldd","SD","cnd_n5", "sdm_n5","cnd_n4", "sdm_n4","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0","cnd_1", "sdm_1","cnd_2", "sdm_2","cnd_3", "sdm_3","cnd_4", "sdm_4","cnd_5", "sdm_5")
+  
+  ccf_out<-data.frame(unique(sdm_x$ID), lag_n3_sdm, lag_n2_sdm,  lag_n1_sdm,  lag_0_sdm, lag_1_sdm, lag_2_sdm, lag_3_sdm )
+  colnames(ccf_out)<-c("ID","sdm_n3","sdm_n2", "sdm_n1",  "sdm_0", "sdm_1", "sdm_2", "sdm_3")
+  
+  print(x)
+  return(ccf_out)
+  
+  }
+}
+
+#correlation between habitat suitability and population growth rate
+
+ccf_scores<-lapply(1:length(unique(sdm_lmb_df$ID)), ccf_get)
+ccf_df<-do.call( "rbind",ccf_scores)
+
+#ccf_all<-ccf_scores[lapply(ccf_scores,length)>0] 
+
+
+# colnames(ccf_df)<-c("ID","ldd","SD","cnd lag -5", "sdm lag -5","cnd lag -4", "sdm lag -4","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0","cnd lag 1", "sdm lag 1","cnd lag 2", "sdm lag 2","cnd lag 3", "sdm lag 3","cnd lag 4", "sdm lag 4","cnd lag 5", "sdm lag 5")
+
+ colnames(ccf_df)<-c("ID","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0","cnd lag 1", "sdm lag 1","cnd lag 2", "sdm lag 2","cnd lag 3", "sdm lag 3")
+
+
+ccf_melt<-melt(ccf_df, id.vars = "ID")
+ccf_melt$ID<-as.factor(ccf_melt$ID)
+
+```
+
+```{r}
+#abundance against HSI
+
+ggplot(ccf_melt, aes(x=variable, y=value, group = variable, colour = ID)) + 
+  geom_violin()+
+  geom_jitter()
+```
+
+```{r}
+
+sdm_ab_df<-join(sdm_lpi_melt, all_year_ab_nl)
+sdm_ab_df$ID<-as.factor(sdm_ab_df$ID)
+
+ggplot(sdm_ab_df, aes(x = HSI, y = log10(Abundance), group = ID, colour = ID))+
+  geom_point()
+
+sdm_lmb_df<-join(sdm_lpi_melt, all_year_ab)
+sdm_lmb_df$ID<-as.factor(sdm_lpi_melt$ID)
+
+ggplot(sdm_lmb_df, aes(x = HSI, y = Lambdas, group = ID, colour = ID))+
+  geom_point()
+
+ccf_get<-function(x){
+
+  obs_x<-all_year_ab[all_year_ab$ID == unique(all_year_ab$ID)[x],]
+  #obs_x<-obs_x[obs_x$Year >= 1951,]
+  sdm_x<-sdm_lpi_melt[sdm_lpi_melt$ID == unique(sdm_lpi_melt$ID)[x],]
+  
+  if (nrow(obs_x) >= 5){
+
+  start_obs<-which(unique(obs_x$Year) == min(obs_x$Year))
+  end_obs<-which(unique(obs_x$Year) == max(obs_x$Year))
+  
+  start_sdm<-which(unique(sdm_x$Year) == min(obs_x$Year))
+  end_sdm<-which(unique(sdm_x$Year) == max(obs_x$Year))
+  
+  sdm_ccf<-ccf(sdm_x$HSI[start_sdm:end_sdm], obs_x$Lambdas[start_obs:end_obs], type="correlation")
+
+  lag_n3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -3)]
+  lag_n2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -2)]
+  lag_n1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -1)]
+  lag_0_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 0)]
+  lag_1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 1)]
+  lag_2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 2)]
+  lag_3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 3)]
+
+  ccf_out<-data.frame(unique(sdm_x$ID), lag_n3_sdm, lag_n2_sdm,  lag_n1_sdm,  lag_0_sdm, lag_1_sdm, lag_2_sdm, lag_3_sdm )
+  colnames(ccf_out)<-c("ID","sdm_n3","sdm_n2", "sdm_n1",  "sdm_0", "sdm_1", "sdm_2", "sdm_3")
+  
+  print(x)
+  return(ccf_out)
+  
+  }
+}
+
+#correlation between habitat suitability and population growth rate
+
+ccf_scores<-lapply(1:length(unique(sdm_lmb_df$ID)), ccf_get)
+ccf_df<-do.call( "rbind",ccf_scores)
+
+colnames(ccf_df)<-c("ID", "sdm lag -3", "sdm lag -2", "sdm lag -1",  "sdm lag 0", "sdm lag 1", "sdm lag 2", "sdm lag 3")
+
+
+ccf_melt<-melt(ccf_df, id.vars = "ID")
+ccf_melt$ID<-as.factor(ccf_melt$ID)
+
+```
+
+```{r}
+
+ggplot(ccf_melt, aes(x=variable, y=value, group = variable, colour = ID)) + 
+  geom_violin()+
+  geom_jitter()+
+  theme_bw()
+
+```
+
+
+```{r}
+
 
 library(taRifx)
 library(plyr)
