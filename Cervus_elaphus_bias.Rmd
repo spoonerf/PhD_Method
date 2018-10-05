@@ -741,6 +741,7 @@ ggplot(data = melt_lpi, aes(x = Year, y= HSI, group=ID))+
   facet_grid(.~ID)
 
 ```
+
 ```{r}
 
 #gam non logged abundances
