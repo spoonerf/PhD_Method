@@ -490,6 +490,7 @@ coef_both<-read.csv("Model_Average_coefs4.csv")
 #coef_both<-read.csv("Model_Average_coefs_No_Atlantic_Forest.csv")
 coef_both6<-read.csv("Model_Average_coefs_aic6.csv")
 
+
 ele<-readPNG("elephant.png")
 pel<-readPNG("pelican.png")
 e<-rasterGrob(ele, interpolate = FALSE)
