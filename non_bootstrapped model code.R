@@ -490,7 +490,10 @@ coef_both<-read.csv("Model_Average_coefs4.csv")
 coef_both6<-read.csv("Model_Average_coefs_aic6.csv")
 
 
-
+ele<-readPNG("elephant.png")
+pel<-readPNG("pelican.png")
+e<-rasterGrob(ele, interpolate = FALSE)
+p<-rasterGrob(pel, interpolate = FALSE)
 
 # coef_old<-coef_both
 
@@ -507,7 +510,32 @@ p1<-p1+theme(panel.border = element_blank(), panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 p1<- p1+ geom_hline(yintercept = 0, linetype=2)
 p1<- p1+ geom_vline(xintercept = 1.5, linetype=2)
+
+p1<-p1+ scale_x_discrete(labels=c("aIntercept" ="Intercept", "bMTC" ="Rate of climate \nwarming \n(RCW)",  "cLUC" = "Rate of \nconversion to \nanthropogenic \nland use \n(RCA)", "dMTC*LUC"= "RCW:RCA", "eBM"= "Body mass", "Protected_statusYes" = "Inside protected \narea"))
+p1<- p1+annotation_custom(e, xmin=0.2, xmax=2.1, ymin=3.33, ymax=5.23)+
+annotation_custom(e, xmin=1.2, xmax=3.1, ymin=-0.305, ymax=1.605)+
+annotation_custom(e, xmin=2.2, xmax=4.1, ymin= 1.025, ymax=2.925)+
+annotation_custom(e, xmin=3.2, xmax=5.1, ymin= 0.327, ymax=2.227)+
+annotation_custom(e, xmin=4.2, xmax=6.1, ymin= 3.078, ymax=4.978)+
+annotation_custom(e, xmin=5.2, xmax=7.1, ymin= 5.072, ymax=6.907)+
+annotation_custom(p, xmin=-0.115, xmax=1.735, ymin= 0.504, ymax=2.404)+
+annotation_custom(p, xmin=0.885, xmax=2.735, ymin= -2.776, ymax=-0.876)+
+annotation_custom(p, xmin=1.885, xmax=3.735, ymin= 2.672, ymax=4.572)+
+annotation_custom(p, xmin=2.885, xmax=4.735, ymin= 1.445, ymax=3.345)+
+annotation_custom(p, xmin=3.885, xmax=5.735, ymin= 2.756, ymax=4.656)+
+annotation_custom(p, xmin=4.885, xmax=6.735, ymin= 13.213, ymax=15.113)
+p1
+
+png(filename="Figure3_1000.png",  units="in", width=12, height=8, pointsize=12, res=1000)
+
 print(p1)
+
+dev.off()
+
+
+print(p1)
+
+
 
 ((10^msAICc[,1:5])-1)*100
 
