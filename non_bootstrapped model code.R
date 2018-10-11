@@ -37,13 +37,13 @@ nrow(dfd)
 
 df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine"
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-            & ( Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
+            & ( Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
 nrow(df2)
 
-df2<-subset(dfd, !is.na(Estimate) &length_time >=5& System!="Marine"
-            &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-            & ( Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
-nrow(df2)
+# df2<-subset(dfd, !is.na(Estimate) &length_time >=5& System!="Marine"
+#             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
+#             & ( Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
+# nrow(df2)
 
 
 df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
@@ -173,6 +173,8 @@ source("rsquaredglmm.R")
   mav<-model.avg(msAICc, subset =  cumsum(weight) <= .95)
 
   mav_aic6<-model.avg(msAICc, subset =  delta < 6)
+  
+  #mav<-mav_aic6
   
   smav<-summary(mav)
   
@@ -383,6 +385,8 @@ var_imp<-summary(model.avg(msAICc))
 mav<-model.avg(msAICc, subset =  cumsum(weight) <= .95)
 
 mav_aic6<-model.avg(msAICc, subset =  delta < 6)
+
+#mav<-mav_aic6
 
 smav<-summary(mav)
 
