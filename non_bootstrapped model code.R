@@ -52,7 +52,7 @@ df2$Protected_status[df2$Protected_status == "No (large survey area)"] <- "No"
 table(df2$Class)
 
 
-df2[is.na(df2$lambda_mean),]$lambda_mean<-0f
+df2[is.na(df2$lambda_mean),]$lambda_mean<-0
 
 # # #mammals
 # diet<-read.csv("mammaldiet.csv")
