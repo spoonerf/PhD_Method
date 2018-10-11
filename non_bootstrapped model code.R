@@ -37,25 +37,22 @@ nrow(dfd)
 
 df2<-subset(dfd, !is.na(Estimate)  & r_sq >= 0.4999999 &length_time >=5& System!="Marine"
             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
-            & (Class=="Aves" |Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
+            & ( Class=="Aves") & Protected_status != "Unknown"  & Protected_status != "Both")
 nrow(df2)
 
-
-
-# 
 # df2<-subset(dfd, !is.na(Estimate) &length_time >=5& System!="Marine"
 #             &Specific_location == 1 &!is.na(both_change) & !is.na(Log_Body_Mass_g)
 #             & ( Class=="Mammalia") & Protected_status != "Unknown"  & Protected_status != "Both")
 # nrow(df2)
-# 
-# 
-# df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
-# df2$Protected_status[df2$Protected_status == "No (large survey area)"] <- "No"
-# 
-# table(df2$Class)
 
 
-df2[is.na(df2$lambda_mean),]$lambda_mean<-0
+df2$Protected_status[df2$Protected_status == "No (area surrounding PA)"] <- "No"
+df2$Protected_status[df2$Protected_status == "No (large survey area)"] <- "No"
+
+table(df2$Class)
+
+
+df2[is.na(df2$lambda_mean),]$lambda_mean<-0f
 
 # # #mammals
 # diet<-read.csv("mammaldiet.csv")
@@ -98,8 +95,6 @@ dt<-data.table(sp_df_scale)
 length(unique(dt$loc_id))
 
 nrow(dt)
-
-#write.csv(dt, "Populations_for_GCB_fig.csv")
 
 #write.csv(dt, "GCB_Data.csv")
 
@@ -178,6 +173,8 @@ source("rsquaredglmm.R")
   mav<-model.avg(msAICc, subset =  cumsum(weight) <= .95)
 
   mav_aic6<-model.avg(msAICc, subset =  delta < 6)
+  
+  #mav<-mav_aic6
   
   smav<-summary(mav)
   
@@ -389,6 +386,8 @@ mav<-model.avg(msAICc, subset =  cumsum(weight) <= .95)
 
 mav_aic6<-model.avg(msAICc, subset =  delta < 6)
 
+#mav<-mav_aic6
+
 smav<-summary(mav)
 
 coef_av<-smav$coefmat.subset[,"Estimate"]
@@ -499,48 +498,44 @@ p<-rasterGrob(pel, interpolate = FALSE)
 # coef_old<-coef_both
 
 library(ggplot2)
-library(gridGraphics)
-
-p1<-ggplot(coef_both, aes(colour=Class))
+p1<-ggplot(coef_both6, aes(colour=Class))
 p1<- p1 + geom_linerange(aes(x=Var_name, ymin=lowCI, ymax=highCI), lwd=2.5, position = position_dodge(width=2/3))
-p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
-p1<- p1 +theme_bw() + scale_y_continuous(breaks=seq(-10, 14, 4), limits=(c(-10,15)))
-p1<-p1 + labs(y = "Average annual rate of population change (%)", x = "")
-p1<- p1 + theme(legend.position="none", axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")), axis.text.x  = element_text(face = "bold", size=16, colour = "black"), axis.text.y = element_text(face = "bold", size=16, colour = "black"), axis.title.y = element_text(face = "bold", size=16))
+p1<- p1 + geom_pointrange(aes(x= Var_name, y=coef_av6, ymin=lowCI, ymax=highCI), lwd=2, position=position_dodge(width=2/3), shape=21, fill="White")
+p1<- p1 + scale_y_continuous(breaks=seq(-10, 14, 4), limits=(c(-10,15)))
+p1<-p1 + theme_bw() + labs(y = "Population Change (%)", x = "")
+p1<- p1 + theme(legend.position="none",text=element_text(size=20),axis.text.x=element_text(size=20) , axis.title.x = element_text(margin = unit(c(5, 0, 0, 0), "mm")))
 p1<- p1 + scale_color_manual(values=c("black", "black"))
-p1<-p1 + theme_bw(axis.text.x  = element_text(face = "bold", size=16), axis.text.y = element_text(face = "bold", size=16, colour = "black"), axis.title.y = element_text(face = "bold", size=16, colour = "black")) 
+p1<-p1 + theme_bw() 
 p1<-p1+theme(panel.border = element_blank(), panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 p1<- p1+ geom_hline(yintercept = 0, linetype=2)
 p1<- p1+ geom_vline(xintercept = 1.5, linetype=2)
+
 p1<-p1+ scale_x_discrete(labels=c("aIntercept" ="Intercept", "bMTC" ="Rate of climate \nwarming \n(RCW)",  "cLUC" = "Rate of \nconversion to \nanthropogenic \nland use \n(RCA)", "dMTC*LUC"= "RCW:RCA", "eBM"= "Body mass", "Protected_statusYes" = "Inside protected \narea"))
 p1<- p1+annotation_custom(e, xmin=0.2, xmax=2.1, ymin=3.33, ymax=5.23)+
-  annotation_custom(e, xmin=1.2, xmax=3.1, ymin=-0.305, ymax=1.605)+
-  annotation_custom(e, xmin=2.2, xmax=4.1, ymin= 1.025, ymax=2.925)+
-  annotation_custom(e, xmin=3.2, xmax=5.1, ymin= 0.327, ymax=2.227)+
-  annotation_custom(e, xmin=4.2, xmax=6.1, ymin= 3.078, ymax=4.978)+
-  annotation_custom(e, xmin=5.2, xmax=7.1, ymin= 5.072, ymax=6.907)+
-  annotation_custom(p, xmin=-0.115, xmax=1.735, ymin= 0.504, ymax=2.404)+
-  annotation_custom(p, xmin=0.885, xmax=2.735, ymin= -2.776, ymax=-0.876)+
-  annotation_custom(p, xmin=1.885, xmax=3.735, ymin= 2.672, ymax=4.572)+
-  annotation_custom(p, xmin=2.885, xmax=4.735, ymin= 1.445, ymax=3.345)+
-  annotation_custom(p, xmin=3.885, xmax=5.735, ymin= 2.756, ymax=4.656)+
-  annotation_custom(p, xmin=4.885, xmax=6.735, ymin= 13.213, ymax=15.113)
+annotation_custom(e, xmin=1.2, xmax=3.1, ymin=-0.305, ymax=1.605)+
+annotation_custom(e, xmin=2.2, xmax=4.1, ymin= 1.025, ymax=2.925)+
+annotation_custom(e, xmin=3.2, xmax=5.1, ymin= 0.327, ymax=2.227)+
+annotation_custom(e, xmin=4.2, xmax=6.1, ymin= 3.078, ymax=4.978)+
+annotation_custom(e, xmin=5.2, xmax=7.1, ymin= 5.072, ymax=6.907)+
+annotation_custom(p, xmin=-0.115, xmax=1.735, ymin= 0.504, ymax=2.404)+
+annotation_custom(p, xmin=0.885, xmax=2.735, ymin= -2.776, ymax=-0.876)+
+annotation_custom(p, xmin=1.885, xmax=3.735, ymin= 2.672, ymax=4.572)+
+annotation_custom(p, xmin=2.885, xmax=4.735, ymin= 1.445, ymax=3.345)+
+annotation_custom(p, xmin=3.885, xmax=5.735, ymin= 2.756, ymax=4.656)+
+annotation_custom(p, xmin=4.885, xmax=6.735, ymin= 13.213, ymax=15.113)
 p1
 
-png(filename="Figure3_1000.png", 
-    units="in", 
-    width=12, 
-    height=8, 
-    pointsize=12, 
-    res=1000)
+png(filename="Figure3_1000.png",  units="in", width=12, height=8, pointsize=12, res=1000)
+
 print(p1)
 
 dev.off()
 
 
-
 print(p1)
+
+
 
 ((10^msAICc[,1:5])-1)*100
 

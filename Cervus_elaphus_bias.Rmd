@@ -687,7 +687,7 @@ colnames(pops)<-c("ID", 1950:2005)
 pyrs<-pyr[,c("ID","Longitude","Latitude")]
 xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
 
-sdm_lpi<-extract(sdm_stack, xy_lpi)
+sdm_lpi<-extract(sdm_stack, xy_lpi, buffer = 50000, fun = mean)
 colnames(sdm_lpi)<-1950:2005
 sdm_lpi_melt<-melt(sdm_lpi)
 colnames(sdm_lpi_melt)<-c("ID", "Year", "HSI")
@@ -729,19 +729,49 @@ Adding in the LPI data
 
 colnames(pops)[2:ncol(pops)]<-1950:2005
 melt_lpi<-data.table:::melt(pops, id.vars = "ID")
-colnames(melt_lpi)<-c("ID", "Year","HSI")
+colnames(melt_lpi)<-c("ID", "Year","Abundance")
 melt_lpi$Year<-as.numeric(as.character(melt_lpi$Year))
-melt_lpi$HSI<-as.numeric(melt_lpi$HSI)
+melt_lpi$Abundance<-as.numeric(melt_lpi$Abundance)
 
 
 
-ggplot(data = melt_lpi, aes(x = Year, y= HSI, group=ID))+
+ggplot(data = melt_lpi, aes(x = Year, y= Abundance, group=ID))+
   geom_line()+
   geom_smooth()+
   facet_grid(.~ID)
 
 ```
 
+```{r}
+
+sdm_lpi_both<-join(melt_lpi, sdm_lpi_melt)
+
+m1<-rq(Abundance~HSI, tau = 0.97, data = sdm_lpi_both)
+
+summary(m1)
+
+r1 <- resid(m1)
+c1 <- coef(m1)
+
+plot( sdm_lpi_both$HSI, log10(sdm_lpi_both$Abundance+1), ylab = "Log10(Abundance + 1)", xlab = "Habitat Suitability", main = "Red Deer")
+abline(rq(log10(sdm_lpi_both$Abundance+1) ~ sdm_lpi_both$HSI, tau = 0.95), col = "blue")
+abline(rq(log10(sdm_lpi_both$Abundance+1) ~ sdm_lpi_both$HSI, tau = 0.5), col = "red")
+
+
+
+sdm_lpi_both_cc<-sdm_lpi_both[complete.cases(sdm_lpi_both),]
+fitOs.lqmm <- lqmm(log10(Abundance+1) ~ HSI, random = ~ ID, group = ID ,tau = 0.95, data = sdm_lpi_both_cc)
+fitOi.lqmm <- lqmm(log10(Abundance+1) ~ HSI, random = ~ 1, group = ID ,tau = 0.5, data = sdm_lpi_both_cc)
+
+AIC(fitOs.lqmm)
+AIC(fitOi.lqmm)
+
+library(lme4)
+ 
+m1m<-lmer(log10(Abundance+1)~ HSI +(1|ID), data = sdm_lpi_both_cc)
+
+plot( sdm_lpi_both_cc$HSI,fitted.values(m1m))
+```
 
 ```{r}
 #gam non logged abundances
@@ -1115,6 +1145,27 @@ all_year_ab<-join(fill, gam_r, type="right")
 
 all_year_ab$ID<-as.numeric(as.character(all_year_ab$ID))
 
+```
+```{r}
+
+sdm_lambda_both<-join(all_year_ab, sdm_lpi_melt)
+
+m1<-rq(Lambdas~HSI, tau = 0.97, data = sdm_lambda_both)
+
+summary(m1)
+
+r1 <- resid(m1)
+c1 <- coef(m1)
+
+plot( sdm_lambda_both$HSI, sdm_lambda_both$Lambdas, main = "Red Deer", ylab="Lambda", xlab = "Habitat Suitability")
+abline(rq(sdm_lambda_both$Lambdas ~ sdm_lambda_both$HSI, tau = 0.95), col = "blue")
+abline(rq(sdm_lambda_both$Lambdas ~ sdm_lambda_both$HSI, tau = 0.5), col = "red")
+
+sdm_lambda_both_cc<-sdm_lambda_both[complete.cases(sdm_lambda_both),]
+ 
+mlm<-lmer(Lambdas~ HSI +(1|ID), data = sdm_lambda_both_cc)
+
+plot( sdm_lambda_both_cc$HSI,fitted.values(mlm))
 ```
 
 
