@@ -30,7 +30,7 @@ LPI_EU2[LPI_EU2 == 'NULL'] = NA
 
 ```
 
-```{r, message = FALSE, warning = FALSE}
+```{r, message = FALSE, warning = FALSE, eval=FALSE}
 library(taRifx)
 library(mgcv)
 library(zoo)
@@ -96,7 +96,7 @@ all_df_list <- lapply(unique(LPI_EU2$ID), doFit)
 
 ```
 
-```{r}
+```{r, eval =FALSE}
 all_matrix <- matrix(unlist(all_df_list, use.names =FALSE), ncol=9, byrow=TRUE)
 all_df <- data.frame(all_matrix)
 colnames(all_df) <- c("ID", "points","SmoothParm", "r_sq", "model", "lambda_sum","lambda_mean", "length_time", "missing_years")
@@ -125,7 +125,7 @@ writeRaster(xmean, filename="Europe_mean_mon.grd", bandorder='BIL', overwrite=TR
 ```
 
 
-```{r}
+```{r, eval = FALSE}
 wd<-getwd()
 
 library(raster)
@@ -170,7 +170,7 @@ write.csv(all_EU_mean_data_na_omit, paste(wd,"/Chapter_Two/Europe/" ,"Mean_Temp_
 ```
 
 
-```{r}
+```{r, eval = FALSE}
 
 all_EU_mean_data_na_omit<-read.csv("Mean_Temp_E-OBS_50k_buff.csv")
 
@@ -248,7 +248,7 @@ colnames(mean_df) <- c("ID", "Term","Estimate","SE","Statistic","p.val")
 #CRUTEM
 #Global Climate Data
 
-```{r, cache=TRUE, message=FALSE, warning=FALSE}
+```{r, cache=TRUE, message=FALSE, warning=FALSE, eval = FALSE}
 library(raster)
 library(doParallel)
 library(lubridate)
@@ -256,7 +256,7 @@ library(reshape2)
 
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval = FALSE}
 CR30s<-brick("cru_ts3.23.1931.1940.tmp.dat.nc")
 CR40s<-brick("cru_ts3.23.1941.1950.tmp.dat.nc")
 CR50s<-brick("cru_ts3.23.1951.1960.tmp.dat.nc")
@@ -271,7 +271,7 @@ plot(CR50s[[11]], main="Mean Temperature, Novermber 1951")
 ```
 
 Subsetting the data to exclude fish, populations in marine systems and those without specific locations
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval = FALSE}
 
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -384,13 +384,13 @@ LPIsp2<-LPIsp2[LPIsp2$ID %in% LPIclim$ID,]
 ```
 
 
-```{r, cache=TRUE, message=FALSE, warning=FALSE}
+```{r, cache=TRUE, message=FALSE, warning=FALSE, eval = FALSE}
 library(broom)
 library(plyr)
 library(taRifx)
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval = FALSE}
 lag<-0 #number of years before start date of pop records which I want climate data from
 
 doMean = function(sp_name) {
@@ -444,7 +444,7 @@ all_df_list <- lapply(unique(LPIsp2$ID), doMean)
 
 ```
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval = FALSE}
 all_matrix <- matrix(unlist(all_df_list), ncol=7, byrow=TRUE)
 mean_df <- data.frame(all_matrix)
 colnames(mean_df) <- c("ID", "Sum_Mean_Change","Term","Estimate","SE","Statistic","p.val")
@@ -458,7 +458,7 @@ mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 ###Land Use - HILDA
 
 Land use - HILDA dataset from http://www.wageningenur.nl/en/Expertise-Services/Chair-groups/Environmental-Sciences/Laboratory-of-Geoinformation-Science-and-Remote-Sensing/Models/Hilda.htm
-```{r, warning=FALSE}
+```{r, warning=FALSE, eval = FALSE}
 library(maptools)
 r_1950 <-raster(readAsciiGrid("eu27ch1950.asc"))
 r_1960 <-raster(readAsciiGrid("eu27ch1960.asc"))
@@ -482,7 +482,7 @@ proj4string(r) <- crs.geo
 
 ```
 
-```{r, warning =FALSE}
+```{r, warning =FALSE, eval = FALSE}
 library(rgdal)
 
 xy<-cbind(LPI_EU$Longitude, LPI_EU$Latitude)
@@ -525,7 +525,7 @@ grid_crop2<-subset(grid_crop2, Specific_location ==1)
 
 ```
 
-```{r}
+```{r, eval = FALSE}
 
 result <- data.frame() #empty result dataframe
 library(taRifx)
@@ -595,7 +595,7 @@ LPI_LUC<-merge(LPI_EU_sel, result[,c(1,3)], by="ID",all = TRUE)
 
 Calculating land use change
 
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, eval = FALSE}
 #install.packages("devtools")
 library(devtools)
 #install_github("timnewbold/GISOperations")
@@ -640,8 +640,10 @@ for (map in rlist){
   writeRaster(map_pcnt_r, paste(names(map),"raster.tif", sep="_"),overwrite=TRUE)
   #print(names(map))
 }
+```
 
 
+```{r}
 crop_s<-stack(list.files(path = getwd(), pattern = "^.*crop*.*.tif$"))
 gras_s<-stack(list.files(path = getwd(), pattern = "^.*gras*.*.tif$"))
 
@@ -659,7 +661,7 @@ plot(anth_2005 - anth_1940, main="Change in Cropland and Pasture Land Use 1940 -
 ```
 
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, eval = FALSE}
 ###########LPI data
 
 LPI_LUC<-read.csv("LPI_pops_20160523_edited.csv")
@@ -668,8 +670,10 @@ LPI_pop<-subset(LPI_LUC, Specific_location==1 & System !="Marine" & Class != "Ac
 
 ID<-LPI_pop$ID
 pop_data<- LPI_pop[,c(1,65:130)]
+##for 1992
+#pop_data<-LPI_pop[,c(1,107:120)]
 
-pop_datab <- (pop_data [,2:67] !="NULL")
+pop_datab <- (pop_data [,2:ncol(pop_data)] !="NULL")
 points_per_pop1950_2012 = rowSums(pop_datab)
 length_id <- data.frame(ID,points_per_pop1950_2012)
 
@@ -716,8 +720,10 @@ for (i in 1:length(grid_crop2$ID)){
   
   ID<-grid_crop2[i,1]
   Binomial<-as.character(grid_crop2[i,6])
-  spid = grid_crop2[i,69:134]                     #subsetting only the dates
-  colnames(spid)<-1950:2015
+  #spid = grid_crop2[i,69:134]                     #subsetting only the dates
+  #colnames(spid)<-1950:2015
+  spid = grid_crop2[i,111:124]                     #subsetting only the dates
+  colnames(spid)<-1992:2005
   
   Date<-as.numeric(colnames(spid))
   spidt<-destring(t(spid))
@@ -780,6 +786,8 @@ for (i in 1:length(grid_crop2$ID)){
 }
 
 #write.csv(result, "Hyde_crop_pasture_annual_change_sum.csv")
+
+write.csv(result, "Hyde_crop_pasture_annual_change_sum_1992.csv")
 
 ```
 
@@ -861,7 +869,7 @@ writeRaster(c4per_cr, "c4per_1940.tif")
 writeRaster(c3nfx_cr, "cnfx_1940.tif")
 ```
 
-```{r}
+```{r, eval = FALSE}
 primf<-brick("primf_1940.tif")
 primn<-brick("primn_1940.tif")
 secdf<-brick("secdf_1940.tif")
@@ -877,7 +885,7 @@ c3nfx<-brick("cnfx_1940.tif")
 ```
 
 
-```{r}
+```{r, eval = FALSE}
 LPI<-read.csv("LPI_pops_20160523_edited.csv")
 
 LPIsp<-subset(LPI, Specific_location==1 & System !="Marine" & Class != "Actinopterygii"& Class != "Cephalaspidomorphi" )
@@ -940,7 +948,7 @@ for (layer in layers){
 ```
 
 
-```{r}
+```{r, eval = FALSE}
 
 library(dplyr)
 a<-read.csv("D:/Fiona/Git_Method/Git_Method/LUH_extract_all_layers.csv")
@@ -962,7 +970,7 @@ an_group<-an %>%
 		summarise(sum_land = sum(value))
 ```
 
-```{r}
+```{r, eval = FALSE}
 colnames(LPI_ID)<-c("ID", "lon", "lat")
 
 LPILU<-merge(LPI_ID,an_group, by=c("lon", "lat"))
@@ -1017,7 +1025,7 @@ colnames(mean_df) <- c("ID", "Nat_change")
 
 #ESA
 
-```{r}
+```{r, eval = FALSE}
 library(raster)
 library(rgdal)
 
@@ -1148,6 +1156,9 @@ wd<-getwd()
 
 ```
 
+
+#Start running from here
+
 #over the 1950-2005
 ```{r}
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
@@ -1194,7 +1205,7 @@ colnames(pop_esa)<-c("ID", "r_sq_esa", "lambda_mean_esa", "length_time_esa")
 
 glob_clim_esa<-read.csv("All_LPI_nobuff_1931_mean_temp_sum_change_1992_onwards.csv")
 glob_clim_esa<-glob_clim_esa[,c(2,5)]
-colnames(glob_clim)[2]<-"CRUTEM_Estimate_ESA"
+colnames(glob_clim_esa)[2]<-"CRUTEM_Estimate_ESA"
 
 luc_esa<-read.csv("LUC_average_mean_anth_change_ESA_2017_06_27.csv")
 luc_esa<-luc_esa[,c(2,3)]
@@ -1218,19 +1229,23 @@ df_global<-join_all(list(pop,glob_clim,luc_hyde,luc_luh,bm[,2:3]),by='ID',type='
 
 df<-join(df_global, lpi, by="ID", type="left")
 
+
+df_esa<-join_all(list(pop_esa, glob_clim_esa,luc_esa,bm[,2:3]),by='ID',type='left')
+
+df_esa<-join(df_esa, lpi, by="ID", type="left")
+
 #eu_clim,luc_hilda,pop_esa,glob_clim_esa,luc_esa
 
 ```
 
 #Europe
 ```{r}
-df_eu<-subset(df, !is.na(lambda_mean)& !is.na(EOBS_Estimate) & !is.na(CRUTEM_Estimate_ESA) & !is.na(HILDA_change) & !is.na(HYDE_change)& !is.na(LUH_change)& !is.na(Binomial) & length_time >= 5 & (Class=="Aves" | Class == "Mammalia" ) & Specific_location ==1)#& r_sq >0.5)
+df_esa<-subset(df_esa, !is.na(lambda_mean_esa)& !is.na(CRUTEM_Estimate_ESA) & !is.na(ESA_change) & !is.na(Binomial) & length_time_esa >= 5 & Protected_status != "Unknown"  & Protected_status != "Both" & (Class=="Aves" | Class == "Mammalia" ) & Specific_location ==1& r_sq_esa >=0.499999 & !is.na(Log_Body_Mass_g))
 
-# df_eu$Protected_status[df_eu$Protected_status == "No (area surrounding PA)"] <- "No"
-# df_eu$Protected_status[df_eu$Protected_status == "No (large survey area)"] <- "No"
+df_esa$Protected_status[df_esa$Protected_status == "No (area surrounding PA)"] <- "No"
+df_esa$Protected_status[df_esa$Protected_status == "No (large survey area)"] <- "No"
 
-
-nrow(df_eu)
+nrow(df_esa)
 
 ```
 
@@ -1253,49 +1268,65 @@ nrow(df_glb)
 library(data.table)
 library(plyr)
 
-sp_dups<-data.frame(ddply(df_glb,.(Longitude,Latitude),nrow))
+dt<-df_esa
+
+
+sp_dups<-data.frame(ddply(dt,.(Longitude,Latitude),nrow))
 sp_dups$loc_id<-1:length(sp_dups$Longitude)
-df_glb<-merge(sp_dups, df_glb, by=c("Longitude","Latitude"))
+dt<-merge(sp_dups, dt, by=c("Longitude","Latitude"))
 
 
-parm_df<-df_glb[,c("ID", "CRUTEM_Estimate","HYDE_change", "LUH_change","Log_Body_Mass_g")]  ##ID, land use, and climate
+##THESE NEED CHANGING
+#1950
+#parm_df<-dt[,c("ID", "CRUTEM_Estimate","HYDE_change", "LUH_change","Log_Body_Mass_g")]  ##ID, land use, and climate
+
+#1992
+parm_df<-dt[,c("ID", "CRUTEM_Estimate_ESA","ESA_change","Log_Body_Mass_g")]  ##ID, land use, and climate
 
 parm_mat<-as.matrix(parm_df)
-parm_scale_m<-scale(parm_mat[,c( "CRUTEM_Estimate" ,"HYDE_change", "LUH_change","Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+
+#1950
+#parm_scale_m<-scale(parm_mat[,c( "CRUTEM_Estimate" ,"HYDE_change", "LUH_change","Log_Body_Mass_g")])       #use the scaling factors at the bottom of these to scale the rasters
+
+#1 992
+parm_scale_m<-scale(parm_mat[,c( "CRUTEM_Estimate_ESA" ,"ESA_change", "Log_Body_Mass_g")])       #use the scaling 
 
 parm_id<-parm_mat[,"ID"]
 
 parm_df_scale<-data.frame(parm_id,parm_scale_m)
 
-colnames(parm_df_scale)<-c("ID","CRUTEM_scale","HYDE_scale","LUH_scale","Log_Body_Mass_g_scale" )
+#1950
+#colnames(parm_df_scale)<-c("ID","CRUTEM_scale","HYDE_scale","LUH_scale","Log_Body_Mass_g_scale" )
+#1992
+colnames(parm_df_scale)<-c("ID","CRUTEM_scale","ESA_scale","Log_Body_Mass_g_scale" )
 
-sp_df_scale<-merge(df_glb, parm_df_scale, by="ID")
+sp_df_scale<-merge(dt, parm_df_scale, by="ID")
 
-dt_glb<-data.table(sp_df_scale)
-
-
-dt_eu<-dt_glb[dt_glb$ID %in% df_eu$ID,]
+dt<-data.table(sp_df_scale)
 
 
-dt_glb$Binomial<-as.character(dt_glb$Binomial)
-dt_eu$Binomial<-as.character(dt_eu$Binomial)
+#dt_eu<-dt_glb[dt_glb$ID %in% df_eu$ID,]
 
-dt_glb$Class<-as.character(dt_glb$Class)
-dt_eu$Class<-as.character(dt_eu$Class)
 
-dt_glb$Protected_status<-as.character(dt_glb$Protected_status)
-dt_eu$Protected_status<-as.character(dt_eu$Protected_status)
+dt$Binomial<-as.character(dt$Binomial)
+#dt_eu$Binomial<-as.character(dt_eu$Binomial)
+
+dt$Class<-as.character(dt$Class)
+#dt_eu$Class<-as.character(dt_eu$Class)
+
+dt$Protected_status<-as.character(dt$Protected_status)
+#dt_eu$Protected_status<-as.character(dt_eu$Protected_status)
 
 
 ```
 
 EU loop
 ```{r}
-climate<-c("EOBS_scale", "CRUTEM_scale")
-lu<-c("HILDA_scale", "HYDE_scale", "LUH_scale")
+climate<-c("CRUTEM_Estimate_ESA")
+lu<-c("ESA_change")
 class<-c("Aves", "Mammalia")
-loop_grid_eu<-expand.grid(climate, lu, class)
-colnames(loop_grid_eu)<-c("climate", "lu", "class")
+loop_grid_esa<-expand.grid(climate, lu, class)
+colnames(loop_grid_esa)<-c("climate", "lu", "class")
 
 ```
 
@@ -1304,8 +1335,8 @@ glob loop
 climate<-c( "CRUTEM_scale")
 lu<-c("HYDE_scale", "LUH_scale")
 class<-c("Aves", "Mammalia")
-loop_grid<-expand.grid(climate, lu, class)
-colnames(loop_grid)<-c("climate", "lu", "class")
+loop_grid_glob<-expand.grid(climate, lu, class)
+colnames(loop_grid_glob)<-c("climate", "lu", "class")
 
 ```
 
@@ -1320,13 +1351,16 @@ source("rsquaredglmm.R")
 
 coef_bind<-data.frame()
 
+
+loop_grid<-loop_grid_esa
+
 for (i in 1:nrow(loop_grid)){
   print(i)
   sel_clim<-as.character(loop_grid$climate[i])
   sel_lu<-as.character(loop_grid$lu[i])
   class<-as.character(loop_grid$class[i])
-  df_sel<-cbind(dt_glb$lambda_mean,dt_glb$loc_id,dt_glb$Binomial, dt_glb$Log_Body_Mass_g_scale,dt_glb$Class, dt_glb$Protected_status)
-  df_sel2<-subset(dt_glb, select=c(sel_clim,sel_lu))
+  df_sel<-cbind(dt$lambda_mean,dt$loc_id,dt$Binomial, dt$Log_Body_Mass_g_scale,dt$Class, dt$Protected_status)
+  df_sel2<-subset(dt, select=c(sel_clim,sel_lu))
   df_sel<-cbind(df_sel, df_sel2)
 
   colnames(df_sel)<-c("lambda_mean","loc_id", "Binomial", "body_mass_scale", "Class","Protected_status","mean_slope_scale","change_rate_scale")
@@ -1400,11 +1434,6 @@ for (i in 1:nrow(loop_grid)){
   
 }
 ```
-
-
-
-
-
 
 
 
