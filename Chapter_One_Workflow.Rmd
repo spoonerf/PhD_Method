@@ -1,4 +1,4 @@
----
+f---
 title: "Chapter One Workflow"
 author: "Fiona Spooner"
 date: "19 October 2017"
@@ -330,6 +330,7 @@ mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 #write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")#to go with hyde
 
 ```
+
 
 Calculating land use change
 
