@@ -115,6 +115,16 @@ library(mgcv)
 
 pops<-sp_lpi[,c(1,65:120)]
 
+pops_melt<-melt(pops, id = "ID")
+pops_melt$variable<-rep(1950:2005, each = length(unique(pops$ID)))
+
+colnames(pops_melt)<-c("sp_lpi.ID","year", "obs_abundance")
+
+abun_pred_obs<-merge(pops_melt, melt_df)
+
+
+plot(abun_pred_obs$obs_abundance, abun_pred_obs$value)
+
 pop_counts<-sp_lpi[,c(65:120)]
 pop_counts <- (pop_counts !="NULL")
 points_per_pop1950_2005 = rowSums(pop_counts)
@@ -205,6 +215,8 @@ melt_lambda_short$ID<-as.numeric(as.character(melt_lambda_short$ID))
 melt_lambda_short<-melt_lambda_short[melt_lambda_short$ID %in% all_year_ab$ID,]
 
 
+
+
 ggplot()+
   geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD)), colour = "black", se=FALSE)+
   geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red")+
@@ -220,9 +232,13 @@ smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_y
 ####need to match the years up 
 #rmse(smooth_vals_pred, smooth_vals_obs)
 
+both_lambdas<-merge(melt_lambda_short, all_year_ab, by = c("Year", "ID"))
 
-
+colnames(both_lambdas)[5:6]<-c("Lambdas_pred", "Lambdas_obs")
 ###sdm trends
+
+plot(both_lambdas$Lambdas_obs, both_lambdas$Lambdas_pred)
+
 
 sdm_folder<-paste(wd, "/Legion/snow_cervus_bias/Cervus_elaphus/SDM_folder", sep="")
 
