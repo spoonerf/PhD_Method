@@ -24,6 +24,7 @@ py_chamois<-stack(paste(wd,"/Rupicapra_pyrenaica_bias/SDM_folder_bias/", files, 
 roe_deer<-stack(paste(wd,"/Capreolus_capreolus_bias/SDM_folder_bias/", files, sep=""))
 equus<-stack(paste(wd,"/Equus_quagga_bias/SDM_folder_bias/", files, sep=""))
 
+
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
 cervus_lpi<-lpi[lpi$Binomial == "Cervus_elaphus" & lpi$Specific_location == 1 & lpi$Region == "Europe", ]
