@@ -1,15 +1,13 @@
 
 
-
 #There are some NAs in rep_id - not sure why..... find out!
 #need to take out the population trends which crashed out and make a note of which ones these were
 #need to talk to damaris about optimising the matrix
 
 library(reshape2)
 library(sp)
-
-lpi<-read.csv("LPI_pops_20160523_edited.csv")
 wd<-getwd()
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
 spin_years<-1940:1949
 years<-1950:2005
@@ -20,7 +18,6 @@ binomial = "Ursus_arctos"
 
 demoniche_folder<-paste(wd, "/Legion/snow_bear_bias_faster/output", sep="")
 #demoniche_folder<-paste(wd, "/Legion/snow_cervus_test/output_test", sep="")
-
 l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
 
@@ -32,6 +29,7 @@ highfoldernames<-list.files(demoniche_folder)
 foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
 
 sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1 & lpi$Region == "North America",]
+
 
 xy<-data.frame(sp_lpi$Longitude, sp_lpi$Latitude)
 coordinates(xy)<-c("sp_lpi.Longitude", "sp_lpi.Latitude")
@@ -94,7 +92,6 @@ melt_short<-melt_df[melt_df$year>spin_years[length(spin_years)] ,]
 melt_short$sp_lpi.ID<-as.factor(melt_short$sp_lpi.ID)
 
 
-
 library(ggplot2)
 ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD), colour= sp_lpi.ID))+
   #geom_line()+
@@ -149,6 +146,7 @@ library(taRifx)
 library(plyr)
 library(mgcv)
 library(zoo)
+
 
 pops<-sp_lpi[,c(1,65:120)]
 
@@ -249,6 +247,7 @@ ggplot()+
   facet_grid(.~ID)
 
 
+
  smooth_vals_pred = predict(loess(Lambdas~Year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[1],]), melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[1]])
 
 smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[1],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[1]])
@@ -259,6 +258,7 @@ smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_y
 
 
 ###sdm trends
+
 species_directory<-paste(wd, "/",binomial, "_bias", sep="")
 sdm_folder<-paste(species_directory, "SDM_folder_bias", sep = "/")
 
@@ -315,17 +315,12 @@ df_out<-lapply(sdl, sdm_smooth)
 sdm_lambdas_melt<-do.call( "rbind", df_out)
 
 
-ggplot(data = sdm_lambdas_melt, aes(x = Year, y= HSI_Lambdas, group=ID))+
-  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "loess")+    #real
-  geom_smooth()+
-  facet_grid(.~ID,labeller=label_both)#sdm trend
 
 #with loess
 ggplot()+
-  geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD, rep_id), SE = FALSE), colour = "black", fill="grey", method = "loess")+   #demoniche
+  geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD)), colour = "black", fill="grey", method = "loess")+   #demoniche
   geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "loess")+    #real
   geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI_Lambdas, group=ID), colour = "blue", fill="light blue",method = "loess")+   #sdm trend
-  #  geom_smooth(data = annual_mean_temp, aes(x = Year, y = predicted_lambdas, group=ID), colour = "green")+
   facet_grid(.~ID,labeller=label_both)
 
 
@@ -334,7 +329,6 @@ ggplot()+
   geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD)), colour = "black", fill="grey", method = "gam", formula = y ~ s(x, bs = "cs", k = -1))+   #demoniche
   geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", fill="lightcoral",method = "gam", formula = y ~ s(x, bs = "cs", k =-1))+    #real
   geom_smooth(data = sdm_lambdas_melt, aes(x = Year, y= HSI_Lambdas, group=ID), colour = "blue", fill="light blue",method = "gam", formula = y ~ s(x, bs = "cs", k = -1))+   #sdm trend
-  #  geom_smooth(data = annual_mean_temp, aes(x = Year, y = predicted_lambdas, group=ID), colour = "green",method = "gam", formula = y ~ s(x, bs = "cs", k = -1))+
   facet_grid(.~ID,labeller=label_both)
 
 
@@ -342,7 +336,6 @@ ggplot()+
 
 
 library(Metrics)
-
 
 vg<-expand.grid(unique(melt_lambda_short$ID), unique(melt_lambda_short$ldd), unique(melt_lambda_short$SD), unique(melt_lambda_short$rep_id))
 colnames(vg)<-c("ID", "ldd", "SD", "rep_id")
@@ -362,7 +355,7 @@ rmse_get_sdm<-function(x){
     # smooth_vals_cnd = predict(cnd_gam,newdata = cnd_x)
     # smooth_vals_obs = predict(obs_gam,newdata = obs_x)
     # smooth_vals_sdm = predict(sdm_gam,newdata = sdm_x)    
-    
+
     start_cnd<-which(unique(cnd_x$Year) == min(obs_x$Year))
     end_cnd<-which(unique(cnd_x$Year) == max(obs_x$Year))
     
@@ -390,26 +383,15 @@ rmse_out<-do.call( "rbind", rmse_scores)
 
 rmse_out$diff<-rmse_out$cnd - rmse_out$sdm
 
+
 #write.csv(rmse_out, "rmse_out.csv")
 
 hist(rmse_out$diff, main = "RMSE difference between CND and SDM")
 
 
 
+
 ccf_get<-function(x){
-  # 
-  # cnd_gam = gam(value~s(year, bs="cs"),data = melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x],])
-  # obs_gam = gam(Lambdas~s(Year, bs="cs"),data = all_year_ab[all_year_ab$ID == all_year_ab$ID[x],])
-  # sdm_gam = gam(HSI~s(Year, bs="cs"),data = sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],])
-  # 
-  # smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )
-  # smooth_vals_obs = predict(obs_gam,newdata =all_year_ab[all_year_ab$ID == all_year_ab$ID[x],] )
-  # smooth_vals_sdm = predict(sdm_gam,newdata =sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],] )    
-  # # #need to check this is okay on another dataset
-  # smooth_vals_cnd = predict(cnd_gam,newdata =melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[x] & melt_lambda_short$rep_id==1,] )    
-  # smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[x],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[x]])
-  # smooth_vals_sdm = predict(loess(HSI~Year,sdm_lambdas_melt[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x],]), sdm_lambdas_melt$Year[sdm_lambdas_melt$ID == sdm_lambdas_melt$ID[x]])
-  # 
   cnd_x<-melt_lambda_short[melt_lambda_short$ID == vg[x,1]& melt_lambda_short$ldd == vg[x,2]& melt_lambda_short$SD== vg[x,3]& melt_lambda_short$rep_id == vg[x,4],]
   obs_x<-all_year_ab[all_year_ab$ID == vg[x,1],]
   obs_x<-obs_x[obs_x$Year >= 1951,]
@@ -590,18 +572,5 @@ ggplot(ccf_melt_cndn3, aes(x=ID, y=value, group = ID))+#, colour = SD,  shape = 
   geom_jitter(alpha = 0.1)+
   labs(y = "Correlation")+
   theme_bw()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
