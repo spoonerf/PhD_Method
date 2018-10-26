@@ -144,7 +144,7 @@ CR90s<-brick("cru_ts3.23.1991.2000.tmp.dat.nc")
 CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 CR10s<-brick("cru_ts3.23.2011.2014.tmp.dat.nc")
 
-plot(CR50s[[11]], main="Mean Temperature, Novermber 1951")
+plot(CR50s[[11]], main="Mean Temperature, November 1951")
 ```
 
 Subsetting the data to exclude fish, populations in marine systems and those without specific locations
