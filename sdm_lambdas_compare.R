@@ -688,8 +688,47 @@ ggplot(ccf_max,aes(x=Binomial, y=max_value, group = Binomial, colour = Binomial)
   theme(legend.position="none")
 
 
+###sum lambdas
+
+
+sum_lambdas<-all_sdm_lambdas%>%
+  group_by(ID) %>%
+  mutate(sum_Lambdas = sum(Lambdas), sum_HSI_Lambdas = sum(HSI_Lambdas), sum_smooth_HSI_Lambdas = sum(smooth_HSI_Lambdas))%>%
+  select(ID, Binomial, sum_Lambdas, sum_HSI_Lambdas, sum_smooth_HSI_Lambdas)%>%
+  distinct()
+
+
+plot(sum_lambdas$sum_Lambdas, sum_lambdas$sum_HSI_Lambdas)
+
+plot(sum_lambdas$sum_Lambdas, sum_lambdas$sum_smooth_HSI_Lambdas)
+
+
+ggplot(sum_lambdas, aes(x = sum_HSI_Lambdas, y = sum_Lambdas, group = Binomial, colour = Binomial))+
+  geom_point()+
+  facet_wrap(.~Binomial)
+
+ggplot(sum_lambdas, aes(x = sum_smooth_HSI_Lambdas, y = sum_Lambdas, group = Binomial, colour = Binomial))+
+  geom_point()+
+  facet_wrap(.~Binomial)
+
+
+sum_lambdas$Lam_HSI<-ifelse(sum_lambdas$sum_Lambdas * sum_lambdas$sum_HSI_Lambdas >0, 1,0)
+
+sum_lambdas$Lam_sm_HSI<-ifelse(sum_lambdas$sum_Lambdas * sum_lambdas$sum_smooth_HSI_Lambdas >0, 1,0)
+
 
 #rmse 
+
+
+
+
+
+
+
+
+
+
+
 
 
 

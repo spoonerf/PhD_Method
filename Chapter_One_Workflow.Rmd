@@ -1,4 +1,4 @@
----
+f---
 title: "Chapter One Workflow"
 author: "Fiona Spooner"
 date: "19 October 2017"
@@ -144,7 +144,7 @@ CR90s<-brick("cru_ts3.23.1991.2000.tmp.dat.nc")
 CR00s<-brick("cru_ts3.23.2001.2010.tmp.dat.nc")
 CR10s<-brick("cru_ts3.23.2011.2014.tmp.dat.nc")
 
-plot(CR50s[[11]], main="Mean Temperature, Novermber 1951")
+plot(CR50s[[11]], main="Mean Temperature, November 1951")
 ```
 
 Subsetting the data to exclude fish, populations in marine systems and those without specific locations
@@ -330,6 +330,7 @@ mean_df$Estimate<-as.numeric(as.character(mean_df$Estimate))
 #write.csv(mean_df, "All_LPI_All_Years_Nobuff_1931_moreLPI_end2005.csv")#to go with hyde
 
 ```
+
 
 Calculating land use change
 
