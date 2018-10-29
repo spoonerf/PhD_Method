@@ -1,5 +1,5 @@
 
-wd<-"D:/Fiona/Git_Method/Git_Method/"
+wd<-getwd()
 
 lf<-list.files(paste(wd, "Legion/snow_cervus_bias_new/", sep=""))
 files<-lf[grepl("^hyde_weighted_ensemble_sdm_.*.tif$", lf)]
@@ -252,6 +252,8 @@ all_sp<-rbind(sdm_cervus_melt, sdm_capra_melt, sdm_ursus_melt, sdm_gulon_melt,
 
 #write.csv(all_sp, "all_species_sdm.csv")
 
+
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
 all_sp<-read.csv("all_species_sdm.csv")
 
 all_sp<-all_sp[,-1]
@@ -264,7 +266,7 @@ library(plyr)
 library(mgcv)
 library(zoo)
 
-sp_lpi<-lpi[lpi$ID%in% all_sp$ID,] 
+sp_lpi<-lpi[lpi$ID %in% all_sp$ID,] 
 
 pops<-sp_lpi[,c(1,65:120)]
 
@@ -279,7 +281,9 @@ popsm<-as.matrix(pops)
 
 gam_lpi<-function(x){
   #subsetting the population data by each population
-  spid = x[2:(length(x)-2)]                     #subsetting only the dates
+  
+  df<-pops[pops$ID == x,]
+  spid = df[2:length(df)]                     #subsetting only the dates
   names(spid)<-1950:2005              #renaming the date column names as R doesn't like numbered column names
   spid<-as.numeric(spid)
  
@@ -298,7 +302,6 @@ gam_lpi<-function(x){
   
   df<-data.frame(Year,Population)
   
-  #not sure what this does - adding a constant of 1 so that logging doesn't go weird?
   if (sum(na.omit(df$Population<1))>0) {
     df$Population<-df$Population+1
   }
@@ -338,7 +341,7 @@ gam_lpi<-function(x){
   return(ial)
 }
 
-gam_lpi_r<-apply(popsm,  1, gam_lpi)
+gam_lpi_r<-lapply(pops$ID,  gam_lpi)
 gam_r<-do.call( "rbind", gam_lpi_r)
 
 gam_r<-gam_r[gam_r$Year <=2005,]
@@ -390,13 +393,14 @@ plot(all_ab_sdm_lambdas$HSI,log10(all_ab_sdm_lambdas$Abundance+1))
 
 lmer(log10(Abundance+1)~  HSI+(1|ID)+ (1|Binomial), data = all_ab_sdm_lambdas)
 
+lmer(log10(Abundance+1)~  HSI+(1|ID), data = all_ab_sdm_lambdas)
 
 
 #####plotting trends
+library(ggplot2)
+library(dplyr)
 
-
-
-all_sdm_lambdas_new<-all_sdm_lambdas %>%
+all_sdm_lambdas<-all_sdm_lambdas %>%
   group_by(ID)%>%
   mutate(HSI_Lambdas = c(diff(log10(HSI)),NA))
 
@@ -434,11 +438,6 @@ ggplot()+
 ggplot()+
   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_arctos",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_arctos",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_maritimus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_maritimus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
   facet_grid(.~ID)
 
 ggplot()+
@@ -487,13 +486,22 @@ ggplot()+
   facet_grid(.~ID)
 
 
+#removing a zebra population which is outside of the HSM - perhaps in the sea?
+all_sdm_lambdas<-all_sdm_lambdas%>%
+  group_by(ID)%>%
+  mutate(non_na_count = sum(!is.na(HSI)))%>%
+  filter(non_na_count != 0)%>%
+  ungroup()
+
+#lost one population to the sea
+
 smooth_gam<-function(x){
   
   a<-all_sdm_lambdas[all_sdm_lambdas$ID == x,]
   a$k = floor(0.5*nrow(a)) - 1
   
   if (a$k[1] >= 3){
-    a$smooth_HSI = fitted.values(gam(HSI ~ s(Year, k = k[1]), data = a))
+    a$smooth_HSI = fitted.values(gam(HSI ~ s(Year, k = a$k[1]), data = a))
   } else {
     a$smooth_HSI =  fitted.values(lm(HSI ~ Year, data = a))
   }
@@ -515,10 +523,13 @@ all_sdm_lambdas_new<-smooth_sdm_lambdas %>%
 
 all_sdm_lambdas<-all_sdm_lambdas_new[complete.cases(all_sdm_lambdas_new),]
 
+#195 populations left - lost all the ones with data from 2005 onwards only
+
 
 #removing populations with only one record (would have had two pre-lambda-ing)
 keep_id<-all_sdm_lambdas%>%
   group_by(ID)%>%
+  #summarise(non_na_count = sum(!is.na(col_2)))%>%
   count(.) %>%
   filter(n>=5)
 
@@ -535,33 +546,35 @@ all_sdm_lambdas%>%
 ccf_get<-function(x){
 
     sdm_x<-all_sdm_lambdas[all_sdm_lambdas$ID == populations[x],]
-    sdm_ccf<-ccf(sdm_x$Lambdas,sdm_x$HSI_Lambdas, type="correlation")
-    sdm_ccf_smooth<-ccf(sdm_x$Lambdas,sdm_x$smooth_HSI_Lambdas,type="correlation")
+    sdm_ccf<-ccf(sdm_x$HSI_Lambdas,sdm_x$Lambdas, type="correlation",lag.max=5, plot = F)
+    sdm_ccf_smooth<-ccf(sdm_x$smooth_HSI_Lambdas,sdm_x$Lambdas,type="correlation")
     
-    
-    # lag_n5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -5)]
-    # lag_n4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -4)]
-    # lag_n3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -3)]
-    # lag_n2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -2)]
-    # lag_n1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -1)]
+
+    lag_n5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -5)]
+    lag_n4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -4)]
+    lag_n3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -3)]
+    lag_n2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -2)]
+    lag_n1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -1)]
     lag_0_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 0)]
-    lag_1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 1)]
-    lag_2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 2)]
-    lag_3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 3)]
-    lag_4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 4)]
-    lag_5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 5)]
+    nused<-sdm_ccf$n.used
+    # lag_1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 1)]
+    # lag_2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 2)]
+    # lag_3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 3)]
+    # lag_4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 4)]
+    # lag_5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 5)]
     
-    # sm_n5_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -5)]
-    # sm_n4_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -4)]
-    # sm_n3_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -3)]
-    # sm_n2_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -2)]
-    # sm_n1_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -1)]
+    sm_n5_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -5)]
+    sm_n4_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -4)]
+    sm_n3_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -3)]
+    sm_n2_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -2)]
+    sm_n1_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -1)]
     sm_0_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 0)]
-    sm_1_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 1)]
-    sm_2_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 2)]
-    sm_3_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 3)]
-    sm_4_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 4)]
-    sm_5_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 5)]
+    
+    # sm_1_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 1)]
+    # sm_2_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 2)]
+    # sm_3_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 3)]
+    # sm_4_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 4)]
+    # sm_5_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 5)]
     
     
     empty_check<-function(x){
@@ -575,42 +588,45 @@ ccf_get<-function(x){
     #            lag_4_sdm,lag_5_sdm,sm_n5_sdm,sm_n4_sdm,sm_n3_sdm,sm_n2_sdm,sm_n1_sdm,sm_0_sdm,sm_1_sdm,sm_2_sdm,
     #            sm_3_sdm,sm_4_sdm,sm_5_sdm)
     
-    lags<-list(lag_0_sdm, lag_1_sdm, lag_2_sdm, lag_3_sdm,lag_4_sdm,lag_5_sdm,sm_0_sdm,sm_1_sdm,sm_2_sdm,
-               sm_3_sdm,sm_4_sdm,sm_5_sdm)
+    lags<-list(lag_0_sdm, lag_n1_sdm, lag_n2_sdm, lag_n3_sdm,lag_n4_sdm,lag_n5_sdm,sm_0_sdm,sm_n1_sdm,sm_n2_sdm,
+               sm_n3_sdm,sm_n4_sdm,sm_n5_sdm)
     
     lags_out<-t(data.frame(unlist(lapply(lags, empty_check))))
    
  
-    ccf_out<-data.frame(unique(sdm_x$ID), unique(sdm_x$Binomial),lags_out)
+    ccf_out<-data.frame(unique(sdm_x$ID), unique(sdm_x$Binomial),nused,lags_out)
     # colnames(ccf_out)<-c("ID","Binomial","sdm_n5","sdm_n4","sdm_n3", "sdm_n2","sdm_n1", "sdm_0", "sdm_1","sdm_2",
     #                      "sdm_3","sdm_4","sdm_5","sm_sdm_n5","sm_sdm_n4","sm_sdm_n3", "sm_sdm_n2","sm_sdm_n1", "sm_sdm_0", "sm_sdm_1",
     #                      "sm_sdm_2","sm_sdm_3","sm_sdm_4","sm_sdm_5")
     
-    colnames(ccf_out)<-c("ID","Binomial", "sdm_0", "sdm_1","sdm_2","sdm_3","sdm_4","sdm_5","sm_sdm_0", "sm_sdm_1",
-                       "sm_sdm_2","sm_sdm_3","sm_sdm_4","sm_sdm_5")
+    colnames(ccf_out)<-c("ID","Binomial","N_used" ,"sdm_0", "sdm_n1","sdm_n2","sdm_n3","sdm_n4","sdm_n5","sm_sdm_0", "sm_sdm_n1",
+                       "sm_sdm_n2","sm_sdm_n3","sm_sdm_n4","sm_sdm_n5")
     rownames(ccf_out) <- NULL
     print(x)
     return(ccf_out)
     
 }
+#p values from max cor
+#https://stackoverflow.com/questions/38173544/how-to-calculate-p-values-from-cross-correlation-function-in-r
 
 ccf_scores<-lapply(1:length(populations), ccf_get)
 
 #ccf_all<-ccf_scores[lapply(ccf_scores,length)>0] 
 
 ccf_df<-do.call( "rbind",ccf_scores)
-colnames(ccf_df)<-c("ID","Binomial" ,"sdm lag -5", "sdm lag -4", "sdm lag -3", "sdm lag -2","sdm lag -1",
-                    "sdm lag 0", "sdm lag 1", "sdm lag 2", "sdm lag 3", "sdm lag 4", "sdm lag 5","sm lag -5",
-                    "sm lag -4", "sm lag -3", "sm lag -2","sm lag -1", "sm lag 0", "sm lag 1", "sm lag 2",
-                    "sm lag 3", "sm lag 4", "sm lag 5")
+#colnames(ccf_df)<-c("ID","Binomial" ,"sdm lag -5", "sdm lag -4", "sdm lag -3", "sdm lag -2","sdm lag -1",
+#                    "sdm lag 0", "sdm lag 1", "sdm lag 2", "sdm lag 3", "sdm lag 4", "sdm lag 5","sm lag -5",
+#                    "sm lag -4", "sm lag -3", "sm lag -2","sm lag -1", "sm lag 0", "sm lag 1", "sm lag 2",
+#                    "sm lag 3", "sm lag 4", "sm lag 5")
 
-colnames(ccf_df)<-c("ID","Binomial" ,"sdm lag 0", "sdm lag 1", "sdm lag 2", "sdm lag 3", "sdm lag 4", "sdm lag 5",
-                    "sm lag 0", "sm lag 1", "sm lag 2","sm lag 3", "sm lag 4", "sm lag 5")
+colnames(ccf_df)<-c("ID","Binomial", "N_used","sdm lag 0", "sdm lag -1", "sdm lag -2", "sdm lag -3", "sdm lag -4", "sdm lag -5",
+                    "sm lag 0", "sm lag -1", "sm lag -2","sm lag -3", "sm lag -4", "sm lag -5")
 
 
 #colnames(ccf_df)<-c("ID","Binomial","sdm_n3", "sdm_n2","sdm_n1", "sdm_0", "sdm_1","sdm_2","sdm_3")
 
-ccf_melt<-melt(ccf_df, id.vars = c("ID", "Binomial"))
+library(reshape2)
+ccf_melt<-melt(ccf_df, id.vars = c("ID", "Binomial", "N_used"))
 ccf_melt<-unique(ccf_melt)
 
 
@@ -619,36 +635,84 @@ ccf_melt<-ccf_melt[complete.cases(ccf_melt),]
 
 #
 
+ccf_melt$Binomial <- factor(ccf_melt$Binomial, levels = c("Capra_ibex","Connochaetes_taurinus","Ursus_arctos", 
+                                                        "Phacochoerus_africanus", "Giraffa_camelopardalis", 
+                                                        "Alcelaphus_buselaphus", "Equus_burchellii",
+                                                        "Ursus_maritimus", "Rupicapra_pyrenaica",
+                                                        "Cervus_elaphus", "Rangifer_tarandus",
+                                                        "Capreolus_capreolus", "Lepus_americanus", 
+                                                        "Kobus_ellipsiprymnus", "Odocoileus_virginianus", "Gulo_gulo"))
 
 
 ccf_melt0<-ccf_melt[ccf_melt$variable == "sdm lag 0",]
 
 #cross correlation function between habitat suitability and lambdas
-ggplot(ccf_melt0,aes(x=Binomial, y=value, group = Binomial, colour = Binomial)) + 
-  geom_violin()+
-  geom_jitter(width = 0.15)+
-  geom_hline(yintercept=0)
+ggplot(ccf_melt0,aes(x=Binomial, y=value, group = Binomial, fill =Binomial)) + 
+  geom_boxplot()+
+  geom_point(size = 3)+
+  geom_hline(yintercept=0, linetype = "dashed")+
+  theme_bw()+
+  ylim(-1,1)+
+  xlab("Species")+
+  ylab("Correlation Coefficient")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+                                      axis.title=element_text(size=20))+
+  scale_x_discrete(labels = c("Alpine\nibex","Blue\nwildebeest", "Brown\nbear","Common\nwarthog", "Giraffe",
+                              "Hartebeest","Plain's\nzebra", 
+                              "Polar\nbear","Pyrenean\nchamois","Red\ndeer",  "Reindeer", "Roe\ndeer", 
+                              "Snowshoe\nhare","Waterbuck", "White-tailed\ndeer", "Wolverine"))
 
-ccf_melt_sm0<-ccf_melt[ccf_melt$variable == "sm lag 0",]
+
+
+ggplot(data =ccf_melt0,aes(x=value)) + 
+  geom_histogram(binwidth = 0.05,fill="grey50", col="white")+
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  xlab("Growth Rate - Habitat Suitability Correlation Coefficient")+
+  ylab("Frequency")+
+  theme_bw()
+
+
+
+ ccf_melt_sm0<-ccf_melt[ccf_melt$variable == "sm lag 0",]
 
 #cross correlation function between habitat suitability and lambdas
-ggplot(ccf_melt_sm0,aes(x=Binomial, y=value, group = Binomial, colour = Binomial)) + 
-  geom_violin()+
-  geom_jitter(width = 0.15)+
-  geom_hline(yintercept=0)
+ggplot(ccf_melt_sm0,aes(x=Binomial, y=value, group = Binomial, fill = Binomial)) + 
+  geom_boxplot()+
+  geom_point(size = 3)+
+  geom_hline(yintercept=0, linetype = "dashed")+
+  theme_bw()+
+  ylim(-1,1)+
+  xlab("Species")+
+  ylab("Correlation Coefficient")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+        axis.title=element_text(size=20))+
+  scale_x_discrete(labels = c("Alpine\nibex","Blue\nwildebeest", "Brown\nbear","Common\nwarthog", "Giraffe",
+                              "Hartebeest","Plain's\nzebra", 
+                              "Polar\nbear","Pyrenean\nchamois","Red\ndeer",  "Reindeer", "Roe\ndeer", 
+                              "Snowshoe\nhare","Waterbuck", "White\ntailed\ndeer", "Wolverine"))
 
 
 
 #plot - hsi lambdas against pop lambdas?
 
 
-ccf_melt1<-ccf_melt[ccf_melt$variable == "sdm lag 1",]
+ccf_melt1<-ccf_melt[ccf_melt$variable == "sdm lag -1",]
 
 #cross correlation function between habitat suitability and lambdas
 ggplot(ccf_melt1,aes(x=Binomial, y=value, group = Binomial, colour = Binomial)) + 
   geom_violin()+
   geom_jitter(width = 0.15)+
   geom_hline(yintercept=0)
+
+
+ggplot(data =ccf_melt1,aes(x=value)) + 
+  geom_histogram(binwidth = 0.05,fill="grey50", col="white")+
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  xlab("Growth Rate - Habitat Suitability Correlation Coefficient")+
+  ylab("Frequency")+
+  theme_bw()
+
+
 
 
 #######unsmoothed hab suit
@@ -658,38 +722,133 @@ ccf_max<-ccf_melt%>%
   group_by(ID)%>%
   filter(grepl("sdm",variable))%>%
   mutate(max_value = max(value))%>%
-  select(ID, Binomial, max_value)%>%
-  distinct()
+  dplyr:::select(ID, Binomial, N_used,value,lag,max_value)%>%
+  filter(lag >= -5 & value == max_value)
 
-ggplot(ccf_max,aes(x=Binomial, y=max_value, group = Binomial, colour = Binomial)) + 
-  geom_violin()+
-  geom_jitter(width = 0.15)+
-  geom_hline(yintercept=0)+
-  scale_x_discrete(labels = c("Hartebeest","Alpine\nibex","Roe\ndeer", "Red\ndeer", "Blue\nwildebeest",
-                              "Plain's\nzebra", "Giraffe", "Wolverine", "Waterbuck", "Snowshoe\nhare", 
-                              "White-tailed\ndeer", "Common\nwarthog", "Reindeer", "Pyrenean\nchamois", "Brown\nbear", "Polar\nbear")) + 
-  theme(legend.position="none")
+table(ccf_max$lag)
+
+pvals<-(2 * (1 - pnorm(abs(ccf_max$max_value), mean = 0, sd = 1/sqrt(ccf_max$N_used))))
+
+
+ccf_max$Binomial <- factor(ccf_max$Binomial, levels = c("Capra_ibex","Connochaetes_taurinus","Ursus_arctos", 
+                                                   "Phacochoerus_africanus", "Giraffa_camelopardalis", 
+                                                   "Alcelaphus_buselaphus", "Equus_burchellii",
+                                                   "Ursus_maritimus", "Rupicapra_pyrenaica",
+                                                   "Cervus_elaphus", "Rangifer_tarandus",
+                                                   "Capreolus_capreolus", "Lepus_americanus", 
+                                                   "Kobus_ellipsiprymnus", "Odocoileus_virginianus", "Gulo_gulo"))
+
+ccf_max$lag<-as.factor(ccf_max$lag)
+
+ggplot(ccf_max,aes(x=Binomial, y=max_value, group = Binomial, fill =Binomial)) + 
+  geom_boxplot()+
+  geom_point(size = 3)+
+  #geom_point(data = ccf_max,aes(colour = lag), size = 3)+
+  #geom_jitter(width = 0.15)+
+  geom_hline(yintercept=0, linetype="dashed")+
+  theme_bw()+
+  ylim(-1,1)+
+  ylab("Maximum Coefficient Value\n (0-5 year lag)")+
+  xlab("")+
+  theme(legend.position="none",axis.text=element_text(size=17),
+        axis.title=element_text(size=20))+
+  scale_x_discrete(labels = c("Alpine\nibex","Blue\nwildebeest", "Brown\nbear","Common\nwarthog", "Giraffe",
+                              "Hartebeest","Plain's\nzebra", 
+                              "Polar\nbear","Pyrenean\nchamois","Red\ndeer",  "Reindeer", "Roe\ndeer", 
+                              "Snowshoe\nhare","Waterbuck", "White\ntailed\ndeer", "Wolverine"))
+
+
+out<-strsplit(as.character(ccf_melt$variable), " ")
+lag_id<-do.call("rbind", out)
+
+ccf_melt$lag<-as.numeric(lag_id[,3])
 
 #smoothed hab suit
 
-ccf_max<-ccf_melt%>%
-  group_by(ID)%>%
-  filter(grepl("sm",variable))%>%
-  mutate(max_value = max(value))%>%
-  select(ID, Binomial, max_value)%>%
-  distinct()
 
-ggplot(ccf_max,aes(x=Binomial, y=max_value, group = Binomial, colour = Binomial)) + 
-  geom_violin()+
-  geom_jitter(width = 0.15)+
-  geom_hline(yintercept=0)+
-  scale_x_discrete(labels = c("Hartebeest","Alpine\nibex","Roe\ndeer", "Red\ndeer", "Blue\nwildebeest",
-                              "Plain's\nzebra", "Giraffe", "Wolverine", "Waterbuck", "Snowshoe\nhare", 
-                              "White-tailed\ndeer", "Common\nwarthog", "Reindeer", "Pyrenean\nchamois", "Brown\nbear", "Polar\nbear")) + 
-  theme(legend.position="none")
+ccf_max_sm<-ccf_melt%>%
+  group_by(ID)%>%
+  filter(grepl("sdm",variable))%>%
+  mutate(max_value = max(value))%>%
+  select(ID, Binomial, N_used,value,lag,max_value)%>%
+  filter(lag >= -5 & value == max_value)
+
+ccf_max_sm$Binomial <- factor(ccf_max_sm$Binomial, levels = c("Capra_ibex","Connochaetes_taurinus","Ursus_arctos", 
+                                                        "Phacochoerus_africanus", "Giraffa_camelopardalis", 
+                                                        "Alcelaphus_buselaphus", "Equus_burchellii",
+                                                        "Ursus_maritimus", "Rupicapra_pyrenaica",
+                                                        "Cervus_elaphus", "Rangifer_tarandus",
+                                                        "Capreolus_capreolus", "Lepus_americanus", 
+                                                        "Kobus_ellipsiprymnus", "Odocoileus_virginianus", "Gulo_gulo"))
+
+
+
+table(ccf_max_sm$lag)
+
+pvals_sm<-(2 * (1 - pnorm(abs(ccf_max_sm$max_value), mean = 0, sd = 1/sqrt(ccf_max_sm$N_used))))
+
+ggplot(ccf_max_sm,aes(x=Binomial, y=max_value, group = Binomial, fill = Binomial)) + 
+  geom_boxplot()+
+  geom_point(size = 3)+
+  geom_hline(yintercept=0, linetype="dashed")+
+  theme_bw()+
+  ylim(-1,1)+
+  ylab("Maximum Coefficient Value\n (0-5 year lag)")+
+  xlab("Species")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+        axis.title=element_text(size=20))+
+  scale_x_discrete(labels = c("Alpine\nibex","Blue\nwildebeest", "Brown\nbear","Common\nwarthog", "Giraffe",
+                              "Hartebeest","Plain's\nzebra", 
+                              "Polar\nbear","Pyrenean\nchamois","Red\ndeer",  "Reindeer", "Roe\ndeer", 
+                              "Snowshoe\nhare","Waterbuck", "White-tailed\ndeer", "Wolverine"))
+
+
+######rmse
+
+
+rmse_get<-function(x){
+  
+  sdm_x<-all_sdm_lambdas[all_sdm_lambdas$ID == populations[x],]
+  sdm_rmse<-rmse(sdm_x$Lambdas,sdm_x$HSI_Lambdas)
+  sdm_rmse_smooth<-rmse(sdm_x$Lambdas,sdm_x$smooth_HSI_Lambdas)
+
+    empty_check<-function(x){
+    if(length(x) ==0){
+      x<-NA 
+    }
+    return(x)
+  }
+  
+  rmses<-list(sdm_rmse, sdm_rmse_smooth)
+  rmses_out<-t(data.frame(unlist(lapply(rmses, empty_check))))
+  rmse_out<-data.frame(unique(sdm_x$ID), unique(sdm_x$Binomial),rmses_out)
+  # colnames(ccf_out)<-c("ID","Binomial","sdm_n5","sdm_n4","sdm_n3", "sdm_n2","sdm_n1", "sdm_0", "sdm_1","sdm_2",
+  #                      "sdm_3","sdm_4","sdm_5","sm_sdm_n5","sm_sdm_n4","sm_sdm_n3", "sm_sdm_n2","sm_sdm_n1", "sm_sdm_0", "sm_sdm_1",
+  #                      "sm_sdm_2","sm_sdm_3","sm_sdm_4","sm_sdm_5")
+  colnames(rmse_out)<-c("ID","Binomial", "rmse", "rmse_smooth")
+  rownames(rmse_out) <- NULL
+  print(x)
+  return(rmse_out)
+}
+
+rmse_scores<-lapply(1:length(populations), rmse_get)
+
+#ccf_all<-ccf_scores[lapply(ccf_scores,length)>0] 
+
+rmse_df<-do.call( "rbind",rmse_scores)
+
+
+
+
+
+
 
 
 ###sum lambdas
+
+
+
+
 
 
 sum_lambdas<-all_sdm_lambdas%>%
@@ -703,10 +862,23 @@ plot(sum_lambdas$sum_Lambdas, sum_lambdas$sum_HSI_Lambdas)
 
 plot(sum_lambdas$sum_Lambdas, sum_lambdas$sum_smooth_HSI_Lambdas)
 
+region_lpi<-data.frame(lpi$ID, lpi$Region)
+colnames(region_lpi)<-c("ID", "Region")
 
-ggplot(sum_lambdas, aes(x = sum_HSI_Lambdas, y = sum_Lambdas, group = Binomial, colour = Binomial))+
+region_lpi<-region_lpi[region_lpi$ID %in% sum_lambdas$ID,]
+
+sum_lambdas$ID<-as.integer(as.character(sum_lambdas$ID))
+
+sum_lambdas_reg<-join(region_lpi, sum_lambdas)
+
+ggplot(sum_lambdas_reg, aes(x = sum_HSI_Lambdas, y = sum_Lambdas, group =Region, colour = Region))+
   geom_point()+
-  facet_wrap(.~Binomial)
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  xlim(-2,2)
+
+# +
+#   facet_wrap(.~Region)
 
 ggplot(sum_lambdas, aes(x = sum_smooth_HSI_Lambdas, y = sum_Lambdas, group = Binomial, colour = Binomial))+
   geom_point()+
@@ -722,8 +894,24 @@ sum_lambdas$Lam_sm_HSI<-ifelse(sum_lambdas$sum_Lambdas * sum_lambdas$sum_smooth_
 
 
 
+auc<-read.csv("AUC_all_species.csv")
+
+mean_auc_df<-auc %>%
+  group_by(Binomial, Model) %>%
+  mutate(mean_auc = mean(AUC), sd_auc = sd(AUC)) %>%
+  ungroup()%>%
+  dplyr::select(Binomial, Model, mean_auc, sd_auc) %>%
+  distinct()
+
+write.csv(mean_auc_df, "Mean_AUC_all_species.csv")
 
 
+auc %>%
+ group_by(Binomial) %>%
+  mutate(mean_auc = mean(AUC), sd_auc = sd(AUC)) %>%
+  ungroup()%>%
+  dplyr::select(Binomial, mean_auc, sd_auc) %>%
+  distinct()
 
 
 
