@@ -644,6 +644,14 @@ ccf_melt$Binomial <- factor(ccf_melt$Binomial, levels = c("Capra_ibex","Connocha
                                                         "Kobus_ellipsiprymnus", "Odocoileus_virginianus", "Gulo_gulo"))
 
 
+get_lag<-function(x){
+  lag_out<-as.numeric(strsplit(as.character(ccf_melt$variable[x]), " ")[[1]][3])
+  return(lag_out)
+  }
+
+lags<-lapply(1:length(ccf_melt$variable), get_lag)
+ccf_melt$lag<-do.call("rbind", lags)
+
 ccf_melt0<-ccf_melt[ccf_melt$variable == "sdm lag 0",]
 
 #cross correlation function between habitat suitability and lambdas
@@ -653,23 +661,42 @@ ggplot(ccf_melt0,aes(x=Binomial, y=value, group = Binomial, fill =Binomial)) +
   geom_hline(yintercept=0, linetype = "dashed")+
   theme_bw()+
   ylim(-1,1)+
-  xlab("Species")+
+  xlab("")+
   ylab("Correlation Coefficient")+
-  theme(legend.position="none",axis.text=element_text(size=16),
+  theme(legend.position="none",axis.text.x=element_text(size=20,angle = 30, hjust = 1),axis.text.y=element_text(size=20),
                                       axis.title=element_text(size=20))+
-  scale_x_discrete(labels = c("Alpine\nibex","Blue\nwildebeest", "Brown\nbear","Common\nwarthog", "Giraffe",
-                              "Hartebeest","Plain's\nzebra", 
-                              "Polar\nbear","Pyrenean\nchamois","Red\ndeer",  "Reindeer", "Roe\ndeer", 
-                              "Snowshoe\nhare","Waterbuck", "White-tailed\ndeer", "Wolverine"))
+  scale_x_discrete(labels = c("Alpine ibex","Blue wildebeest", "Brown bear","Common warthog", "Giraffe",
+                              "Hartebeest","Plain's zebra", 
+                              "Polar bear","Pyrenean chamois","Red deer",  "Reindeer", "Roe deer", 
+                              "Snowshoe hare","Waterbuck", "White-tailed deer", "Wolverine"))+
+  annotate("text", x = 1, y = 1, label = "A", fontface = 2, size = 20)
 
+ccf_melt0$lag<-as.factor(ccf_melt0$lag)
+
+
+
+pvals<-(2 * (1 - pnorm(abs(ccf_melt0$value), mean = 0, sd = 1/sqrt(ccf_melt0$N_used))))
 
 
 ggplot(data =ccf_melt0,aes(x=value)) + 
-  geom_histogram(binwidth = 0.05,fill="grey50", col="white")+
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20))+
+  geom_histogram(binwidth = 0.05, col="white")+
+  #scale_fill_manual("Lag Time (Years)", labels = c("5", "4", "3", "2", "1", "0"), values=c("-5" = "#999999", "-4"="#E69F00", "-3"="#56B4E9","-2" = "#009E73","-1"= "#F0E442","0"="#0072B2")) +
   #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
   xlab("Growth Rate - Habitat Suitability Correlation Coefficient")+
   ylab("Frequency")+
   theme_bw()
+
+
+ggplot(data =ccf_melt0,aes(x=value^2)) + 
+  geom_histogram(binwidth = 0.025, col="white")+
+  theme(axis.text.x=element_text(size=20),axis.title.x =element_text(size=20))+
+  #scale_fill_manual("Lag Time (Years)", labels = c("5", "4", "3", "2", "1", "0"), values=c("-5" = "#999999", "-4"="#E69F00", "-3"="#56B4E9","-2" = "#009E73","-1"= "#F0E442","0"="#0072B2")) +
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  xlab(parse(text='R^2'))+
+  ylab("Frequency")+
+  theme_bw()
+
 
 
 
@@ -693,6 +720,18 @@ ggplot(ccf_melt_sm0,aes(x=Binomial, y=value, group = Binomial, fill = Binomial))
 
 
 
+ggplot(data =ccf_melt_sm0,aes(x=value)) + 
+  geom_histogram(binwidth = 0.025, col="white")+
+  theme(axis.text.x=element_text(size=20),axis.title.x =element_text(size=20))+
+  #scale_fill_manual("Lag Time (Years)", labels = c("5", "4", "3", "2", "1", "0"), values=c("-5" = "#999999", "-4"="#E69F00", "-3"="#56B4E9","-2" = "#009E73","-1"= "#F0E442","0"="#0072B2")) +
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  xlab("Growth Rate - Habitat Suitability Correlation Coefficient")+
+  ylab("Frequency")+
+  theme_bw()
+
+
+
+
 #plot - hsi lambdas against pop lambdas?
 
 
@@ -710,6 +749,8 @@ ggplot(data =ccf_melt1,aes(x=value)) +
   #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
   xlab("Growth Rate - Habitat Suitability Correlation Coefficient")+
   ylab("Frequency")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+        axis.title=element_text(size=20))+
   theme_bw()
 
 
@@ -726,6 +767,42 @@ ccf_max<-ccf_melt%>%
   filter(lag >= -5 & value == max_value)
 
 table(ccf_max$lag)
+
+ccf_max$lag<-as.factor(ccf_max$lag)
+
+ggplot(data =ccf_max,aes(x=value, group = lag, fill = lag)) + 
+  geom_histogram(binwidth = 0.05, col="white")+
+  scale_fill_manual("Lag Time (Years)", labels = c("5", "4", "3", "2", "1", "0"), values=c("-5" = "#edf8fb", "-4"="#ccece6", "-3"="#99d8c9","-2" = "#66c2a4","-1"= "#2ca25f","0"="#006d2c")) +
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  theme(axis.text.x=element_text(size=16),
+        axis.title.x=element_text(size=20),
+        axis.text.y=element_text(size=16),
+        axis.title.y=element_text(size=20),
+        legend.text=element_text(size=16),
+        legend.title=element_text(size=20))+
+  xlab("Growth Rate - Habitat Suitability Correlation Coefficient")+
+  ylab("Frequency")
+#+
+#  theme_bw()
+
+
+
+ggplot(data =ccf_max,aes(x=value^2, group = lag, fill = lag)) + 
+  geom_histogram(binwidth = 0.05, col="white")+
+  scale_fill_manual("Lag Time (Years)", labels = c("5", "4", "3", "2", "1", "0"), values=c("-5" ="#edf8fb", "-4"="#ccece6", "-3"="#99d8c9","-2" = "#66c2a4","-1"= "#2ca25f","0"="#006d2c")) +
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  xlab(parse(text='R^2'))+
+  ylab("Frequency")+
+  theme(axis.text.x=element_text(size=16),
+        axis.title.x=element_text(size=20),
+        axis.text.y=element_text(size=16),
+        axis.title.y=element_text(size=20),
+        legend.text=element_text(size=16),
+        legend.title=element_text(size=20))
+
+
+
+
 
 pvals<-(2 * (1 - pnorm(abs(ccf_max$max_value), mean = 0, sd = 1/sqrt(ccf_max$N_used))))
 
@@ -748,14 +825,39 @@ ggplot(ccf_max,aes(x=Binomial, y=max_value, group = Binomial, fill =Binomial)) +
   geom_hline(yintercept=0, linetype="dashed")+
   theme_bw()+
   ylim(-1,1)+
-  ylab("Maximum Coefficient Value\n (0-5 year lag)")+
+  ylab("Maximum Coefficient Value (0-5 year lag)")+
   xlab("")+
-  theme(legend.position="none",axis.text=element_text(size=17),
+  theme(legend.position="none",axis.text.x=element_text(size=20,angle = 30, hjust = 1),axis.text.y=element_text(size=20),
         axis.title=element_text(size=20))+
-  scale_x_discrete(labels = c("Alpine\nibex","Blue\nwildebeest", "Brown\nbear","Common\nwarthog", "Giraffe",
-                              "Hartebeest","Plain's\nzebra", 
-                              "Polar\nbear","Pyrenean\nchamois","Red\ndeer",  "Reindeer", "Roe\ndeer", 
-                              "Snowshoe\nhare","Waterbuck", "White\ntailed\ndeer", "Wolverine"))
+  scale_x_discrete(labels = c("Alpine ibex","Blue wildebeest", "Brown bear","Common warthog", "Giraffe",
+                              "Hartebeest","Plain's zebra", 
+                              "Polar bear","Pyrenean chamois","Red deer",  "Reindeer", "Roe deer", 
+                              "Snowshoe hare","Waterbuck", "White-tailed deer", "Wolverine"))+
+  annotate("text", x = 1, y = 1, label = "B", fontface = 2, size = 20)+
+  annotate("text", x = 1, y = -1, label = "2.00", fontface = 2, size = 5)+
+  annotate("text", x = 2, y = -1, label = "2.42", fontface = 2, size = 5)+
+  annotate("text", x = 3, y = -1, label = "2.33", fontface = 2, size = 5)+
+  annotate("text", x = 4, y = -1, label = "1.69", fontface = 2, size = 5)+
+  annotate("text", x = 5, y = -1, label = "2.39", fontface = 2, size = 5)+
+  annotate("text", x = 6, y = -1, label = "2.08", fontface = 2, size = 5)+
+  annotate("text", x = 7, y = -1, label = "2.75", fontface = 2, size = 5)+
+  annotate("text", x = 8, y = -1, label = "1.50", fontface = 2, size = 5)+
+  annotate("text", x = 9, y = -1, label = "1.50", fontface = 2, size = 5)+
+  annotate("text", x = 10, y = -1, label = "1.00", fontface = 2, size = 5)+
+  annotate("text", x = 11, y = -1, label = "1.27", fontface = 2, size = 5)+
+  annotate("text", x = 12, y = -1, label = "1.90", fontface = 2, size = 5)+
+  annotate("text", x = 13, y = -1, label = "3.07", fontface = 2, size = 5)+
+  annotate("text", x = 14, y = -1, label = "2.79", fontface = 2, size = 5)+
+  annotate("text", x = 15, y = -1, label = "1.25", fontface = 2, size = 5)+
+  annotate("text", x = 16, y = -1, label = "2.33", fontface = 2, size = 5)
+
+
+
+ccf_max$lag<-as.numeric(as.character(ccf_max$lag))
+
+ccf_max %>%
+  group_by(Binomial)%>%
+  summarise(mean_lag = mean(lag))
 
 
 out<-strsplit(as.character(ccf_melt$variable), " ")
@@ -768,7 +870,7 @@ ccf_melt$lag<-as.numeric(lag_id[,3])
 
 ccf_max_sm<-ccf_melt%>%
   group_by(ID)%>%
-  filter(grepl("sdm",variable))%>%
+  filter(grepl("sm",variable))%>%
   mutate(max_value = max(value))%>%
   select(ID, Binomial, N_used,value,lag,max_value)%>%
   filter(lag >= -5 & value == max_value)
@@ -783,6 +885,11 @@ ccf_max_sm$Binomial <- factor(ccf_max_sm$Binomial, levels = c("Capra_ibex","Conn
 
 
 
+
+
+
+
+
 table(ccf_max_sm$lag)
 
 pvals_sm<-(2 * (1 - pnorm(abs(ccf_max_sm$max_value), mean = 0, sd = 1/sqrt(ccf_max_sm$N_used))))
@@ -794,14 +901,28 @@ ggplot(ccf_max_sm,aes(x=Binomial, y=max_value, group = Binomial, fill = Binomial
   theme_bw()+
   ylim(-1,1)+
   ylab("Maximum Coefficient Value\n (0-5 year lag)")+
-  xlab("Species")+
-  theme(legend.position="none",axis.text=element_text(size=16),
+  xlab("")+
+  theme(legend.position="none",axis.text=element_text(size=12),
         axis.title=element_text(size=20))+
   scale_x_discrete(labels = c("Alpine\nibex","Blue\nwildebeest", "Brown\nbear","Common\nwarthog", "Giraffe",
                               "Hartebeest","Plain's\nzebra", 
                               "Polar\nbear","Pyrenean\nchamois","Red\ndeer",  "Reindeer", "Roe\ndeer", 
                               "Snowshoe\nhare","Waterbuck", "White-tailed\ndeer", "Wolverine"))
 
+ccf_max_sm$lag<-as.factor(ccf_max_sm$lag)
+
+ggplot(data =ccf_max_sm,aes(x=value, group = lag, fill = lag)) + 
+  geom_histogram(binwidth = 0.05, col="white")+
+  scale_fill_manual("Lag Time (Years)", labels = c("5", "4", "3", "2", "1", "0"), values=c("-5" ="#edf8fb", "-4"="#ccece6", "-3"="#99d8c9","-2" = "#66c2a4","-1"= "#2ca25f","0"="#006d2c")) +
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  xlab("Growth Rate - Habitat Suitability Correlation Coefficient")+
+  ylab("Frequency")+
+  theme(axis.text.x=element_text(size=16),
+        axis.title.x=element_text(size=20),
+        axis.text.y=element_text(size=16),
+        axis.title.y=element_text(size=20),
+        legend.text=element_text(size=16),
+        legend.title=element_text(size=20))
 
 ######rmse
 
@@ -839,13 +960,37 @@ rmse_df<-do.call( "rbind",rmse_scores)
 
 
 
+rmse_ccf<-join(rmse_df, ccf_melt0)
 
 
-
-
-
+plot(rmse_ccf$rmse, abs(rmse_ccf$value), xlab = "RMSE", ylab="Coefficient")
+abline(lm(abs(rmse_ccf$value)~rmse_ccf$rmse))
 ###sum lambdas
 
+
+
+ggplot(data =rmse_ccf,aes(x=rmse)) + 
+  geom_histogram(binwidth = 0.05, col="white")+
+ # scale_fill_manual("Lag Time (Years)", labels = c("5", "4", "3", "2", "1", "0"), values=c("-5" ="#edf8fb", "-4"="#ccece6", "-3"="#99d8c9","-2" = "#66c2a4","-1"= "#2ca25f","0"="#006d2c")) +
+  #scale_x_continuous(breaks = seq(-0.7,0.7,0.05), lim = c(-0.7,0.7))+
+  xlab('Root Mean Square Error')+
+  ylab("Frequency")+
+  theme(axis.text.x=element_text(size=16),
+        axis.title.x=element_text(size=20),
+        axis.text.y=element_text(size=16),
+        axis.title.y=element_text(size=20),
+        legend.text=element_text(size=16),
+        legend.title=element_text(size=20))+
+  theme_bw()
+
+
+
+
+
+
+# rsq = function(y,f) { 1 - sum((y-f)^2)/sum((y-mean(y))^2) }
+# 
+# rsq(test$Lambdas, test$HSI_Lambdas)
 
 
 
@@ -905,6 +1050,7 @@ mean_auc_df<-auc %>%
 
 write.csv(mean_auc_df, "Mean_AUC_all_species.csv")
 
+mean_auc<-read.csv("Mean_AUC_all_species.csv")
 
 auc %>%
  group_by(Binomial) %>%
@@ -915,6 +1061,51 @@ auc %>%
 
 
 
+####plotting coefficient size against pop var and habitat var - easier to predict popluations/habitats that don't change
+
+
+
+var_pops<-all_sdm_lambdas %>%
+  group_by(ID) %>%
+  summarise(sd_pop_lambdas = sd(Lambdas), sd_HSI_Lambdas = sd(HSI_Lambdas), sd_sm_HSI_Lambdas = sd(smooth_HSI_Lambdas))
+
+
+
+var_pops$ID<-as.numeric(as.character(var_pops$ID))
+ccf_melt0$ID<-as.numeric(as.character(ccf_melt0$ID))
+
+ccf_vars<-merge(ccf_melt0,var_pops, by ="ID")
+
+
+pairs(ccf_vars[,c(5,7:9)])
+
+
+
+mean_auc<-read.csv("Mean_AUC_all_species.csv")
+
+ccf_auc<-merge(ccf_vars, mean_auc, by = "Binomial")
+
+
+ggplot(data =  ccf_auc, aes(x = mean_auc, y = abs(value)))+
+  geom_point()+
+  xlab("Mean AUC Score")+
+  ylab("Absolute Coefficient")+
+  theme_bw()+ theme(axis.text.x=element_text(size=16),
+                    axis.title.x=element_text(size=20),
+                    axis.text.y=element_text(size=16),
+                    axis.title.y=element_text(size=20))
+
+
+rmse_auc<-merge(rmse_ccf, mean_auc, by = "Binomial")
+
+ggplot(data =  rmse_auc, aes(x = mean_auc, y = rmse))+
+  geom_point()+
+  xlab("Mean AUC Score")+
+  ylab("Root Mean Square Error")+
+  theme_bw()+ theme(axis.text.x=element_text(size=16),
+                    axis.title.x=element_text(size=20),
+                    axis.text.y=element_text(size=16),
+                    axis.title.y=element_text(size=20))
 
 
 
