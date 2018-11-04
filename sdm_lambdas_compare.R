@@ -1060,6 +1060,50 @@ auc %>%
   distinct()
 
 
+body_mass<-read.csv("LPI_BodyMass_Amniote_Database.csv")
+
+bm<-body_mass[body_mass$Binomial %in% ccf_max$Binomial,]
+
+
+bm<-bm[,c("Binomial","Log_Body_Mass_g" )]
+
+bm<-unique(bm)
+
+
+ccf_max_bm<-merge( ccf_max,bm, by="Binomial")
+
+
+
+plot(ccf_max_bm$Log_Body_Mass_g, ccf_max_bm$max_value)
+abline( lm(ccf_max_bm$max_value~ccf_max_bm$Log_Body_Mass_g))
+
+
+plot(ccf_max_bm$Log_Body_Mass_g, as.numeric(as.character(ccf_max_bm$lag)))
+abline( lm(ccf_max_bm$lag~ccf_max_bm$Log_Body_Mass_g))
+
+ggplot(ccf_max_bm, aes(x = Log_Body_Mass_g, y = as.numeric(as.character(ccf_max_bm$lag)) ))+
+  geom_jitter()
+
+
+ggplot(ccf_max, aes(y = max_value, x = N_used))+
+         geom_point()+
+  labs(x = "Time Series Length (Years)", y = "Maximum Coefficient") +
+  theme_bw()+
+      theme(legend.position="none",axis.text.x=element_text(size=20),axis.text.y=element_text(size=20),
+        axis.title=element_text(size=20))
+
+
+
+
+ggplot(ccf_melt0, aes(y = abs(value), x = N_used))+
+  geom_point()+
+  labs(x = "Time Series Length (Years)", y = "Absolute Coefficient") +
+  theme_bw()+
+  theme(legend.position="none",axis.text.x=element_text(size=20),axis.text.y=element_text(size=20),
+        axis.title=element_text(size=20))
+
+
+
 
 ####plotting coefficient size against pop var and habitat var - easier to predict popluations/habitats that don't change
 
