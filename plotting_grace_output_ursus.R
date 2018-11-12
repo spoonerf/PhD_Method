@@ -70,6 +70,9 @@ convert_pop_out<-function(foldername){
 demoniche_pop_out<-lapply(highfoldernames, convert_pop_out)
 df <- do.call("rbind", demoniche_pop_out)
 
+#write.csv(df, "ursus_arctos_results_all.csv")
+#save(df, file ="ursus_arctos_results_all.RData")
+
 dfm<-as.matrix(df)
 
 # lambda<-function(x){
@@ -123,19 +126,21 @@ gam_smooth<-function(x){
   rep_id<-as.numeric(as.character(x$rep_id[1]))
   
   if(nrow(x)>0){
-    mg<-mgcv:::gam(log10(value+1)~s(year, k = nrow(x)), data = x)
+    mg<-mgcv:::gam(log10(value+1)~s(year, k = round(nrow(x)/2)), data = x)
     fmg<-fitted.values(mg)
-    lambdas<-diff(fmg[ind])
-    out<-cbind(id,ldd,sd,rep_id,lambdas, unique(x$year)[-1])
+    smooth_lambdas<-diff(fmg[ind])
+    
+    lambdas<-diff(log10(x$value +1))
+    out<-cbind(id,ldd,sd,rep_id,lambdas,smooth_lambdas, unique(x$year)[-1])
     gam_out<-data.frame(out)
-    colnames(gam_out)<-c("ID","ldd","SD","rep_id","Lambdas", "Year")
+    colnames(gam_out)<-c("ID","ldd","SD","rep_id","Lambdas","Smooth_Lambdas" ,"Year")
     print(paste(id, ldd, sd, rep_id))
     
   } else {
     
-    out<-cbind(NA,NA,NA,NA,NA,NA)
+    out<-cbind(NA,NA,NA,NA,NA,NA,NA)
     gam_out<-data.frame(out)
-    colnames(gam_out)<-c("ID","ldd","SD","rep_id","Lambdas", "Year")
+    colnames(gam_out)<-c("ID","ldd","SD","rep_id","Lambdas", "Smooth_Lambdas","Year")
     print(paste(id, ldd, sd, rep_id))
     
   }
@@ -255,8 +260,8 @@ melt_lambda_short$ID<-as.numeric(as.character(melt_lambda_short$ID))
 
 
 ggplot()+
-  geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD)), colour = "black", alpha = 0.3)+
-  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red")+
+  geom_smooth(data = melt_lambda_short, aes(x = Year, y= Lambdas, group=interaction(ldd, SD)), colour = "black", alpha = 0.3, method = "loess")+
+  geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red", method = "loess")+
   #geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ID)
 
@@ -319,10 +324,12 @@ sdm_smooth<-function(x){
   mg<-gam(log10(HSI)~s(Year, bs="cs", k = 28), data = x)
  # mg<-gam(log10(HSI)~s(Year, bs="cs", k = -1), data = x)
   fmg<-fitted.values(mg)
-  lambdas<-diff(fmg)
-  out<-cbind(id,lambdas, unique(x$Year)[-1])
+  smooth_lambdas<-diff(fmg)
+
+  lambdas<-diff(log10(x$HSI))
+  out<-cbind(id,lambdas,smooth_lambdas, unique(x$Year)[-1])
   gam_out<-data.frame(out)
-  colnames(gam_out)<-c("ID","HSI_Lambdas", "Year")
+  colnames(gam_out)<-c("ID","HSI_Lambdas","HSI_Lambdas_Smooth", "Year")
   return(gam_out)
 }
 
@@ -352,11 +359,17 @@ ggplot()+
 
 library(Metrics)
 
-vg<-expand.grid(unique(melt_lambda_short$ID), unique(melt_lambda_short$ldd), unique(melt_lambda_short$SD), unique(melt_lambda_short$rep_id))
-colnames(vg)<-c("ID", "ldd", "SD", "rep_id")
+melt_lambda_short$ldd_sd<-paste(melt_lambda_short$ldd, melt_lambda_short$SD, sep="_")
+
+vg<-expand.grid(unique(melt_lambda_short$ID), unique(melt_lambda_short$ldd_sd), unique(melt_lambda_short$rep_id))
+vg$Var2<-as.character(vg$Var2)
+
+vg$ldd<-matrix(as.numeric(unlist(strsplit(vg$Var2, "_"))), ncol = 2, byrow = T)[,1]
+vg$SD<-matrix(as.numeric(unlist(strsplit(vg$Var2, "_"))), ncol = 2, byrow = T)[,2]
+colnames(vg)<-c("ID", "ldd_SD", "rep_id", "ldd", "SD")
 rmse_get_sdm<-function(x){
   
-  cnd_x<-melt_lambda_short[melt_lambda_short$ID == vg[x,1]& melt_lambda_short$ldd == vg[x,2] & melt_lambda_short$SD == vg[x,3]& melt_lambda_short$rep_id == vg[x,4],]
+  cnd_x<-melt_lambda_short[melt_lambda_short$ID == vg[x,"ID"]& melt_lambda_short$ldd == vg[x,"ldd"] & melt_lambda_short$SD == vg[x,"SD"]& melt_lambda_short$rep_id == vg[x,"rep_id"],]
   obs_x<-all_year_ab[all_year_ab$ID == vg[x,1],]
   sdm_x<-sdm_lambdas_melt[sdm_lambdas_melt$ID == vg[x,1],]
   
@@ -389,7 +402,7 @@ rmse_get_sdm<-function(x){
     colnames(rmse_out)<-c("cnd", "sdm", "cnd_sdm")
     # rmse_out<-data.frame(cnd_rmse)
     # colnames(rmse_out)<-c("cnd")
-    print(vg[x,1])
+    print((x/nrow(vg))*100)
     return(rmse_out)
   }
 }
