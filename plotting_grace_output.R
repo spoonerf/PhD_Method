@@ -22,7 +22,7 @@ lowfoldernames<-rep(1:nf, each=length(l))
 
 foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
 
-sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1,]
+sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1 & lpi$Region == "Europe",]
 
 xy<-data.frame(sp_lpi$Longitude, sp_lpi$Latitude)
 coordinates(xy)<-c("sp_lpi.Longitude", "sp_lpi.Latitude")
@@ -158,6 +158,10 @@ gam_lpi<-function(x){
     
     ial<-data.frame(id, Year,lambda2)
     
+    colnames(ial)<-c("ID", "Year", "Abundance")
+  } else {
+    lint<-approx(df$Population, n = length(df$Population))$y
+    ial<-data.frame(id, Year, lint)
     colnames(ial)<-c("ID", "Year", "Abundance")
   }
   

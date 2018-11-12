@@ -6,6 +6,7 @@
 
 library(reshape2)
 library(sp)
+library(raster)
 wd<-getwd()
 lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
@@ -16,7 +17,7 @@ binomial = "Ursus_arctos"
 #demoniche_folder<-"C:/Users/Fiona/Documents/PhD/PhD_Method/Legion/cervus_output"
 #demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_cervus_bias/output_new"
 
-demoniche_folder<-paste(wd, "/Legion/snow_bear_bias_faster/output", sep="")
+demoniche_folder<-paste(wd, "/Legion/snow_bear_bias_faster/output_smooth", sep="")
 #demoniche_folder<-paste(wd, "/Legion/snow_cervus_test/output_test", sep="")
 l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
@@ -26,7 +27,7 @@ nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
 highfoldernames<-list.files(demoniche_folder)
 #lowfoldernames<-rep(1:nf, each=length(l))
 
-foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
+#foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
 
 sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1 & lpi$Region == "North America",]
 
@@ -93,7 +94,18 @@ melt_short$sp_lpi.ID<-as.factor(melt_short$sp_lpi.ID)
 
 
 library(ggplot2)
-ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD), colour= sp_lpi.ID))+
+ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD, rep_id), colour= sp_lpi.ID))+
+  geom_line()+
+  #geom_smooth()+
+  facet_grid(~ sp_lpi.ID)
+
+
+ggplot(melt_short, aes(x= year, y=c(diff(log10(value)),NA), group=interaction(ldd, SD, rep_id), colour= sp_lpi.ID))+
+  geom_line()+
+  #geom_smooth()+
+  facet_grid(~ sp_lpi.ID)
+
+ggplot(melt_short, aes(x= year, y=c(diff(log10(value)),NA), group=interaction(ldd, SD), colour= sp_lpi.ID))+
   #geom_line()+
   geom_smooth()+
   facet_grid(~ sp_lpi.ID)
@@ -136,6 +148,8 @@ df_out<-lapply(dfl, gam_smooth)
 melt_lambda_short<-do.call( "rbind", df_out)
 
 melt_lambda_short$ID<-as.factor(melt_lambda_short$ID)
+
+melt_lambda_short<-melt_lambda_short[complete.cases(melt_lambda_short),]
 
 ggplot()+
   geom_smooth(data = melt_lambda_short, aes(x= Year, y=Lambdas, group=interaction(ldd, SD), colour= ID), method="loess", SE=FALSE)+
@@ -248,7 +262,7 @@ ggplot()+
 
 
 
- smooth_vals_pred = predict(loess(Lambdas~Year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[1],]), melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[1]])
+smooth_vals_pred = predict(loess(Lambdas~Year,melt_lambda_short[melt_lambda_short$ID == melt_lambda_short$ID[1],]), melt_lambda_short$year[melt_lambda_short$ID == melt_lambda_short$ID[1]])
 
 smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_year_ab$ID[1],]), all_year_ab$Year[all_year_ab$ID == all_year_ab$ID[1]])
 
@@ -262,13 +276,13 @@ smooth_vals_obs = predict(loess(Lambdas~Year,all_year_ab[all_year_ab$ID == all_y
 species_directory<-paste(wd, "/",binomial, "_bias", sep="")
 sdm_folder<-paste(species_directory, "SDM_folder_bias", sep = "/")
 
-sdm_folder<-paste(wd, "/Legion/snow_cervus_bias_faster/", sep="")
+sdm_folder<-paste(wd, "/Legion/snow_bear_bias_faster/", sep="")
 
 
 sdm_stack<-stack(paste(sdm_folder, "/hyde_weighted_ensemble_sdm_", years,".tif", sep=""))
 patch_stack<-stack(paste(sdm_folder, "/hyde_pres_abs_sss_weighted_ensemble_sdm_", years,".tif", sep=""))
 
-pyr<-subset(lpi, Binomial ==binomial & Specific_location==1& Region=="Europe")    #record 11470 had wrong longitude - in Russia!
+pyr<-subset(lpi, Binomial ==binomial & Specific_location==1& (Region!="Europe"& Region!="Asia"))    #record 11470 had wrong longitude - in Russia!
 pops<-pyr[,c(65:120)]
 pop_counts <- (pops !="NULL")
 points_per_pop1950_2005 = rowSums(pop_counts)
@@ -281,7 +295,7 @@ colnames(pops)<-c("ID", 1950:2005)
 
 
 #formatting the lpi data for use in demoniche
-pyrs<-pyr[,c("ID","Longitude","Latitude")]
+pyrs<-pyr[,c("ID","Binomial","Longitude","Latitude")]
 xy_lpi<-data.frame(pyrs$Longitude, pyrs$Latitude)
 
 sdm_lpi<-raster:::extract(sdm_stack,xy_lpi, buffer = 50000, fun = mean, na.rm = TRUE)
@@ -302,7 +316,8 @@ sdm_smooth<-function(x){
   
   #ind<-seq(length(unique(x$rep_id)),(length(unique(x$rep_id)) * length(unique(x$year))* length(unique(x$sp_lpi.ID))), by=length(unique(x$rep_id)))
   id<-as.numeric(as.character(x$ID[1]))
-  mg<-gam(log10(HSI)~s(Year, bs="cs", k = -1), data = x)
+  mg<-gam(log10(HSI)~s(Year, bs="cs", k = 28), data = x)
+ # mg<-gam(log10(HSI)~s(Year, bs="cs", k = -1), data = x)
   fmg<-fitted.values(mg)
   lambdas<-diff(fmg)
   out<-cbind(id,lambdas, unique(x$Year)[-1])
@@ -425,27 +440,33 @@ ccf_get<-function(x){
     
     lag_n1_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == -1)]
     lag_n1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == -1)]
-    
+
     lag_0_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 0)]
     lag_0_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 0)]
     
-    lag_1_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 1)]
-    lag_1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 1)]
+    n_used<-cnd_ccf$n.used
     
-    lag_2_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 2)]
-    lag_2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 2)]
     
-    lag_3_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 3)]
-    lag_3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 3)]
     
-    lag_4_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 4)]
-    lag_4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 4)]
+    # lag_1_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 1)]
+    # lag_1_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 1)]
+    # 
+    # lag_2_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 2)]
+    # lag_2_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 2)]
+    # 
+    # lag_3_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 3)]
+    # lag_3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 3)]
+    # 
+    # lag_4_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 4)]
+    # lag_4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 4)]
+    # 
+    # lag_5_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 5)]
+    # lag_5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 5)]
     
-    lag_5_cnd<-cnd_ccf$acf[which(as.numeric(cnd_ccf$lag) == 5)]
-    lag_5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 5)]
-    
-    ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, lag_n5_cnd,lag_n5_sdm,lag_n4_cnd,lag_n4_sdm,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm,lag_1_cnd, lag_1_sdm,lag_2_cnd, lag_2_sdm,lag_3_cnd, lag_3_sdm,lag_4_cnd, lag_4_sdm,lag_5_cnd, lag_5_sdm )
-    colnames(ccf_out)<-c("ID","ldd","SD","rep_id","cnd_n5", "sdm_n5","cnd_n4", "sdm_n4","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0","cnd_1", "sdm_1","cnd_2", "sdm_2","cnd_3", "sdm_3","cnd_4", "sdm_4","cnd_5", "sdm_5")
+ #   ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, lag_n5_cnd,lag_n5_sdm,lag_n4_cnd,lag_n4_sdm,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm,lag_1_cnd, lag_1_sdm,lag_2_cnd, lag_2_sdm,lag_3_cnd, lag_3_sdm,lag_4_cnd, lag_4_sdm,lag_5_cnd, lag_5_sdm )
+    ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, cnd_x$rep_id,n_used,lag_n5_cnd,lag_n5_sdm,lag_n4_cnd,lag_n4_sdm,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm)
+#    colnames(ccf_out)<-c("ID","ldd","SD","rep_id","cnd_n5", "sdm_n5","cnd_n4", "sdm_n4","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0","cnd_1", "sdm_1","cnd_2", "sdm_2","cnd_3", "sdm_3","cnd_4", "sdm_4","cnd_5", "sdm_5")
+    colnames(ccf_out)<-c("ID","ldd","SD","rep_id","N_used", "cnd_n5", "sdm_n5","cnd_n4", "sdm_n4","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0")
     
     #  ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, cnd_x$rep_id, lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm,lag_1_cnd, lag_1_sdm,lag_2_cnd, lag_2_sdm,lag_3_cnd, lag_3_sdm)
     #  colnames(ccf_out)<-c("ID","ldd","SD","rep_id","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0","cnd_1", "sdm_1","cnd_2", "sdm_2","cnd_3", "sdm_3")
@@ -457,16 +478,18 @@ ccf_get<-function(x){
 }
 
 
-ccf_scores<-sapply(1:nrow(vg), ccf_get)
-
+#ccf_scores<-sapply(1:nrow(vg), ccf_get)
+ccf_scores<-sapply(1:10000, ccf_get)
 
 ccf_all<-ccf_scores[lapply(ccf_scores,length)>0] 
 
 ccf_df<-do.call( "rbind",ccf_all)
-colnames(ccf_df)<-c("ID","ldd","SD","cnd lag -5", "sdm lag -5","cnd lag -4", "sdm lag -4","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0","cnd lag 1", "sdm lag 1","cnd lag 2", "sdm lag 2","cnd lag 3", "sdm lag 3","cnd lag 4", "sdm lag 4","cnd lag 5", "sdm lag 5")
+#colnames(ccf_df)<-c("ID","ldd","SD","cnd lag -5", "sdm lag -5","cnd lag -4", "sdm lag -4","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0","cnd lag 1", "sdm lag 1","cnd lag 2", "sdm lag 2","cnd lag 3", "sdm lag 3","cnd lag 4", "sdm lag 4","cnd lag 5", "sdm lag 5")
 #colnames(ccf_df)<-c("ID","ldd","SD","rep_id","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0","cnd lag 1", "sdm lag 1","cnd lag 2", "sdm lag 2","cnd lag 3", "sdm lag 3")
 
-ccf_melt<-melt(ccf_df, id.vars = c("ID", "ldd", "SD", "rep_id"))
+colnames(ccf_df)<-c("ID","ldd","SD","rep_id","N_used","cnd lag -5", "sdm lag -5","cnd lag -4", "sdm lag -4","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0")
+
+ccf_melt<-melt(ccf_df, id.vars = c("ID", "ldd", "SD", "rep_id", "N_used"))
 #ccf_melt<-melt(ccf_df, id.vars = c("ID", "ldd", "SD"))
 ccf_melt<-unique(ccf_melt)
 
@@ -474,7 +497,7 @@ ccf_melt<-unique(ccf_melt)
 
 
 #write.table(ccf_melt, "ccf_melt_cervus2.csv")
-ccf_melt<-read.table("ccf_melt_cervus2.csv")
+#ccf_melt<-read.table("ccf_melt_cervus2.csv")
 
 for(i in 1:length(ccf_melt$variable)){
   
@@ -492,6 +515,10 @@ ccf_melt_cnd<-ccf_melt[ccf_melt$model =="cnd",]
 ccf_melt_cnd$ID<-as.factor(ccf_melt_cnd$ID)
 
 
+ccf_melt_sdm<-ccf_melt[ccf_melt$model =="sdm",]
+ccf_melt_sdm$ID<-as.factor(ccf_melt_sdm$ID)
+
+
 # plot_func<-function(x){
 #   ggplot(ccf_melt_cnd[ccf_melt_cnd$ID == x,], aes(x=variable, y=value)) + 
 #     geom_violin()+
@@ -506,7 +533,7 @@ ccf_melt_cnd$SD<-as.factor(ccf_melt_cnd$SD)
 ggplot(ccf_melt_cnd,aes(x=ID, y=value, group = ID, colour = ID,  shape = ldd)) + 
   #geom_violin()+
   geom_jitter(data = ccf_melt_cnd,aes(x=variable, y=value,col = ID) )+
-  scale_x_discrete(limits=c("cnd lag -5","cnd lag -4","cnd lag -3","cnd lag -2","cnd lag -1","cnd lag 0","cnd lag 1","cnd lag 2","cnd lag 3","cnd lag 4","cnd lag 5"))
+  scale_x_discrete(limits=c("cnd lag -5","cnd lag -4","cnd lag -3","cnd lag -2","cnd lag -1","cnd lag 0"))
 
 
 
@@ -521,6 +548,76 @@ ggplot(ccf_melt_cnd0, aes(x=ID, y=value, group = ID, colour = SD,  shape = ldd))
   geom_jitter()+
   labs(y = "Correlation")+
   theme_bw()
+
+
+ggplot(ccf_melt_cnd0, aes(x=ID, y=value, group = ID)) + 
+  #  geom_violin()+
+  geom_jitter()+
+  labs(y = "Correlation")+
+  theme_bw()
+
+ccf_melt_sdm0<-ccf_melt_sdm[ccf_melt_sdm$variable == "sdm lag 0",]
+ccf_melt_sdm0$ldd<-as.factor(ccf_melt_sdm0$ldd)
+ccf_melt_sdm0$SD<-as.factor(ccf_melt_sdm0$SD)
+
+
+ggplot(ccf_melt_cnd0,aes(x=ID, y=value, group = ID, fill = ID)) + 
+  geom_boxplot()+
+  geom_point(size = 2)+
+  geom_point(data = ccf_melt_sdm0, aes(x = ID, y = value), size = 5, colour = "red")+
+  geom_hline(yintercept=0, linetype = "dashed")+
+  theme_bw()+
+  ylim(-1,1)+
+  xlab("Population")+
+  ylab("Correlation Coefficient")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+        axis.title=element_text(size=20))
+
+
+
+get_lag<-function(x){
+  lag_out<-as.numeric(strsplit(as.character(ccf_melt$variable[x]), " ")[[1]][3])
+  return(lag_out)
+}
+
+lags<-lapply(1:length(ccf_melt$variable), get_lag)
+ccf_melt$lag<-do.call("rbind", lags)
+
+#something weird going on here
+
+ccf_max<-ccf_melt%>%
+  group_by(ID,rep_id ,model)%>%
+  #filter(grepl("sdm",variable))%>%
+  mutate(max_value = max(value))%>%
+  dplyr:::select(ID,rep_id,N_used,lag,model,value,max_value)
+
+
+ccf_max[ccf_max$value == ccf_max$max_value,]
+
+#filter not working well
+
+ggplot(ccf_melt_cnd0,aes(x=ID, y=value, group = ID, fill = ID)) + 
+  geom_boxplot()+
+  geom_point(size = 2)+
+  geom_point(data = ccf_melt_sdm0, aes(x = ID, y = value), size = 5, colour = "red")+
+  geom_hline(yintercept=0, linetype = "dashed")+
+  theme_bw()+
+  ylim(-1,1)+
+  xlab("Population")+
+  ylab("Correlation Coefficient")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+        axis.title=element_text(size=20))
+
+
+
+
+
+
+
+
+
+
+
 
 
 ggplot(ccf_melt_cnd0, aes(x=ID, y=value, group = ID, colour = ldd))+#,  shape = ldd)) + 
