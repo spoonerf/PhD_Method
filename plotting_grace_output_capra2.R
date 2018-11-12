@@ -83,9 +83,17 @@ melt_short<-melt_short[melt_short$year >1955,]
 melt_lambda_short<-melt_lambda_short[melt_lambda_short$year >1955,]
   
 library(ggplot2)
-  ggplot(melt_short, aes(x= year, y=value, group=rep_id, colour= sp_lpi.ID))+
+  ggplot(melt_short, aes(x= year, y=value, group=interaction(SD,ldd), colour= sp_lpi.ID))+
     geom_line()+
     facet_grid(~ sp_lpi.ID)
+  
+  
+  library(ggplot2)
+  ggplot(melt_short, aes(x= year, y=value, group=interaction(SD,ldd), colour= sp_lpi.ID))+
+    geom_line()+
+    facet_grid(~ sp_lpi.ID)
+  
+  
   
   ggplot()+
     geom_smooth(data = melt_lambda_short, aes(x= year, y=value, group= ID), method="loess")+
@@ -195,7 +203,7 @@ melt_lambda_short<-melt_lambda_short[melt_lambda_short$ID %in% all_year_ab$ID,]
 
 
 ggplot()+
-  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=ID), colour = "black")+
+  geom_smooth(data = melt_lambda_short, aes(x = year, y= value, group=interaction(SD, ldd)), colour = "black")+
   geom_smooth(data = all_year_ab, aes(x = Year, y= Lambdas, group=ID), colour="red")+
   #geom_line(data =  gam_r_lambda, aes(x =Year, y = Abundance, group=sp_lpi.ID), colour = "blue" )+
   facet_grid(.~ID)

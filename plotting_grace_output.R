@@ -161,6 +161,10 @@ gam_lpi<-function(x){
     ial<-data.frame(id, Year,lambda2)
     
     colnames(ial)<-c("ID", "Year", "Abundance")
+  } else {
+    lint<-approx(df$Population, n = length(df$Population))$y
+    ial<-data.frame(id, Year, lint)
+    colnames(ial)<-c("ID", "Year", "Abundance")
   }
   
   return(ial)
