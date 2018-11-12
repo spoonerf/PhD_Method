@@ -49,7 +49,7 @@ convert_pop_out<-function(foldername){
   trends_df<-data.frame(sp_lpi$ID,med_disp,sdd,ldd,SD,dens,link,rep_id,trends)
 }
 
-demoniche_pop_out<-lapply(highfoldernames, convert_pop_out)
+demoniche_pop_out<-lapply(highfoldernames[1:100], convert_pop_out)
 df <- do.call("rbind", demoniche_pop_out)
 dfm<-as.matrix(df)
 
@@ -86,8 +86,10 @@ melt_short<-read.csv("cervus_elaphus_melt_short.csv")
 melt_lambda_short<-read.csv("cervus_elaphus_melt_lambda_short.csv")
 
 
+melt_df<-melt_df
+
 library(ggplot2)
-ggplot(melt_short, aes(x= year, y=value, group=interaction(rep_id, med_disp), colour= sp_lpi.ID))+
+ggplot(melt_short, aes(x= year, y=value, group=(rep_id), colour= sp_lpi.ID))+
   geom_line()+
   facet_grid(med_disp~ sp_lpi.ID)
 
