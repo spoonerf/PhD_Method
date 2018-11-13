@@ -2,6 +2,7 @@
 wd<-getwd()
 
 lf<-list.files(paste(wd, "Legion/snow_cervus_bias_new/", sep=""))
+
 files<-lf[grepl("^hyde_weighted_ensemble_sdm_.*.tif$", lf)]
 
 library(raster)
