@@ -349,14 +349,15 @@ gam_r<-gam_r[gam_r$Year <=2005,]
 fill<-data.frame(rep(pops$ID, each=length(1950:2005)), 1950:2005)
 colnames(fill)<-c("ID", "Year")
 
-all_year_ab<-join(fill, gam_r, type="right")
+library(plyr)
+all_year_ab<-join(fill, gam_r, type = "right")
 
 all_year_ab$ID<-as.numeric(as.character(all_year_ab$ID))
 
 
 
 #joining sdm and lambdas
-all_sdm_lambdas<-join(all_year_ab,all_sp, type="right")
+all_sdm_lambdas<-join(all_year_ab,all_sp, type = "right")
 all_sdm_lambdas$ID<-as.factor(all_sdm_lambdas$ID)
 plot(all_sdm_lambdas$HSI,all_sdm_lambdas$Lambdas)
 
@@ -385,8 +386,9 @@ melt_lpi$Year<-as.numeric(as.character(melt_lpi$Year))
 melt_lpi$Abundance<-as.numeric(melt_lpi$Abundance)
 
 
-all_ab_sdm_lambdas<-join(all_sdm_lambdas, melt_lpi)
-
+# library(plyr)
+# all_ab_sdm_lambdas<-join(all_sdm_lambdas, melt_lpi)
+# 
 
 
 # plot(all_ab_sdm_lambdas$HSI,log10(all_ab_sdm_lambdas$Abundance+1))
@@ -400,9 +402,29 @@ all_ab_sdm_lambdas<-join(all_sdm_lambdas, melt_lpi)
 library(ggplot2)
 library(dplyr)
 
-all_sdm_lambdas<-all_sdm_lambdas %>%
-  group_by(ID)%>%
-  mutate(HSI_Lambdas = c(diff(log10(HSI)),NA))
+# 
+# all_sdm_lambdas$ID<-as.factor(all_sdm_lambdas$ID)
+# 
+# all_sdm_lambdas<-all_sdm_lambdas %>%
+#   group_by(ID)%>%
+#   arrange(Year)%>%
+#   mutate(log_hsi = log10(HSI))%>%
+#   mutate(HSI_Lambdas = c(diff(log_hsi),NA))
+#   
+
+df_out<-data.frame()
+colnames(df)<-c("ID", "Year", "Lambdas", "Binomial", "HSI", "log_hsi", "non_na_count")
+for (i in unique(all_sdm_lambdas$ID)){
+  df<-all_sdm_lambdas[all_sdm_lambdas$ID== i,]
+  df<-arrange(df, Year)
+  df$log_hsi<-log10(df$HSI)
+  df$HSI_Lambdas<-c(diff(df$log_hsi),NA)
+  df_out<-rbind(df,df_out)
+print(i)
+  }
+
+all_sdm_lambdas<-df_out
+
 
 # ##Deer
 # ggplot()+
@@ -487,57 +509,58 @@ all_sdm_lambdas<-all_sdm_lambdas %>%
 # 
 # 
 #removing a zebra population which is outside of the HSM - perhaps in the sea?
-all_sdm_lambdas<-all_sdm_lambdas%>%
-  group_by(ID)%>%
-  mutate(non_na_count = sum(!is.na(HSI)))%>%
-  filter(non_na_count != 0)%>%
-  ungroup()
+# all_sdm_lambdas<-all_sdm_lambdas%>%
+#   group_by(ID)%>%
+#   mutate(non_na_count = sum(!is.na(HSI)))%>%
+#   filter(non_na_count != 0)%>%
+#   ungroup()
 
 #lost one population to the sea
 
-smooth_gam<-function(x){
-  
-  a<-all_sdm_lambdas[all_sdm_lambdas$ID == x,]
-  a$k = floor(0.5*nrow(a)) - 1
-  
-  if (a$k[1] >= 3){
-    a$smooth_HSI = fitted.values(gam(HSI ~ s(Year, k = a$k[1]), data = a))
-  } else {
-    a$smooth_HSI =  fitted.values(lm(HSI ~ Year, data = a))
-  }
-  print(x)
-  return(a)
-}
-
-
-smooth_sdm_lambdas<-lapply(unique(all_sdm_lambdas$ID), smooth_gam)
-
-smooth_sdm_lambdas<-do.call("rbind", smooth_sdm_lambdas)
-
-
-
-all_sdm_lambdas_new<-smooth_sdm_lambdas %>%
-  group_by(ID)%>%
-  mutate(smooth_HSI_Lambdas = c(diff(log10(smooth_HSI)),NA))
+# smooth_gam<-function(x){
+#   
+#   a<-all_sdm_lambdas[all_sdm_lambdas$ID == x,]
+#   a$k = floor(0.5*nrow(a)) - 1
+#   
+#   if (a$k[1] >= 3){
+#     a$smooth_HSI = fitted.values(gam(HSI ~ s(Year, k = a$k[1]), data = a))
+#   } else {
+#     a$smooth_HSI =  fitted.values(lm(HSI ~ Year, data = a))
+#   }
+#   print(x)
+#   return(a)
+# }
+# 
+# 
+# smooth_sdm_lambdas<-lapply(unique(all_sdm_lambdas$ID), smooth_gam)
+# 
+# smooth_sdm_lambdas<-do.call("rbind", smooth_sdm_lambdas)
+# 
+# 
+# 
+# all_sdm_lambdas_new<-smooth_sdm_lambdas %>%
+#   group_by(ID)%>%
+#   mutate(smooth_HSI_Lambdas = c(diff(log10(smooth_HSI)),NA))
 
 
 #all_sdm_lambdas<-all_sdm_lambdas_new[complete.cases(all_sdm_lambdas_new),]
 
 #195 populations left - lost all the ones with data from 2005 onwards only
 
+all_sdm_lambdas$ID<-as.numeric(as.character(all_sdm_lambdas$ID))
 
 #removing populations with only one record (would have had two pre-lambda-ing)
 keep_id<-all_sdm_lambdas%>%
   group_by(ID)%>%
   #summarise(non_na_count = sum(!is.na(col_2)))%>%
   count(.) %>%
-  filter(n>=5)
+  filter(n >=5)
 
 
 all_sdm_lambdas<-all_sdm_lambdas[all_sdm_lambdas$ID %in% keep_id$ID,]
 
 
-
+library(dplyr)
 
 all_sdm_lambdas%>%
   group_by(ID)%>%
@@ -546,6 +569,7 @@ all_sdm_lambdas%>%
 all_sdm_lambdas<-all_sdm_lambdas[complete.cases(all_sdm_lambdas),]
 
 populations<-unique(all_sdm_lambdas$ID)
+
 
 ccf_get<-function(x){
 
@@ -651,6 +675,7 @@ ccf_melt0<-ccf_melt[ccf_melt$variable == "sdm lag 0"& ccf_melt$N_used >=5,]
 
 
 
+library(ggplot2)
 #cross correlation function between habitat suitability and lambdas
 ggplot(ccf_melt0,aes(x=Binomial, y=value, group = Binomial, fill =Binomial)) + 
   geom_boxplot()+
@@ -666,7 +691,7 @@ ggplot(ccf_melt0,aes(x=Binomial, y=value, group = Binomial, fill =Binomial)) +
                               "Hartebeest","Plain's zebra", 
                               "Polar bear","Pyrenean chamois","Red deer",  "Reindeer", "Roe deer", 
                               "Snowshoe hare","Waterbuck", "White-tailed deer", "Wolverine"))+
-  annotate("text", x = 1, y = 1, label = "A", fontface = 2, size = 20)
+  annotate("text", x = 1, y = 0.9, label = "A", fontface = 2, size = 20)
 
 
 
@@ -699,22 +724,22 @@ ggplot(ccf_max,aes(x=Binomial, y=max_value, group = Binomial, fill =Binomial)) +
                               "Hartebeest","Plain's zebra", 
                               "Polar bear","Pyrenean chamois","Red deer",  "Reindeer", "Roe deer", 
                               "Snowshoe hare","Waterbuck", "White-tailed deer", "Wolverine"))+
-  annotate("text", x = 1, y = 1, label = "B", fontface = 2, size = 20)+
-  annotate("text", x = 1, y = -1, label = "2.00", fontface = 2, size = 5)+
-  annotate("text", x = 2, y = -1, label = "2.42", fontface = 2, size = 5)+
-  annotate("text", x = 3, y = -1, label = "2.33", fontface = 2, size = 5)+
-  annotate("text", x = 4, y = -1, label = "1.69", fontface = 2, size = 5)+
-  annotate("text", x = 5, y = -1, label = "2.39", fontface = 2, size = 5)+
-  annotate("text", x = 6, y = -1, label = "2.08", fontface = 2, size = 5)+
-  annotate("text", x = 7, y = -1, label = "2.75", fontface = 2, size = 5)+
+  annotate("text", x = 1, y = 0.9, label = "B", fontface = 2, size = 20)+
+  annotate("text", x = 1, y = -1, label = "3.40", fontface = 2, size = 5)+
+  annotate("text", x = 2, y = -1, label = "2.79", fontface = 2, size = 5)+
+  annotate("text", x = 3, y = -1, label = "1.67", fontface = 2, size = 5)+
+  annotate("text", x = 4, y = -1, label = "2.75", fontface = 2, size = 5)+
+  annotate("text", x = 5, y = -1, label = "2.11", fontface = 2, size = 5)+
+  annotate("text", x = 6, y = -1, label = "1.83", fontface = 2, size = 5)+
+  annotate("text", x = 7, y = -1, label = "2.05", fontface = 2, size = 5)+
   annotate("text", x = 8, y = -1, label = "1.50", fontface = 2, size = 5)+
-  annotate("text", x = 9, y = -1, label = "1.50", fontface = 2, size = 5)+
-  annotate("text", x = 10, y = -1, label = "1.00", fontface = 2, size = 5)+
-  annotate("text", x = 11, y = -1, label = "1.27", fontface = 2, size = 5)+
-  annotate("text", x = 12, y = -1, label = "1.90", fontface = 2, size = 5)+
-  annotate("text", x = 13, y = -1, label = "3.07", fontface = 2, size = 5)+
-  annotate("text", x = 14, y = -1, label = "2.79", fontface = 2, size = 5)+
-  annotate("text", x = 15, y = -1, label = "1.25", fontface = 2, size = 5)+
+  annotate("text", x = 9, y = -1, label = "1.20", fontface = 2, size = 5)+
+  annotate("text", x = 10, y = -1, label = "1.20", fontface = 2, size = 5)+
+  annotate("text", x = 11, y = -1, label = "2.91", fontface = 2, size = 5)+
+  annotate("text", x = 12, y = -1, label = "1.50", fontface = 2, size = 5)+
+  annotate("text", x = 13, y = -1, label = "2.60", fontface = 2, size = 5)+
+  annotate("text", x = 14, y = -1, label = "2.21", fontface = 2, size = 5)+
+  annotate("text", x = 15, y = -1, label = "1.00", fontface = 2, size = 5)+
   annotate("text", x = 16, y = -1, label = "2.33", fontface = 2, size = 5)
 
 
