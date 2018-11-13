@@ -262,7 +262,7 @@ all_sp<-all_sp[,-1]
 
 
 library(taRifx)
-library(plyr)
+library(dplyr)
 library(mgcv)
 library(zoo)
 
@@ -404,88 +404,88 @@ all_sdm_lambdas<-all_sdm_lambdas %>%
   group_by(ID)%>%
   mutate(HSI_Lambdas = c(diff(log10(HSI)),NA))
 
-##Deer
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Cervus_elaphus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Cervus_elaphus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capra_ibex",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capra_ibex",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Gulo_gulo",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Gulo_gulo",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Lepus_americanus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Lepus_americanus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Odocoileus_virginianus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Odocoileus_virginianus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rangifer_tarandus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rangifer_tarandus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_arctos",], aes(x = Year, y = Lambdas, group = ID), colour = "red")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_arctos",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_maritimus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_maritimus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Alcelaphus_buselaphus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Alcelaphus_buselaphus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capreolus_capreolus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capreolus_capreolus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Connochaetes_taurinus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Connochaetes_taurinus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Equus_burchellii",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Equus_burchellii",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Giraffa_camelopardalis",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Giraffa_camelopardalis",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Kobus_ellipsiprymnus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Kobus_ellipsiprymnus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Phacochoerus_africanus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Phacochoerus_africanus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-ggplot()+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rupicapra_pyrenaica",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
-  geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rupicapra_pyrenaica",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
-  facet_grid(.~ID)
-
-
+# ##Deer
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Cervus_elaphus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Cervus_elaphus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capra_ibex",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capra_ibex",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Gulo_gulo",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Gulo_gulo",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Lepus_americanus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Lepus_americanus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Odocoileus_virginianus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Odocoileus_virginianus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rangifer_tarandus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rangifer_tarandus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_arctos",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_arctos",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_maritimus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Ursus_maritimus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Alcelaphus_buselaphus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Alcelaphus_buselaphus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capreolus_capreolus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Capreolus_capreolus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Connochaetes_taurinus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Connochaetes_taurinus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Equus_burchellii",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Equus_burchellii",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Giraffa_camelopardalis",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Giraffa_camelopardalis",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Kobus_ellipsiprymnus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Kobus_ellipsiprymnus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Phacochoerus_africanus",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Phacochoerus_africanus",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# ggplot()+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rupicapra_pyrenaica",], aes(x = Year, y = Lambdas, group = ID), colour = "black")+
+#   geom_smooth(data = all_sdm_lambdas[all_sdm_lambdas$Binomial == "Rupicapra_pyrenaica",], aes(x = Year, y = HSI_Lambdas, group = ID), colour = "blue")+
+#   facet_grid(.~ID)
+# 
+# 
 #removing a zebra population which is outside of the HSM - perhaps in the sea?
 all_sdm_lambdas<-all_sdm_lambdas%>%
   group_by(ID)%>%
@@ -565,7 +565,7 @@ ccf_get<-function(x){
     # lag_3_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 3)]
     # lag_4_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 4)]
     # lag_5_sdm<-sdm_ccf$acf[which(as.numeric(sdm_ccf$lag) == 5)]
-    
+
     # sm_n5_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -5)]
     # sm_n4_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -4)]
     # sm_n3_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -3)]
@@ -573,13 +573,7 @@ ccf_get<-function(x){
     # sm_n1_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == -1)]
     # sm_0_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 0)]
     # 
-    # sm_1_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 1)]
-    # sm_2_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 2)]
-    # sm_3_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 3)]
-    # sm_4_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 4)]
-    # sm_5_sdm<-sdm_ccf_smooth$acf[which(as.numeric(sdm_ccf_smooth$lag) == 5)]
-    
-    
+
     empty_check<-function(x){
       if(length(x) ==0){
        x<-NA 
@@ -591,8 +585,9 @@ ccf_get<-function(x){
     #            lag_4_sdm,lag_5_sdm,sm_n5_sdm,sm_n4_sdm,sm_n3_sdm,sm_n2_sdm,sm_n1_sdm,sm_0_sdm,sm_1_sdm,sm_2_sdm,
     #            sm_3_sdm,sm_4_sdm,sm_5_sdm)
     
+
     lags<-list(lag_0_sdm, lag_n1_sdm, lag_n2_sdm, lag_n3_sdm,lag_n4_sdm,lag_n5_sdm)
-    
+
     lags_out<-t(data.frame(unlist(lapply(lags, empty_check))))
    
  
@@ -1104,6 +1099,15 @@ mean_auc_df<-auc %>%
   dplyr::select(Binomial, Model, mean_auc, sd_auc) %>%
   distinct()
 
+
+auc %>%
+  group_by( Model) %>%
+  mutate(mean_auc = mean(AUC), sd_auc = sd(AUC)) %>%
+  ungroup()%>%
+  dplyr::select(Model, mean_auc, sd_auc) %>%
+  distinct()
+
+
 write.csv(mean_auc_df, "Mean_AUC_all_species.csv")
 
 mean_auc<-read.csv("Mean_AUC_all_species.csv")
@@ -1186,6 +1190,11 @@ mean_auc<-read.csv("Mean_AUC_all_species.csv")
 ccf_auc<-merge(ccf_vars, mean_auc, by = "Binomial")
 
 
+mean_auc %>%
+  group_by(Model)%>%
+  summarize(mean_sd = mean(sd_auc))
+
+
 ggplot(data =  ccf_auc, aes(x = mean_auc, y = abs(value)))+
   geom_point()+
   xlab("Mean AUC Score")+
@@ -1209,6 +1218,7 @@ ggplot(data =  rmse_auc, aes(x = mean_auc, y = rmse))+
 
 
 
+ccf_max_lpi<-merge(ccf_max, lpi[,c("ID", "Managed")], by = "ID")
 
 ####geographic
 
@@ -1313,5 +1323,4 @@ t.test(ccf_geo[ccf_geo$Order == "Lagomorpha",]$value, ccf_geo[ccf_geo$Order == "
 
 
 
-
-
+boxplot(ccf_max_lpi$max_value ~ccf_max_lpi$Managed)
