@@ -159,6 +159,11 @@ melt_lambda_short$ID<-as.factor(melt_lambda_short$ID)
 
 melt_lambda_short<-melt_lambda_short[complete.cases(melt_lambda_short),]
 
+#write.csv(melt_lambda_short, "melt_lambda_short_ursus.csv")
+
+melt_lambda_short<-read.csv("melt_lambda_short_ursus.csv")
+
+
 ggplot()+
   geom_smooth(data = melt_lambda_short, aes(x= Year, y=Lambdas, group=interaction(ldd, SD), colour= ID), method="loess", SE=FALSE)+
   facet_grid(~ ID)
@@ -261,6 +266,8 @@ fill<-data.frame(rep(pops$ID, each=length(1950:2004)), 1950:2004)
 colnames(fill)<-c("ID", "Year")
 
 all_year_ab<-join(fill, gam_r, type="right")
+
+#write.csv(all_year_ab, "all_year_ab_ursus.csv")
 
 colnames(melt_lambda_short)[1]<-"ID"
 
@@ -454,7 +461,7 @@ ggplot(rmse_out,aes(x=ID, y=cnd, group = ID)) +
         axis.title=element_text(size=20))
 
 
-vg<-vg[vg$ID == 4357 |vg$ID == 4358, ]
+#vg<-vg[vg$ID == 4357 |vg$ID == 4358, ]
 
 
 
@@ -520,13 +527,12 @@ ccf_get<-function(x){
     
     n_used<-cnd_ccf$n.used
     
-     #   ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, lag_n5_cnd,lag_n5_sdm,lag_n4_cnd,lag_n4_sdm,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm,lag_1_cnd, lag_1_sdm,lag_2_cnd, lag_2_sdm,lag_3_cnd, lag_3_sdm,lag_4_cnd, lag_4_sdm,lag_5_cnd, lag_5_sdm )
-  #  ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, cnd_x$rep_id,n_used,lag_n5_cnd,lag_n5_sdm,lag_n4_cnd,lag_n4_sdm,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm)
-    ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, cnd_x$rep_id,n_used,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm)
+    ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, cnd_x$rep_id,n_used,lag_n5_cnd,lag_n5_sdm,lag_n4_cnd,lag_n4_sdm,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm)
+  #  ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, cnd_x$rep_id,n_used,lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm)
 
     # colnames(ccf_out)<-c("ID","ldd","SD","rep_id","cnd_n5", "sdm_n5","cnd_n4", "sdm_n4","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0","cnd_1", "sdm_1","cnd_2", "sdm_2","cnd_3", "sdm_3","cnd_4", "sdm_4","cnd_5", "sdm_5")
-   # colnames(ccf_out)<-c("ID","ldd","SD","rep_id","N_used", "cnd_n5", "sdm_n5","cnd_n4", "sdm_n4","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0")
-    colnames(ccf_out)<-c("ID","ldd","SD","rep_id","N_used", "cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0")
+    colnames(ccf_out)<-c("ID","ldd","SD","rep_id","N_used", "cnd_n5", "sdm_n5","cnd_n4", "sdm_n4","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0")
+   # colnames(ccf_out)<-c("ID","ldd","SD","rep_id","N_used", "cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0")
     
     #  ccf_out<-data.frame(cnd_x$ID, cnd_x$ldd, cnd_x$SD, cnd_x$rep_id, lag_n3_cnd,lag_n3_sdm,lag_n2_cnd, lag_n2_sdm, lag_n1_cnd, lag_n1_sdm, lag_0_cnd, lag_0_sdm,lag_1_cnd, lag_1_sdm,lag_2_cnd, lag_2_sdm,lag_3_cnd, lag_3_sdm)
     #  colnames(ccf_out)<-c("ID","ldd","SD","rep_id","cnd_n3", "sdm_n3","cnd_n2", "sdm_n2","cnd_n1", "sdm_n1", "cnd_0", "sdm_0","cnd_1", "sdm_1","cnd_2", "sdm_2","cnd_3", "sdm_3")
@@ -538,7 +544,7 @@ ccf_get<-function(x){
 }
 
 
-ccf_scores<-sapply(1:nrow(vg), ccf_get)
+ccf_scores<-lapply(1:nrow(vg), ccf_get)
 #ccf_scores<-sapply(1:10000, ccf_get)
 
 ccf_all<-ccf_scores[lapply(ccf_scores,length)>0] 
@@ -548,18 +554,25 @@ ccf_df<-do.call( "rbind",ccf_all)
 #colnames(ccf_df)<-c("ID","ldd","SD","rep_id","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0","cnd lag 1", "sdm lag 1","cnd lag 2", "sdm lag 2","cnd lag 3", "sdm lag 3")
 
 colnames(ccf_df)<-c("ID","ldd","SD","rep_id","N_used","cnd lag -5", "sdm lag -5","cnd lag -4", "sdm lag -4","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0")
+#colnames(ccf_df)<-c("ID","ldd","SD","rep_id","N_used","cnd lag -3", "sdm lag -3","cnd lag -2", "sdm lag -2","cnd lag -1", "sdm lag -1", "cnd lag 0", "sdm lag 0")
+
 
 ccf_melt<-melt(ccf_df, id.vars = c("ID", "ldd", "SD", "rep_id", "N_used"))
 #ccf_melt<-melt(ccf_df, id.vars = c("ID", "ldd", "SD"))
 ccf_melt<-unique(ccf_melt)
-
+ccf_melt_short<-ccf_melt
 #
 
 #write.table(ccf_melt, "ccf_melt_ursus2.csv")
+#write.table(ccf_melt, "ccf_melt_ursus2_short.csv")
 # #save(ccf_melt, file = "ccf_melt_ursus2.RData")
+ccf_melt_short<-read.table("ccf_melt_ursus2_short.csv")
 ccf_melt<-read.table("ccf_melt_ursus2.csv")
  #load("ccf_melt_ursus.RData")
-# 
+
+ccf_melt<-rbind(ccf_melt, ccf_melt_short)
+
+
 # for(i in 1:length(ccf_melt$variable)){
 #   
 #   if (grepl( "cnd",ccf_melt$variable[i])){
@@ -632,9 +645,9 @@ ccf_melt$ID<-as.factor(ccf_melt$ID)
 
 
 ggplot(ccf_melt[ccf_melt$variable == "cnd lag 0" ,],aes(x=ID, y=value, group = ID)) + 
-  geom_violin(linetype = "solid", size = 1.5)+
+  geom_boxplot(linetype = "solid", size = 1)+
   #geom_point(size = 2)+
-  geom_point(data = ccf_melt[ccf_melt$variable == "sdm lag 0",], aes(x = ID, y = value), size = 5, colour = "red", shape = 3)+
+  geom_point(data = ccf_melt[ccf_melt$variable == "sdm lag 0",], aes(x = ID, y = value), size = 5, colour = "red")+
   geom_hline(yintercept=0, linetype = "dashed")+
   theme_bw()+
   ylim(-1,1)+
@@ -682,7 +695,7 @@ ccf_max<-ccf_max[ccf_max$value == ccf_max$max_value,]
 # ccf_max_sdm<-unique(ccf_max_sdm)
 
 ggplot(ccf_max[ccf_max$model == "cnd",],aes(x=ID, y=max_value, group = ID)) + 
-  geom_violin(size = 1.5)+
+  geom_boxplot(size = 1)+
   #geom_point(size = 2)+
   geom_point(data = ccf_max[ccf_max$model == "sdm",], aes(x = ID, y = value), size = 5, colour = "red")+
   geom_hline(yintercept=0, linetype = "dashed")+
@@ -692,6 +705,21 @@ ggplot(ccf_max[ccf_max$model == "cnd",],aes(x=ID, y=max_value, group = ID)) +
   ylab("Correlation Coefficient")+
   theme(legend.position="none",axis.text=element_text(size=16),
         axis.title=element_text(size=20))
+
+
+
+# ggplot(ccf_melt[ccf_melt$variable == "cnd lag 0" ,],aes(x=ID, y=value, group = ID)) + 
+#   geom_boxplot(size = 1)+
+#   #geom_point(size = 2)+
+#   geom_point(data = ccf_max[ccf_max$model == "sdm",], aes(x = ID, y = value), size = 5, colour = "red")+
+#   geom_hline(yintercept=0, linetype = "dashed")+
+#   theme_bw()+
+#   ylim(-1,1)+
+#   xlab("Population")+
+#   ylab("Correlation Coefficient")+
+#   theme(legend.position="none",axis.text=element_text(size=16),
+#         axis.title=element_text(size=20))
+# 
 
 
 
@@ -746,4 +774,57 @@ ggplot(ccf_melt_cndn3, aes(x=ID, y=value, group = ID))+#, colour = SD,  shape = 
   labs(y = "Correlation")+
   theme_bw()
 
+
+years<-all_year_ab%>%
+  group_by(ID)%>%
+  mutate(year_min = min(Year), year_max = max(Year))%>%
+  select(ID, year_min, year_max)%>%
+  distinct()
+
+melt_lambda_short<-merge(melt_lambda_short, years)
+
+
+sum_lambdas_obs<-all_year_ab%>%
+  group_by(ID)%>%
+  mutate(sum_lambdas_obs = sum(Lambdas), mean_lambdas_obs = mean(Lambdas))%>%
+  ungroup()
+
+
+#####compare lambdas
+
+
+sum_lambdas<-melt_lambda_short%>%
+  group_by(ID, ldd,SD, rep_id)%>%
+  filter(Year >= year_min & Year <= year_max)%>%
+  summarize(sum_lambda = sum(Lambdas), mean_lambda = mean(Lambdas))%>%
+  ungroup()
+  
+
+
+sum_lambdas$ID<-as.factor(sum_lambdas$ID)
+sum_lambdas_obs$ID<-as.factor(sum_lambdas_obs$ID)
+
+
+ggplot(data = sum_lambdas,aes(x=ID, y=sum_lambda, group = ID)) + 
+  geom_boxplot(linetype = "solid", size = 1)+
+  #geom_point(size = 2)+
+  geom_point(data = sum_lambdas_obs, aes(x = ID, y = sum_lambdas_obs, group = ID), size = 5, colour = "red")+
+  geom_hline(yintercept=0, linetype = "dashed")+
+  theme_bw()+
+  xlab("Population")+
+  ylab("Sum Lambdas")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+        axis.title=element_text(size=20))
+
+
+ggplot(data = sum_lambdas,aes(x=ID, y=mean_lambda, group = ID)) + 
+  geom_boxplot(linetype = "solid", size = 1)+
+  #geom_point(size = 2)+
+  geom_point(data = sum_lambdas_obs, aes(x = ID, y = mean_lambdas_obs, group = ID), size = 5, colour = "red")+
+  geom_hline(yintercept=0, linetype = "dashed")+
+  theme_bw()+
+  xlab("Population")+
+  ylab("Average Growth Rate")+
+  theme(legend.position="none",axis.text=element_text(size=16),
+        axis.title=element_text(size=20))
 
