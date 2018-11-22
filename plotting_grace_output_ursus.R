@@ -1,33 +1,20 @@
-
-
-#There are some NAs in rep_id - not sure why..... find out!
-#need to take out the population trends which crashed out and make a note of which ones these were
-#need to talk to damaris about optimising the matrix
-
 library(reshape2)
 library(sp)
 library(raster)
 wd<-getwd()
-lpi<-read.csv("LPI_pops_20160523_edited.csv")
 
 spin_years<-1940:1949
 years<-1950:2005
 
 binomial = "Ursus_arctos"
-#demoniche_folder<-"C:/Users/Fiona/Documents/PhD/PhD_Method/Legion/cervus_output"
-#demoniche_folder<-"D:/Fiona/Git_Method/Git_Method/Legion/snow_cervus_bias/output_new"
 
-demoniche_folder<-paste(wd, "/Legion/snow_bear_bias_faster/output_smooth", sep="")
-#demoniche_folder<-paste(wd, "/Legion/snow_cervus_test/output_test", sep="")
+lpi<-read.csv("LPI_pops_20160523_edited.csv")
+
+demoniche_folder<-paste(getwd(), "/Legion/snow_bear_bias_new/output_smooth", sep="")
 l<-list.files(demoniche_folder)
 nf<-length(list.files(paste(demoniche_folder, l[1], sep="/")))
 
-
-
 highfoldernames<-list.files(demoniche_folder)
-#lowfoldernames<-rep(1:nf, each=length(l))
-
-#foldernames<-paste(highfoldernames, lowfoldernames, sep="/")
 
 sp_lpi<-lpi[lpi$Binomial == binomial & lpi$Specific_location ==1 & lpi$Region == "North America",]
 
@@ -73,24 +60,10 @@ df <- do.call("rbind", demoniche_pop_out)
 #write.csv(df, "ursus_arctos_results_all.csv")
 #save(df, file ="ursus_arctos_results_all.RData")
 
-df<-read.csv("ursus_arctos_results_all.csv")
+df<-read.csv(paste(getwd(), "/Legion/snow_bear_bias_new/ursus_arctos_results_all.csv", sep=""))
 df<-df[,-1]
 
 dfm<-as.matrix(df)
-
-# lambda<-function(x){
-#   
-#   l10<-diff(log1p(as.numeric(x[10:length(x)])))
-#   #l10<-10^diff(log1p(as.numeric(x[20:length(x)])))
-#   
-# }
-# 
-# dft<-t(apply(dfm,1,lambda))
-# 
-# df_lambda<-data.frame(dfm[,1:8],dft)
-# 
-# colnames(df_lambda)[9:ncol(df_lambda)]<-colnames(dfm)[9:ncol(df_lambda)]
-
 
 melt_df<-melt(df, id=1:8)
 melt_df$year<-as.numeric(gsub("Year_", "", melt_df$variable))
@@ -100,21 +73,21 @@ melt_short$sp_lpi.ID<-as.factor(melt_short$sp_lpi.ID)
 
 
 library(ggplot2)
-ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD, rep_id), colour= sp_lpi.ID))+
-  geom_line()+
-  #geom_smooth()+
-  facet_grid(~ sp_lpi.ID)
-
-
-ggplot(melt_short, aes(x= year, y=c(diff(log10(value)),NA), group=interaction(ldd, SD, rep_id), colour= sp_lpi.ID))+
-  geom_line()+
-  #geom_smooth()+
-  facet_grid(~ sp_lpi.ID)
-
-ggplot(melt_short, aes(x= year, y=c(diff(log10(value)),NA), group=interaction(ldd, SD), colour= sp_lpi.ID))+
-  #geom_line()+
-  geom_smooth()+
-  facet_grid(~ sp_lpi.ID)
+# ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD, rep_id), colour= sp_lpi.ID))+
+#   geom_line()+
+#   #geom_smooth()+
+#   facet_grid(~ sp_lpi.ID)
+# 
+# 
+# ggplot(melt_short, aes(x= year, y=c(diff(log10(value)),NA), group=interaction(ldd, SD, rep_id), colour= sp_lpi.ID))+
+#   geom_line()+
+#   #geom_smooth()+
+#   facet_grid(~ sp_lpi.ID)
+# 
+# ggplot(melt_short, aes(x= year, y=c(diff(log10(value)),NA), group=interaction(ldd, SD), colour= sp_lpi.ID))+
+#   #geom_line()+
+#   geom_smooth()+
+#   facet_grid(~ sp_lpi.ID)
 
 
 melt_short$ldd_sd<-paste(melt_short$ldd, melt_short$SD, sep="_")
@@ -152,7 +125,7 @@ gam_smooth<-function(x){
   
 }
 
-df_out<-lapply(dfl, gam_smooth)
+df_out<-sapply(dfl, gam_smooth)
 melt_lambda_short<-do.call( "rbind", df_out)
 
 melt_lambda_short$ID<-as.factor(melt_lambda_short$ID)
