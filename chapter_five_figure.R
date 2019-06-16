@@ -234,10 +234,17 @@ ch2_vals<-ch2_fit[ch2_fit$ID %in% sum_lambdas$ID, c("ID", "fitted")]
 ch2_vals<-select(ch2_vals, ID, fitted)
 
 
+ch2_noranef<-read.csv("ch5_pops_ch2_pred_no_ranef.csv")
+ch2_noranef<-ch2_noranef[,-1]
+ch2_noranef<-select(ch2_noranef, ID, preds_no_ranef)
+
+
 sum_lambdas<-merge(sum_lambdas, ch2_vals, by="ID")
+sum_lambdas<-merge(sum_lambdas, ch2_noranef, by="ID")
 
 
 sum_lambdas$fitted_perc<-((10^sum_lambdas$fitted)-1)*100
+sum_lambdas$noranef_perc<-((10^sum_lambdas$preds_no_ranef)-1)*100
 
 library(ggplot2)
 
@@ -247,6 +254,7 @@ ggplot(data = sum_lambdas,aes(x=CName, y=((10^mean_lambda)-1)*100, group = ID, f
   #geom_point(size = 2)+
   geom_point(position = position_dodge(width = 0.9), aes(y = ((10^mean_lambdas_obs)-1)*100, group =ID), size = 5, colour = "black")+
   geom_point(position = position_dodge(width = 0.9), aes(y = ((10^fitted)-1)*100, group =ID), size = 5, colour = "red", shape = 2)+
+  geom_point(position = position_dodge(width = 0.9), aes(y = ((10^preds_no_ranef)-1)*100, group =ID), size = 5, colour = "blue", shape = 3)+
   geom_hline(yintercept=0, linetype = "dashed")+
   geom_vline(xintercept=1.5, linetype = "dashed")+
   geom_vline(xintercept=2.5, linetype = "dashed")+
