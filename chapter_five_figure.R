@@ -239,6 +239,11 @@ ch2_noranef<-read.csv("ch5_pops_ch2_pred_no_ranef.csv")
 ch2_noranef<-ch2_noranef[,-1]
 colnames(ch2_noranef)<-c("ID", "preds_no_ranef")
 
+ch2_noranef<-read.csv("ch5_pops_ch2_pred_no_ranef.csv")
+ch2_noranef<-ch2_noranef[,-1]
+ch2_noranef<-select(ch2_noranef, ID, preds_no_ranef)
+
+
 sum_lambdas<-merge(sum_lambdas, ch2_vals, by="ID")
 sum_lambdas<-merge(sum_lambdas, ch2_noranef, by="ID")
 
