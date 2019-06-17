@@ -64,7 +64,7 @@ ggplot(ccf_melt[ccf_melt$lag == 0 ,],aes(x=CName, y=value, group = ID, fill = CN
   theme_bw()+
   ylim(-1,1)+
   xlab("")+
-  ylab("Correlation Coefficient")+
+  ylab("Correlation with Trends in Observed \nPopulation Growth Rates")+
   annotate("text", x = 0.55, y = 0.9, label = "A", fontface = 2, size = 20)+
   theme(legend.position="none",axis.text=element_text(size=20),
         axis.title=element_text(size=20))
@@ -173,6 +173,8 @@ obs_lambdas<-obs_lambdas[,-c(1,2)]
 cnd_lambdas<-read.csv("cnd_lambdas_all.csv")
 cnd_lambdas<-cnd_lambdas[,-1]
 
+
+
 library(dplyr)
 sum_lambdas_obs<-obs_lambdas%>%
   group_by(ID)%>%
@@ -231,13 +233,35 @@ ch2_fit<-read.csv("fitted_values_mammals.csv")
 ch2_fit<-ch2_fit[,-1]
 
 ch2_vals<-ch2_fit[ch2_fit$ID %in% sum_lambdas$ID, c("ID", "fitted")]
-ch2_vals<-select(ch2_vals, ID, fitted)
+ch2_vals<-dplyr::select(ch2_vals, ID, fitted)
 
+ch2_noranef<-read.csv("ch5_pops_ch2_pred_no_ranef.csv")
+ch2_noranef<-ch2_noranef[,-1]
+colnames(ch2_noranef)<-c("ID", "preds_no_ranef")
 
 sum_lambdas<-merge(sum_lambdas, ch2_vals, by="ID")
+sum_lambdas<-merge(sum_lambdas, ch2_noranef, by="ID")
 
 
 sum_lambdas$fitted_perc<-((10^sum_lambdas$fitted)-1)*100
+sum_lambdas$mean_lambda_obs_perc<-((10^sum_lambdas$mean_lambdas_obs)-1)*100
+sum_lambdas$noranef_perc<-((10^sum_lambdas$preds_no_ranef)-1)*100
+
+
+sum_lambdas<-sum_lambdas %>%
+  group_by(ID, ldd, SD)%>%
+  mutate(median_lambda_cnd  = median(mean_lambda))
+
+
+sum_lambdas$sign_same <- sign(sum_lambdas$mean_lambdas_obs) == sign(sum_lambdas$median_lambda_cnd)
+
+
+chk<-sum_lambdas %>%
+  select(ID, ldd, SD, mean_lambdas_obs, median_lambda_cnd, sign_same) %>%
+  distinct()
+
+sum(chk$sign_same)/487
+
 
 library(ggplot2)
 
@@ -247,6 +271,7 @@ ggplot(data = sum_lambdas,aes(x=CName, y=((10^mean_lambda)-1)*100, group = ID, f
   #geom_point(size = 2)+
   geom_point(position = position_dodge(width = 0.9), aes(y = ((10^mean_lambdas_obs)-1)*100, group =ID), size = 5, colour = "black")+
   geom_point(position = position_dodge(width = 0.9), aes(y = ((10^fitted)-1)*100, group =ID), size = 5, colour = "red", shape = 2)+
+ geom_point(position = position_dodge(width = 0.9), aes(y = ((10^preds_no_ranef)-1)*100, group =ID), size = 5, colour = "blue", shape = 3)+
   geom_hline(yintercept=0, linetype = "dashed")+
   geom_vline(xintercept=1.5, linetype = "dashed")+
   geom_vline(xintercept=2.5, linetype = "dashed")+
@@ -257,6 +282,16 @@ ggplot(data = sum_lambdas,aes(x=CName, y=((10^mean_lambda)-1)*100, group = ID, f
   #annotate("text", x = 0.55, y = 0.175, label = "A", fontface = 2, size = 20)+
   theme(legend.position="none",axis.text=element_text(size=20),
         axis.title=element_text(size=20))
+
+
+
+
+
+m0_out<-sum_lambdas %>%
+  group_by(ID)%>%
+  mutate(diff_fit = abs(mean_lambda_obs_perc - fitted_perc), diff_noranef = abs(mean_lambda_obs_perc - noranef_perc)) %>%
+  select(ID,CName, diff_fit, diff_noranef)%>%
+  distinct()
 
 
 
@@ -325,9 +360,38 @@ vals<-t(im$z[,seq(from=ncol(im$z), to = 1, by = -1)])
 ras<-raster(ncol = 40, nrow = 40)
 extent(ras)<-extent(0,0.5, 0,0.5)
 values(ras)<-((10^vals)-1)*100
-plot(ras, xlab = "Dispersal Rate", ylab = "Stochasticity", main = paste(x, sep= " " ))
+
+test_spdf <- as(ras, "SpatialPixelsDataFrame")
+test_df <- as.data.frame(test_spdf)
+colnames(test_df) <- c("value", "x", "y")
+
+ggplot() +  
+  geom_tile(data=test_df, aes(x=x, y=y, fill=value), alpha=0.8)+
+  scale_fill_viridis(name = "Average Population \nGrowth Rate (%)")+
+  theme_bw()+
+  xlab("Dispersal Rate")+
+  ylab("Transition Matrix Stochasticity")+
+  labs(title = paste(x, sep=""))+ theme(axis.text=element_text(size=20),
+                                        axis.title=element_text(size=20), title = element_text(size= 20),legend.text=element_text(size=15))
+
+
+
 }
 
+
+test_spdf <- as(ras, "SpatialPixelsDataFrame")
+test_df <- as.data.frame(test_spdf)
+colnames(test_df) <- c("value", "x", "y")
+
+library(viridis)
+
+ggplot() +  
+  geom_tile(data=test_df, aes(x=x, y=y, fill=value), alpha=0.8)+
+  scale_fill_viridis(name = "Average Population \nGrowth Rate (%)")+
+  theme_bw()+
+  xlab("Dispersal Rate")+
+  ylab("Transition Matrix Stochasticity")+
+  main(x)
 
 
 
