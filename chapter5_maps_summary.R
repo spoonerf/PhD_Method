@@ -30,22 +30,22 @@ melt_short<-melt_short %>%
   filter(sp_lpi.ID == "543" | sp_lpi.ID == "6555" | sp_lpi.ID == "11176" | sp_lpi.ID == "11180")
 
 
+melt_short$sp_lpi.ID <- factor(melt_short$sp_lpi.ID, levels = c("543", "6555", "11176", "11178", "11180", "11489", "11494"), 
+                               labels = c("n", "o", "p", " ", "q", " "," "))
+
 melt_short_summary<-melt_short %>%
   group_by(sp_lpi.ID, year) %>%
   mutate(mean_abund = mean(value))
-
-supp.labs <- c("n","o", "p", "q")
-names(supp.labs) <- c("543", "6555", "11176", "11180")
 
 
 library(ggplot2)
 ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD, rep_id)))+
   geom_line(colour= alpha("grey", 0.5))+
   geom_line(data = melt_short_summary, aes(x = year, y = mean_abund ,colour = sp_lpi.ID))+
-  #geom_smooth()+
-  facet_grid(~ sp_lpi.ID, labeller = supp.labs)+
+  facet_grid(~ sp_lpi.ID)+
+  #facet_grid(~ sp_lpi.ID, labeller = supp.labs)+
   xlab("Year")+
-  ylab("Total Predicted Abundance")
+  ylab("Total Predicted Abundance")+theme(legend.position = "none") 
 
 #########Maps
 
