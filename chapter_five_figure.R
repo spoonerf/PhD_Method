@@ -72,8 +72,8 @@ ccf_melt$ldd_sd<-paste(ccf_melt$ldd, ccf_melt$SD, sep = "_")
 
 ccf_max<-ccf_melt%>%
   group_by(ID,ldd_sd)%>%
-  mutate(max_value = max(value), max_sdm_value = max(sdm_value))%>%
-  dplyr:::select(ID,rep_id,N_used,lag,value,max_value, sdm_value,max_sdm_value, CName, ldd, SD)%>%
+  mutate(max_value = max(value), max_sdm_value = max(sdm_value), min_value = min(value), min_sdm_value = min(sdm_value))%>%
+  dplyr:::select(ID,rep_id,N_used,lag,value,max_value,min_value ,sdm_value,max_sdm_value,min_sdm_value ,CName, ldd, SD)%>%
   distinct()
 
 ccf_max<-ccf_max[ccf_max$value == ccf_max$max_value,]
@@ -103,6 +103,7 @@ ggplot(ccf_max,aes(x=CName, y=value, group = ID, fill = CName)) +
   scale_fill_manual(values=c("#d8b365", "#f5f5f5","#5ab4ac"))+
   #geom_point(size = 2)+
   geom_point(position = position_dodge(width = 0.9), aes(y = max_sdm_value, group =ID), size = 5, colour = "red")+
+  #geom_point(position = position_dodge(width = 0.9), aes(y = max_sdm_value, group =ID), size = 5, colour = "red")+
   geom_hline(yintercept=0, linetype = "dashed")+
   geom_vline(xintercept=1.5, linetype = "dashed")+
   geom_vline(xintercept=2.5, linetype = "dashed")+
@@ -113,6 +114,26 @@ ggplot(ccf_max,aes(x=CName, y=value, group = ID, fill = CName)) +
   annotate("text", x = 0.55, y = 0.9, label = "B", fontface = 2, size = 20)+
   theme(legend.position="none",axis.text=element_text(size=20),
         axis.title=element_text(size=20))
+
+
+
+ggplot(ccf_max,aes(x=CName, y=min_value, group = ID, fill = CName)) + 
+  geom_boxplot(position = position_dodge(width = 0.9))+
+  scale_fill_manual(values=c("#d8b365", "#f5f5f5","#5ab4ac"))+
+  #geom_point(size = 2)+
+  geom_point(position = position_dodge(width = 0.9), aes(y = max_sdm_value, group =ID), size = 5, colour = "red")+
+  #geom_point(position = position_dodge(width = 0.9), aes(y = max_sdm_value, group =ID), size = 5, colour = "red")+
+  geom_hline(yintercept=0, linetype = "dashed")+
+  geom_vline(xintercept=1.5, linetype = "dashed")+
+  geom_vline(xintercept=2.5, linetype = "dashed")+
+  theme_bw()+
+  ylim(-1,1)+
+  xlab("")+
+  ylab("Maximum Correlation Coefficient")+
+  annotate("text", x = 0.55, y = 0.9, label = "B", fontface = 2, size = 20)+
+  theme(legend.position="none",axis.text=element_text(size=20),
+        axis.title=element_text(size=20))
+
 
 
 
