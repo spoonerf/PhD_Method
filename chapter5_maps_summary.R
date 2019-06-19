@@ -1,4 +1,5 @@
-
+library(dplyr)
+library(reshape2)
 ####pop trend plots
 
 df<-read.csv("cervus_elaphus_results_all.csv")
@@ -19,6 +20,7 @@ dfm<-as.matrix(df)
 # 
 # colnames(df_lambda)[9:ncol(df_lambda)]<-colnames(dfm)[9:ncol(df_lambda)]
 
+spin_years<-10
 
 melt_df<-melt(df, id=1:8)
 melt_df$year<-as.numeric(gsub("Year_", "", melt_df$variable))
@@ -41,9 +43,8 @@ names(supp.labs) <- c("543", "6555", "11176", "11180")
 library(ggplot2)
 ggplot(melt_short, aes(x= year, y=value, group=interaction(ldd, SD, rep_id)))+
   geom_line(colour= alpha("grey", 0.5))+
-  geom_line(data = melt_short_summary, aes(x = year, y = mean_abund ,colour = sp_lpi.ID))+
-  #geom_smooth()+
-  facet_grid(~ sp_lpi.ID, labeller = supp.labs)+
+  geom_line(data = melt_short_summary, aes(x = year, y = mean_abund ,colour = sp_lpi.ID), size = 2)+
+  facet_grid(~ sp_lpi.ID)+
   xlab("Year")+
   ylab("Total Predicted Abundance")
 
